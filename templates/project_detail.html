@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}{{ project.name }} - Construction CRM{% endblock %}
+{% block title %}{{ project.name }} - AKC LLC{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col">
         <h1>{{ project.name }}</h1>
+        <p class="text-muted">Client: {{ project.client }}</p>
     </div>
     <div class="col-auto">
         <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Projects</a>
@@ -15,7 +16,7 @@
 
 <div class="row">
     <div class="col-md-8">
-        <div class="card shadow mb-4">
+        <div class="card mb-4">
             <div class="card-header">
                 <h5 class="card-title mb-0">Project Details</h5>
             </div>
