@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - Construction CRM{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>{{ project.name }}</h1>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Projects</a>
+        <a href="#" class="btn btn-primary">Edit Project</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Project Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Project ID:</div>
+                    <div class="col-md-9">{{ project.id }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Client:</div>
+                    <div class="col-md-9">{{ project.client }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Status:</div>
+                    <div class="col-md-9">
+                        <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% else %}bg-warning{% endif %}">
+                            {{ project.status }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Project Timeline</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-success"></div>
+                        <div class="timeline-content">
+                            <h5>Project Started</h5>
+                            <p class="text-muted">January 15, 2023</p>
+                            <p>Initial project planning and client consultation completed.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-primary"></div>
+                        <div class="timeline-content">
+                            <h5>Design Phase</h5>
+                            <p class="text-muted">February 10, 2023</p>
+                            <p>Design documents approved by client.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-info"></div>
+                        <div class="timeline-content">
+                            <h5>Construction Phase</h5>
+                            <p class="text-muted">March 5, 2023</p>
+                            <p>Construction work has begun on site.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Project Stats</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Progress</label>
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">65%</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Budget Utilization</label>
+                    <div class="progress">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 45%;" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">45%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Contact Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <div class="fw-bold">Project Manager</div>
+                        <div>Michael Johnson</div>
+                        <div><a href="mailto:michael@example.com">michael@example.com</a></div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="fw-bold">Site Supervisor</div>
+                        <div>Sarah Williams</div>
+                        <div><a href="mailto:sarah@example.com">sarah@example.com</a></div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+.timeline-item {
+    position: relative;
+    margin-bottom: 2rem;
+}
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    top: 5px;
+}
+.timeline-content {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+</style>
+{% endblock %} 
