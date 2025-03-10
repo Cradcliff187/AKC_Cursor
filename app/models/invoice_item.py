@@ -44,17 +44,17 @@ class InvoiceItem:
     def from_dict(data):
         """Create an InvoiceItem object from a dictionary"""
         if not data:
-            return None
+            return InvoiceItem()  # Return an empty InvoiceItem object instead of None
         return InvoiceItem(
             id=data.get('id'),
             invoice_id=data.get('invoice_id'),
             description=data.get('description'),
-            quantity=data.get('quantity'),
-            unit_price=data.get('unit_price'),
-            amount=data.get('amount'),
-            type=data.get('type'),
-            sort_order=data.get('sort_order'),
-            taxable=data.get('taxable'),
+            quantity=data.get('quantity', 1.0),
+            unit_price=data.get('unit_price', 0.0),
+            amount=data.get('amount', 0.0),
+            type=data.get('type', InvoiceItem.TYPE_SERVICE),
+            sort_order=data.get('sort_order', 0),
+            taxable=data.get('taxable', True),
             created_at=data.get('created_at'),
             updated_at=data.get('updated_at')
         )
@@ -77,6 +77,10 @@ class InvoiceItem:
     
     def calculate_amount(self):
         """Calculate the amount based on quantity and unit price"""
-        self.amount = round(self.quantity * self.unit_price, 2)
+        # Ensure we have valid numeric values before multiplication
+        qty = float(self.quantity) if self.quantity is not None else 0.0
+        unit_price = float(self.unit_price) if self.unit_price is not None else 0.0
+        
+        self.amount = round(qty * unit_price, 2)
         self.updated_at = datetime.now()
         return self.amount 

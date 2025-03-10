@@ -8,6 +8,7 @@ class Invoice:
     STATUS_SENT = "Sent"
     STATUS_VIEWED = "Viewed"
     STATUS_PARTIAL = "Partially Paid"
+    STATUS_PARTIALLY_PAID = "Partially Paid"  # Alias for STATUS_PARTIAL for better readability
     STATUS_PAID = "Paid"
     STATUS_OVERDUE = "Overdue"
     STATUS_CANCELLED = "Cancelled"
@@ -75,22 +76,22 @@ class Invoice:
     def from_dict(data):
         """Create an Invoice object from a dictionary"""
         if not data:
-            return None
+            return Invoice()  # Return an empty Invoice object instead of None
         return Invoice(
             id=data.get('id'),
             invoice_number=data.get('invoice_number'),
             client_id=data.get('client_id'),
             project_id=data.get('project_id'),
-            status=data.get('status'),
+            status=data.get('status', Invoice.STATUS_DRAFT),  # Default to DRAFT if not provided
             issue_date=data.get('issue_date'),
             due_date=data.get('due_date'),
-            subtotal=data.get('subtotal'),
-            tax_rate=data.get('tax_rate'),
-            tax_amount=data.get('tax_amount'),
-            discount_amount=data.get('discount_amount'),
-            total_amount=data.get('total_amount'),
-            amount_paid=data.get('amount_paid'),
-            balance_due=data.get('balance_due'),
+            subtotal=data.get('subtotal', 0.0),
+            tax_rate=data.get('tax_rate', 0.0),
+            tax_amount=data.get('tax_amount', 0.0),
+            discount_amount=data.get('discount_amount', 0.0),
+            total_amount=data.get('total_amount', 0.0),
+            amount_paid=data.get('amount_paid', 0.0),
+            balance_due=data.get('balance_due', 0.0),
             notes=data.get('notes'),
             terms=data.get('terms'),
             footer=data.get('footer'),
@@ -136,10 +137,27 @@ class Invoice:
         """Calculate invoice totals based on items"""
         # If items are provided, use them to calculate subtotal
         if items:
-            self.subtotal = sum(item.amount for item in items)
+            # Handle both object items and dictionary items
+            self.subtotal = 0.0
+            taxable_amount = 0.0
+            
+            for item in items:
+                if isinstance(item, dict):
+                    amount = item['amount']
+                    taxable = item.get('taxable', True)
+                    self.subtotal += amount
+                    if taxable:
+                        taxable_amount += amount
+                else:
+                    self.subtotal += item.amount
+                    if getattr(item, 'taxable', True):
+                        taxable_amount += item.amount
         
-        # Calculate tax
-        self.tax_amount = self.subtotal * (self.tax_rate / 100) if self.tax_rate else 0.0
+            # Calculate tax based on taxable amount
+            self.tax_amount = taxable_amount * (self.tax_rate / 100) if self.tax_rate else 0.0
+        else:
+            # If no items provided, calculate tax based on subtotal
+            self.tax_amount = self.subtotal * (self.tax_rate / 100) if self.tax_rate else 0.0
         
         # Calculate total
         self.total_amount = self.subtotal + self.tax_amount - self.discount_amount
@@ -175,6 +193,10 @@ class Invoice:
     
     def is_overdue(self):
         """Check if the invoice is overdue"""
+        # Paid or cancelled invoices are never overdue
+        if self.status in [self.STATUS_PAID, self.STATUS_CANCELLED]:
+            return False
+            
         if not self.due_date:
             return False
         

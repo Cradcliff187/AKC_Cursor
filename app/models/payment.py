@@ -26,7 +26,19 @@ class Payment:
         self.id = id
         self.invoice_id = invoice_id
         self.amount = float(amount) if amount is not None else 0.0
-        self.payment_date = payment_date if payment_date else datetime.now().date()
+        
+        # Handle payment date - could be a string, date object, or None
+        if payment_date is None:
+            self.payment_date = datetime.now().date()
+        elif isinstance(payment_date, str):
+            # Try to parse the string date
+            try:
+                self.payment_date = datetime.strptime(payment_date, '%Y-%m-%d').date()
+            except ValueError:
+                self.payment_date = datetime.now().date()
+        else:
+            self.payment_date = payment_date
+        
         self.payment_method = payment_method
         self.reference_number = reference_number
         self.notes = notes
@@ -38,13 +50,13 @@ class Payment:
     def from_dict(data):
         """Create a Payment object from a dictionary"""
         if not data:
-            return None
+            return Payment()  # Return an empty Payment object instead of None
         return Payment(
             id=data.get('id'),
             invoice_id=data.get('invoice_id'),
-            amount=data.get('amount'),
+            amount=data.get('amount', 0.0),
             payment_date=data.get('payment_date'),
-            payment_method=data.get('payment_method'),
+            payment_method=data.get('payment_method', Payment.METHOD_CHECK),
             reference_number=data.get('reference_number'),
             notes=data.get('notes'),
             created_by_id=data.get('created_by_id'),

@@ -1,3 +1,6 @@
+"""
+Unit tests for the InvoiceItem model
+"""
 import pytest
 from app.models.invoice_item import InvoiceItem
 
@@ -6,112 +9,158 @@ from app.models.invoice_item import InvoiceItem
 class TestInvoiceItemModel:
     
     def test_invoice_item_init(self):
-        """Test InvoiceItem initialization with default values."""
-        item = InvoiceItem()
-        assert item.id is None
-        assert item.invoice_id is None
-        assert item.description is None
-        assert item.quantity == 1.0
-        assert item.unit_price == 0.0
-        assert item.amount == 0.0
-        assert item.type == InvoiceItem.TYPE_SERVICE
-        assert item.sort_order == 0
-        assert item.taxable is True
-    
-    def test_invoice_item_init_with_values(self):
-        """Test InvoiceItem initialization with provided values."""
+        """Test InvoiceItem initialization with various parameters"""
+        # Test with minimal required params
+        item = InvoiceItem(
+            invoice_id=1,
+            description='Test item',
+            quantity=1,
+            unit_price=100.00,
+            amount=100.00
+        )
+        assert item.invoice_id == 1
+        assert item.description == 'Test item'
+        assert item.quantity == 1
+        assert item.unit_price == 100.00
+        assert item.amount == 100.00
+        assert item.type == InvoiceItem.TYPE_SERVICE  # Default type
+        assert item.taxable is True  # Default taxable
+        
+        # Test with all params
         item = InvoiceItem(
             id=1,
             invoice_id=2,
-            description="Test Item",
-            quantity=5.0,
-            unit_price=10.0,
-            amount=50.0,
-            type=InvoiceItem.TYPE_MATERIAL,
+            description='Complete item',
+            quantity=2,
+            unit_price=150.00,
+            amount=300.00,
+            type=InvoiceItem.TYPE_PRODUCT,
             sort_order=1,
-            taxable=False
+            taxable=False,
+            created_at='2023-01-01 10:00:00',
+            updated_at='2023-01-01 10:00:00'
         )
-        
         assert item.id == 1
         assert item.invoice_id == 2
-        assert item.description == "Test Item"
-        assert item.quantity == 5.0
-        assert item.unit_price == 10.0
-        assert item.amount == 50.0
-        assert item.type == InvoiceItem.TYPE_MATERIAL
+        assert item.description == 'Complete item'
+        assert item.quantity == 2
+        assert item.unit_price == 150.00
+        assert item.amount == 300.00
+        assert item.type == InvoiceItem.TYPE_PRODUCT
         assert item.sort_order == 1
         assert item.taxable is False
-    
+
     def test_from_dict(self):
-        """Test creating InvoiceItem from dictionary."""
+        """Test creating an InvoiceItem from a dictionary"""
         data = {
             'id': 1,
             'invoice_id': 2,
-            'description': 'Test Item',
-            'quantity': 5.0,
-            'unit_price': 10.0,
-            'amount': 50.0,
-            'type': InvoiceItem.TYPE_MATERIAL,
+            'description': 'Test item',
+            'quantity': 2,
+            'unit_price': 150.00,
+            'amount': 300.00,
+            'type': 'product',
             'sort_order': 1,
             'taxable': False
         }
-        
         item = InvoiceItem.from_dict(data)
-        
         assert item.id == 1
         assert item.invoice_id == 2
-        assert item.description == 'Test Item'
-        assert item.quantity == 5.0
-        assert item.unit_price == 10.0
-        assert item.amount == 50.0
-        assert item.type == InvoiceItem.TYPE_MATERIAL
+        assert item.description == 'Test item'
+        assert item.quantity == 2
+        assert item.unit_price == 150.00
+        assert item.amount == 300.00
+        assert item.type == 'product'
         assert item.sort_order == 1
         assert item.taxable is False
-    
+        
+        # Test with minimal data
+        minimal_data = {
+            'invoice_id': 3,
+            'description': 'Minimal item',
+            'quantity': 1,
+            'unit_price': 100.00,
+            'amount': 100.00
+        }
+        item = InvoiceItem.from_dict(minimal_data)
+        assert item.invoice_id == 3
+        assert item.description == 'Minimal item'
+        assert item.quantity == 1
+        assert item.unit_price == 100.00
+        assert item.amount == 100.00
+        assert item.type == InvoiceItem.TYPE_SERVICE  # Default type
+        assert item.taxable is True  # Default taxable
+        
+        # Test with empty data
+        item = InvoiceItem.from_dict({})
+        assert item.invoice_id is None
+        assert item.description is None
+        assert item.quantity == 1.0  # Default quantity
+        assert item.unit_price == 0.0  # Default unit price
+        assert item.amount == 0.0  # Default amount
+        assert item.type == InvoiceItem.TYPE_SERVICE  # Default type
+        assert item.taxable is True  # Default taxable
+
     def test_to_dict(self):
-        """Test converting InvoiceItem to dictionary."""
+        """Test converting an InvoiceItem to a dictionary"""
         item = InvoiceItem(
             id=1,
             invoice_id=2,
-            description="Test Item",
-            quantity=5.0,
-            unit_price=10.0,
-            amount=50.0,
-            type=InvoiceItem.TYPE_MATERIAL,
+            description='Test item',
+            quantity=2,
+            unit_price=150.00,
+            amount=300.00,
+            type=InvoiceItem.TYPE_PRODUCT,
             sort_order=1,
             taxable=False
         )
-        
         data = item.to_dict()
-        
         assert data['id'] == 1
         assert data['invoice_id'] == 2
-        assert data['description'] == 'Test Item'
-        assert data['quantity'] == 5.0
-        assert data['unit_price'] == 10.0
-        assert data['amount'] == 50.0
-        assert data['type'] == InvoiceItem.TYPE_MATERIAL
+        assert data['description'] == 'Test item'
+        assert data['quantity'] == 2
+        assert data['unit_price'] == 150.00
+        assert data['amount'] == 300.00
+        assert data['type'] == InvoiceItem.TYPE_PRODUCT
         assert data['sort_order'] == 1
         assert data['taxable'] is False
-    
+
     def test_calculate_amount(self):
-        """Test calculating item amount from quantity and unit price."""
-        # Test with default values
-        item1 = InvoiceItem()
-        item1.calculate_amount()
-        assert item1.amount == 0.0  # 1.0 * 0.0 = 0.0
+        """Test calculating item amount based on quantity and unit price"""
+        item = InvoiceItem(
+            invoice_id=1,
+            description='Test item',
+            quantity=2,
+            unit_price=150.00,
+            amount=0.00  # Initialize with 0
+        )
         
-        # Test with custom values
-        item2 = InvoiceItem(quantity=5.0, unit_price=10.0)
-        item2.calculate_amount()
-        assert item2.amount == 50.0  # 5.0 * 10.0 = 50.0
+        # Calculate the amount
+        item.calculate_amount()
+        assert item.amount == 300.00
         
-        # Test updating values and recalculating
-        item3 = InvoiceItem(quantity=2.0, unit_price=20.0)
-        item3.calculate_amount()
-        assert item3.amount == 40.0  # 2.0 * 20.0 = 40.0
+        # Test with updated quantity
+        item.quantity = 3
+        item.calculate_amount()
+        assert item.amount == 450.00
         
-        item3.quantity = 3.0
-        item3.unit_price = 15.0
-        item3.calculate_amount()
-        assert item3.amount == 45.0  # 3.0 * 15.0 = 45.0 
+        # Test with updated unit price
+        item.unit_price = 200.00
+        item.calculate_amount()
+        assert item.amount == 600.00
+        
+        # Test with zero quantity
+        item.quantity = 0
+        item.calculate_amount()
+        assert item.amount == 0.00
+        
+        # Test with None values (should handle gracefully)
+        item.quantity = None
+        item.unit_price = 100.00
+        item.calculate_amount()
+        assert item.amount == 0.00
+        
+        item.quantity = 1
+        item.unit_price = None
+        item.calculate_amount()
+        assert item.amount == 0.00 
