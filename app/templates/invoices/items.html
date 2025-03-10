@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Invoice Items - #{{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Manage Invoice Items</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('invoices.list_invoices') }}">Invoices</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('invoices.view_invoice', invoice_id=invoice.id) }}">Invoice #{{ invoice.invoice_number }}</a></li>
+        <li class="breadcrumb-item active">Line Items</li>
+    </ol>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-list me-1"></i>
+                    Line Items for Invoice #{{ invoice.invoice_number }}
+                </div>
+                <div>
+                    <button type="button" class="btn btn-primary btn-sm" id="addItemBtn">
+                        <i class="fas fa-plus"></i> Add Line Item
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <form id="itemsForm" method="POST" action="{{ url_for('invoices.manage_invoice_items', invoice_id=invoice.id) }}">
+                <input type="hidden" name="item_data" id="item_data">
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="invoiceItemsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 45%">Description</th>
+                                <th style="width: 10%" class="text-center">Quantity</th>
+                                <th style="width: 15%" class="text-center">Unit Price</th>
+                                <th style="width: 15%" class="text-center">Amount</th>
+                                <th style="width: 15%" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody">
+                            {% for item in items %}
+                            <tr data-id="{{ item.id if item.id else '' }}" data-taxable="{{ 'true' if item.taxable else 'false' }}" data-type="{{ item.type }}">
+                                <td>
+                                    <input type="text" class="form-control item-description" value="{{ item.description }}" required>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control item-quantity text-center" value="{{ item.quantity }}" min="0.01" step="0.01" required>
+                                </td>
+                                <td>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control item-unit-price text-end" value="{{ item.unit_price }}" min="0" step="0.01" required>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <div class="item-amount">
+                                        ${{ '%.2f'|format(item.amount) }}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary edit-item-btn" data-bs-toggle="modal" data-bs-target="#editItemModal">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger delete-item-btn">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr id="noItemsRow">
+                                <td colspan="5" class="text-center">No items added to this invoice. Click "Add Line Item" button to add one.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                                <td class="text-end" id="subtotal">${{ '%.2f'|format(invoice.subtotal) }}</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Tax ({{ invoice.tax_rate }}%):</strong></td>
+                                <td class="text-end" id="tax_amount">${{ '%.2f'|format(invoice.tax_amount) }}</td>
+                                <td></td>
+                            </tr>
+                            {% if invoice.discount_amount > 0 %}
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Discount:</strong></td>
+                                <td class="text-end" id="discount_amount">-${{ '%.2f'|format(invoice.discount_amount) }}</td>
+                                <td></td>
+                            </tr>
+                            {% endif %}
+                            <tr class="table-primary">
+                                <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                <td class="text-end" id="total_amount"><strong>${{ '%.2f'|format(invoice.total_amount) }}</strong></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Changes are not saved until you click the "Save Changes" button.
+                </div>
+                
+                <div class="mt-4 d-flex justify-content-between">
+                    <a href="{{ url_for('invoices.view_invoice', invoice_id=invoice.id) }}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Item Detail Modal -->
+<div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editItemModalLabel">Item Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="modal_item_type" class="form-label">Item Type</label>
+                    <select class="form-select" id="modal_item_type">
+                        <option value="Service">Service</option>
+                        <option value="Product">Product</option>
+                        <option value="Labor">Labor</option>
+                        <option value="Material">Material</option>
+                        <option value="Equipment">Equipment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="modal_item_description" class="form-label">Description</label>
+                    <textarea class="form-control" id="modal_item_description" rows="3"></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="modal_item_quantity" class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="modal_item_quantity" min="0.01" step="0.01">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="modal_item_unit_price" class="form-label">Unit Price</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="modal_item_unit_price" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="modal_item_taxable" checked>
+                    <label class="form-check-label" for="modal_item_taxable">
+                        This item is taxable
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveItemDetailsBtn" data-bs-dismiss="modal">Apply Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        let currentRow = null;
+        const taxRate = {{ invoice.tax_rate }};
+        
+        // Add new item
+        $('#addItemBtn').on('click', function() {
+            // Remove the "no items" row if it exists
+            $('#noItemsRow').remove();
+            
+            const newRow = `
+                <tr data-id="" data-taxable="true" data-type="Service">
+                    <td>
+                        <input type="text" class="form-control item-description" required>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control item-quantity text-center" value="1" min="0.01" step="0.01" required>
+                    </td>
+                    <td>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control item-unit-price text-end" value="0" min="0" step="0.01" required>
+                        </div>
+                    </td>
+                    <td class="text-end">
+                        <div class="item-amount">$0.00</div>
+                    </td>
+                    <td class="text-center">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary edit-item-btn" data-bs-toggle="modal" data-bs-target="#editItemModal">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-item-btn">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            
+            $('#itemsTableBody').append(newRow);
+            calculateTotals();
+            
+            // Focus on the new row's description field
+            $('#itemsTableBody tr:last-child .item-description').focus();
+        });
+        
+        // Delete item
+        $(document).on('click', '.delete-item-btn', function() {
+            if (confirm('Are you sure you want to remove this item?')) {
+                const row = $(this).closest('tr');
+                row.remove();
+                
+                // If no items left, show the "no items" row
+                if ($('#itemsTableBody tr').length === 0) {
+                    $('#itemsTableBody').append(`
+                        <tr id="noItemsRow">
+                            <td colspan="5" class="text-center">No items added to this invoice. Click "Add Line Item" button to add one.</td>
+                        </tr>
+                    `);
+                }
+                
+                calculateTotals();
+            }
+        });
+        
+        // Edit item details (open modal with current values)
+        $(document).on('click', '.edit-item-btn', function() {
+            currentRow = $(this).closest('tr');
+            
+            // Set modal values from current row
+            $('#modal_item_type').val(currentRow.data('type'));
+            $('#modal_item_description').val(currentRow.find('.item-description').val());
+            $('#modal_item_quantity').val(currentRow.find('.item-quantity').val());
+            $('#modal_item_unit_price').val(currentRow.find('.item-unit-price').val());
+            $('#modal_item_taxable').prop('checked', currentRow.data('taxable') === true);
+        });
+        
+        // Save item details from modal back to row
+        $('#saveItemDetailsBtn').on('click', function() {
+            if (currentRow) {
+                // Update row data attributes
+                currentRow.data('type', $('#modal_item_type').val());
+                currentRow.data('taxable', $('#modal_item_taxable').prop('checked'));
+                
+                // Update form fields
+                currentRow.find('.item-description').val($('#modal_item_description').val());
+                currentRow.find('.item-quantity').val($('#modal_item_quantity').val());
+                currentRow.find('.item-unit-price').val($('#modal_item_unit_price').val());
+                
+                // Recalculate the row amount
+                const quantity = parseFloat($('#modal_item_quantity').val()) || 0;
+                const unitPrice = parseFloat($('#modal_item_unit_price').val()) || 0;
+                const amount = quantity * unitPrice;
+                
+                // Update the amount display
+                currentRow.find('.item-amount').text('$' + amount.toFixed(2));
+                
+                calculateTotals();
+            }
+        });
+        
+        // Handle quantity and unit price changes
+        $(document).on('change', '.item-quantity, .item-unit-price', function() {
+            const row = $(this).closest('tr');
+            const quantity = parseFloat(row.find('.item-quantity').val()) || 0;
+            const unitPrice = parseFloat(row.find('.item-unit-price').val()) || 0;
+            const amount = quantity * unitPrice;
+            
+            // Update the amount display
+            row.find('.item-amount').text('$' + amount.toFixed(2));
+            
+            calculateTotals();
+        });
+        
+        // Calculate subtotal, tax, and total
+        function calculateTotals() {
+            let subtotal = 0;
+            let taxableAmount = 0;
+            
+            // Calculate subtotal from all line items
+            $('#itemsTableBody tr:not(#noItemsRow)').each(function() {
+                const quantity = parseFloat($(this).find('.item-quantity').val()) || 0;
+                const unitPrice = parseFloat($(this).find('.item-unit-price').val()) || 0;
+                const amount = quantity * unitPrice;
+                const taxable = $(this).data('taxable') === true;
+                
+                subtotal += amount;
+                
+                // Add to taxable amount if item is taxable
+                if (taxable) {
+                    taxableAmount += amount;
+                }
+            });
+            
+            // Calculate tax amount
+            const taxAmount = (taxableAmount * taxRate) / 100;
+            
+            // Get discount amount
+            const discountAmount = {{ invoice.discount_amount }};
+            
+            // Calculate total
+            const totalAmount = subtotal + taxAmount - discountAmount;
+            
+            // Update display
+            $('#subtotal').text('$' + subtotal.toFixed(2));
+            $('#tax_amount').text('$' + taxAmount.toFixed(2));
+            $('#total_amount').text('$' + totalAmount.toFixed(2));
+        }
+        
+        // Submit form - prepare JSON data
+        $('#itemsForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const items = [];
+            
+            // Collect data from each row
+            $('#itemsTableBody tr:not(#noItemsRow)').each(function(index) {
+                const row = $(this);
+                
+                const item = {
+                    id: row.data('id'),
+                    description: row.find('.item-description').val(),
+                    quantity: parseFloat(row.find('.item-quantity').val()) || 0,
+                    unit_price: parseFloat(row.find('.item-unit-price').val()) || 0,
+                    type: row.data('type'),
+                    taxable: row.data('taxable') === true,
+                    sort_order: index + 1
+                };
+                
+                items.push(item);
+            });
+            
+            // Set the hidden input value with JSON data
+            $('#item_data').val(JSON.stringify(items));
+            
+            // Submit the form
+            this.submit();
+        });
+    });
+</script>
+{% endblock %} 

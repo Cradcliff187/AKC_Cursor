@@ -1,0 +1,65 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Your Schedule for {{ date.strftime('%B %d, %Y') }} - Construction CRM{% endblock %}
+
+{% block header %}Your Daily Schedule{% endblock %}
+
+{% block content %}
+<p>Hello,</p>
+
+<p>Here is your schedule for <strong>{{ date.strftime('%A, %B %d, %Y') }}</strong>:</p>
+
+{% if events %}
+<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+    <table>
+        <tr>
+            <th style="width: 30%;">Time</th>
+            <th>Event</th>
+            <th>Status</th>
+        </tr>
+        {% for event in events %}
+        <tr>
+            <td>
+                {% if event.all_day %}
+                All day
+                {% elif event.start_time %}
+                {{ event.start_time.strftime('%I:%M %p') }}
+                {% if event.end_time %}
+                - {{ event.end_time.strftime('%I:%M %p') }}
+                {% endif %}
+                {% endif %}
+            </td>
+            <td>
+                <strong>{{ event.title }}</strong><br>
+                {% if event.location %}
+                <small>{{ event.location }}</small><br>
+                {% endif %}
+                {% if event.description %}
+                <small>{{ event.description }}</small>
+                {% endif %}
+            </td>
+            <td>
+                {% if event.status == 'upcoming' %}
+                <span style="color: #3498db;">Upcoming</span>
+                {% elif event.status == 'in-progress' %}
+                <span style="color: #2ecc71;">In Progress</span>
+                {% elif event.status == 'overdue' %}
+                <span style="color: #e74c3c;">Overdue</span>
+                {% elif event.status == 'completed' %}
+                <span style="color: #7f8c8d;">Completed</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<p>
+    <a href="{{ url_for('calendar.index', _external=True) }}" class="btn btn-primary">View Full Calendar</a>
+</p>
+{% else %}
+<p>You have no scheduled events for today.</p>
+{% endif %}
+
+<p>Have a productive day!</p>
+{% endblock %} 

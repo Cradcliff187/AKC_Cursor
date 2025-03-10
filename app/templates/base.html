@@ -59,8 +59,18 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if '/bids' in request.path %}active{% endif %}" href="{{ url_for('bids.list_bids') }}">
+                            <i class="fas fa-file-contract me-1"></i> Bids & Proposals
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if '/clients' in request.path %}active{% endif %}" href="{{ url_for('clients.list_clients') }}">
                             <i class="fas fa-users me-1"></i> Clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/employees' in request.path %}active{% endif %}" href="{{ url_for('employees.employee_list') }}">
+                            <i class="fas fa-user-tie me-1"></i> Employees
                         </a>
                     </li>
                     <li class="nav-item">
@@ -84,19 +94,45 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/time' in request.path %}active{% endif %}" href="{{ url_for('time.list_entries') }}">
-                            <i class="fas fa-clock me-1"></i> Time
+                        <a class="nav-link {% if '/time-entries' in request.path %}active{% endif %}" href="{{ url_for('time_entries.time_entries_list') }}">
+                            <i class="fas fa-clock me-1"></i> Time Tracking
                         </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if '/expenses' in request.path %}active{% endif %}" href="#" id="expensesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-dollar-sign me-1"></i> Finances
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="expensesDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('projects.list_projects') }}">Project Finances</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('time_entries.time_entries_list') }}">Time & Costs</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('time_entries.cost_report') }}">Labor Cost Report</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('employees.employee_list') }}">Labor Rates</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if '/reports' in request.path %}active{% endif %}" href="{{ url_for('reports.show_reports') }}">
                             <i class="fas fa-chart-bar me-1"></i> Reports
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/calendar' in request.path %}active{% endif %}" href="{{ url_for('calendar.index') }}">
+                            <i class="fas fa-calendar-alt me-1"></i> Calendar
+                        </a>
+                    </li>
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     {% if session.user_id %}
+                    <li class="nav-item">
+                        <a class="nav-link position-relative {% if '/notifications' in request.path %}active{% endif %}" href="{{ url_for('notifications.list_notifications') }}">
+                            <i class="fas fa-bell me-1"></i> Notifications
+                            {% if g.unread_notification_count and g.unread_notification_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ g.unread_notification_count }}
+                            </span>
+                            {% endif %}
+                        </a>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-user-circle me-1"></i> {{ session.user_name }}

@@ -1,0 +1,593 @@
+{% extends 'base.html' %}
+
+{% block title %}Employee Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Employee Management</h1>
+            <p class="text-muted">Manage employees and their billing rates</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                <i class="fas fa-plus me-1"></i> Add Employee
+            </button>
+        </div>
+    </div>
+    
+    <!-- Employee List Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Employee List</h5>
+                <div class="input-group input-group-sm" style="width: 250px;">
+                    <input type="text" class="form-control" id="employeeSearch" placeholder="Search employees...">
+                    <button class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if employees %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped" id="employeesTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Position</th>
+                            <th>Department</th>
+                            <th>Payment Type</th>
+                            <th>Rate</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in employees %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-2" style="background-color: {{ employee.avatar_color }};">
+                                        {{ employee.name.split()[0][0] }}{{ employee.name.split()[-1][0] }}
+                                    </div>
+                                    <div>{{ employee.name }}</div>
+                                </div>
+                            </td>
+                            <td>{{ employee.email }}</td>
+                            <td>{{ employee.position }}</td>
+                            <td>{{ employee.department }}</td>
+                            <td>
+                                <span class="badge {{ 'bg-primary' if employee.payment_type == 'hourly' else 'bg-info' }}">
+                                    {{ employee.payment_type|capitalize }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if employee.payment_type == 'hourly' %}
+                                    ${{ "%.2f"|format(employee.hourly_rate) }}/hr
+                                {% else %}
+                                    ${{ "{:,.2f}".format(employee.annual_salary) }}/year
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {{ 'bg-success' if employee.is_active else 'bg-secondary' }}">
+                                    {{ 'Active' if employee.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-primary edit-employee"
+                                            data-employee-id="{{ employee.id }}"
+                                            data-name="{{ employee.name }}"
+                                            data-email="{{ employee.email }}"
+                                            data-position="{{ employee.position }}"
+                                            data-department="{{ employee.department }}"
+                                            data-payment-type="{{ employee.payment_type }}"
+                                            data-hourly-rate="{{ employee.hourly_rate }}"
+                                            data-annual-salary="{{ employee.annual_salary }}"
+                                            data-is-active="{{ employee.is_active }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger delete-employee"
+                                            data-employee-id="{{ employee.id }}"
+                                            data-name="{{ employee.name }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5>No Employees Found</h5>
+                <p class="text-muted">Get started by adding employees to your organization.</p>
+                <button type="button" class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                    <i class="fas fa-plus me-1"></i> Add First Employee
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Department Stats Card -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Department Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="departmentChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Cost Distribution by Department</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="costChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-labelledby="addEmployeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addEmployeeModalLabel">Add Employee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('employees.add_employee') }}" method="post">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="employeeName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="employeeName" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="employeeEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="employeeEmail" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="employeePosition" class="form-label">Position</label>
+                            <input type="text" class="form-control" id="employeePosition" name="position" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="employeeDepartment" class="form-label">Department</label>
+                            <select class="form-select" id="employeeDepartment" name="department">
+                                <option value="Management">Management</option>
+                                <option value="Engineering">Engineering</option>
+                                <option value="Design">Design</option>
+                                <option value="Construction">Construction</option>
+                                <option value="Accounting">Accounting</option>
+                                <option value="Administration">Administration</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Payment Type</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_type" id="hourlyPayment" value="hourly" checked>
+                                <label class="form-check-label" for="hourlyPayment">
+                                    Hourly Rate
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_type" id="salaryPayment" value="salary">
+                                <label class="form-check-label" for="salaryPayment">
+                                    Annual Salary
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3" id="hourlyRateField">
+                            <label for="hourlyRate" class="form-label">Hourly Rate ($)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="hourlyRate" name="hourly_rate" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3 d-none" id="annualSalaryField">
+                            <label for="annualSalary" class="form-label">Annual Salary ($)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="annualSalary" name="annual_salary" step="100" min="0">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="hoursPerWeek" class="form-label">Standard Hours per Week</label>
+                            <input type="number" class="form-control" id="hoursPerWeek" name="hours_per_week" value="40" min="0" max="168">
+                        </div>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="isActive" name="is_active" checked>
+                        <label class="form-check-label" for="isActive">Active Employee</label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="employeeNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="employeeNotes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Employee Modal -->
+<div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-labelledby="editEmployeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editEmployeeModalLabel">Edit Employee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('employees.edit_employee') }}" method="post">
+                <input type="hidden" id="editEmployeeId" name="employee_id">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editEmployeeName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="editEmployeeName" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editEmployeeEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editEmployeeEmail" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editEmployeePosition" class="form-label">Position</label>
+                            <input type="text" class="form-control" id="editEmployeePosition" name="position" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editEmployeeDepartment" class="form-label">Department</label>
+                            <select class="form-select" id="editEmployeeDepartment" name="department">
+                                <option value="Management">Management</option>
+                                <option value="Engineering">Engineering</option>
+                                <option value="Design">Design</option>
+                                <option value="Construction">Construction</option>
+                                <option value="Accounting">Accounting</option>
+                                <option value="Administration">Administration</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Payment Type</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_type" id="editHourlyPayment" value="hourly">
+                                <label class="form-check-label" for="editHourlyPayment">
+                                    Hourly Rate
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_type" id="editSalaryPayment" value="salary">
+                                <label class="form-check-label" for="editSalaryPayment">
+                                    Annual Salary
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3" id="editHourlyRateField">
+                            <label for="editHourlyRate" class="form-label">Hourly Rate ($)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="editHourlyRate" name="hourly_rate" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3" id="editAnnualSalaryField">
+                            <label for="editAnnualSalary" class="form-label">Annual Salary ($)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="editAnnualSalary" name="annual_salary" step="100" min="0">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="editHoursPerWeek" class="form-label">Standard Hours per Week</label>
+                            <input type="number" class="form-control" id="editHoursPerWeek" name="hours_per_week" min="0" max="168">
+                        </div>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="editIsActive" name="is_active">
+                        <label class="form-check-label" for="editIsActive">Active Employee</label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editEmployeeNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="editEmployeeNotes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Employee Modal -->
+<div class="modal fade" id="deleteEmployeeModal" tabindex="-1" aria-labelledby="deleteEmployeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteEmployeeModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the employee <strong id="deleteEmployeeName"></strong>?</p>
+                <p class="text-warning">This will only remove the employee from active listings. Their historical time entries and expense allocations will be preserved.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('employees.delete_employee') }}" method="post">
+                    <input type="hidden" id="deleteEmployeeId" name="employee_id">
+                    <button type="submit" class="btn btn-danger">Delete Employee</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+#editHourlyRateField, #editAnnualSalaryField {
+    display: none;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize charts
+        if (document.getElementById('departmentChart')) {
+            initializeCharts();
+        }
+        
+        // Payment type toggle for add form
+        document.querySelectorAll('input[name="payment_type"]').forEach(input => {
+            input.addEventListener('change', function() {
+                const hourlyField = document.getElementById('hourlyRateField');
+                const salaryField = document.getElementById('annualSalaryField');
+                
+                if (this.value === 'hourly') {
+                    hourlyField.classList.remove('d-none');
+                    salaryField.classList.add('d-none');
+                } else {
+                    hourlyField.classList.add('d-none');
+                    salaryField.classList.remove('d-none');
+                }
+            });
+        });
+        
+        // Initialize edit employee buttons
+        document.querySelectorAll('.edit-employee').forEach(button => {
+            button.addEventListener('click', function() {
+                const employeeId = this.getAttribute('data-employee-id');
+                const name = this.getAttribute('data-name');
+                const email = this.getAttribute('data-email');
+                const position = this.getAttribute('data-position');
+                const department = this.getAttribute('data-department');
+                const paymentType = this.getAttribute('data-payment-type');
+                const hourlyRate = this.getAttribute('data-hourly-rate');
+                const annualSalary = this.getAttribute('data-annual-salary');
+                const isActive = this.getAttribute('data-is-active') === 'True';
+                
+                // Set form values
+                document.getElementById('editEmployeeId').value = employeeId;
+                document.getElementById('editEmployeeName').value = name;
+                document.getElementById('editEmployeeEmail').value = email;
+                document.getElementById('editEmployeePosition').value = position;
+                document.getElementById('editEmployeeDepartment').value = department;
+                
+                if (paymentType === 'hourly') {
+                    document.getElementById('editHourlyPayment').checked = true;
+                    document.getElementById('editHourlyRateField').style.display = 'block';
+                    document.getElementById('editAnnualSalaryField').style.display = 'none';
+                } else {
+                    document.getElementById('editSalaryPayment').checked = true;
+                    document.getElementById('editHourlyRateField').style.display = 'none';
+                    document.getElementById('editAnnualSalaryField').style.display = 'block';
+                }
+                
+                document.getElementById('editHourlyRate').value = hourlyRate;
+                document.getElementById('editAnnualSalary').value = annualSalary;
+                document.getElementById('editIsActive').checked = isActive;
+                
+                // Show the modal
+                const editModal = new bootstrap.Modal(document.getElementById('editEmployeeModal'));
+                editModal.show();
+            });
+        });
+        
+        // Payment type toggle for edit form
+        document.querySelectorAll('#editHourlyPayment, #editSalaryPayment').forEach(input => {
+            input.addEventListener('change', function() {
+                const hourlyField = document.getElementById('editHourlyRateField');
+                const salaryField = document.getElementById('editAnnualSalaryField');
+                
+                if (this.value === 'hourly') {
+                    hourlyField.style.display = 'block';
+                    salaryField.style.display = 'none';
+                } else {
+                    hourlyField.style.display = 'none';
+                    salaryField.style.display = 'block';
+                }
+            });
+        });
+        
+        // Initialize delete employee buttons
+        document.querySelectorAll('.delete-employee').forEach(button => {
+            button.addEventListener('click', function() {
+                const employeeId = this.getAttribute('data-employee-id');
+                const name = this.getAttribute('data-name');
+                
+                document.getElementById('deleteEmployeeId').value = employeeId;
+                document.getElementById('deleteEmployeeName').textContent = name;
+                
+                const deleteModal = new bootstrap.Modal(document.getElementById('deleteEmployeeModal'));
+                deleteModal.show();
+            });
+        });
+        
+        // Employee search
+        document.getElementById('employeeSearch').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#employeesTable tbody tr');
+            
+            rows.forEach(row => {
+                const name = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+                const email = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const position = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                const department = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+                
+                if (name.includes(searchTerm) || email.includes(searchTerm) || 
+                    position.includes(searchTerm) || department.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    function initializeCharts() {
+        // Department breakdown chart
+        const departmentData = {
+            labels: {{ department_labels|tojson }},
+            datasets: [{
+                data: {{ department_counts|tojson }},
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(255, 159, 64, 0.7)',
+                    'rgba(201, 203, 207, 0.7)'
+                ],
+                borderWidth: 1
+            }]
+        };
+        
+        const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+        new Chart(departmentCtx, {
+            type: 'pie',
+            data: departmentData,
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} employees (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Cost distribution chart
+        const costData = {
+            labels: {{ department_labels|tojson }},
+            datasets: [{
+                label: 'Average Hourly Cost',
+                data: {{ department_costs|tojson }},
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        };
+        
+        const costCtx = document.getElementById('costChart').getContext('2d');
+        new Chart(costCtx, {
+            type: 'bar',
+            data: costData,
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Average Cost ($/hr)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const value = context.raw || 0;
+                                return `${label}: $${value.toFixed(2)}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %} 

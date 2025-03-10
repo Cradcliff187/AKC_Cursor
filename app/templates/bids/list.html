@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block title %}Bids & Proposals - Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Bids & Proposals</h1>
+    
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Bids & Proposals</li>
+    </ol>
+    
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-file-contract me-1"></i>
+                        Filter Options
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="filterForm" method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="">All Statuses</option>
+                                <option value="Draft" {% if current_status == 'Draft' %}selected{% endif %}>Draft</option>
+                                <option value="Pending" {% if current_status == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="Sent" {% if current_status == 'Sent' %}selected{% endif %}>Sent</option>
+                                <option value="Reviewing" {% if current_status == 'Reviewing' %}selected{% endif %}>Reviewing</option>
+                                <option value="Accepted" {% if current_status == 'Accepted' %}selected{% endif %}>Accepted</option>
+                                <option value="Rejected" {% if current_status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                                <option value="Expired" {% if current_status == 'Expired' %}selected{% endif %}>Expired</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="client_id" class="form-label">Client</label>
+                            <select class="form-select" id="client_id" name="client_id">
+                                <option value="">All Clients</option>
+                                {% for client in clients %}
+                                <option value="{{ client.id }}" {% if current_client_id|string == client.id|string %}selected{% endif %}>{{ client.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-filter me-1"></i> Apply Filters
+                            </button>
+                            <a href="{{ url_for('bids.list_bids') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Clear
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-plus me-1"></i>
+                    Create New
+                </div>
+                <div class="card-body">
+                    <p>Create a new bid or proposal for a client.</p>
+                    <a href="{{ url_for('bids.create_bid_route') }}" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i> Create New Bid
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-file-contract me-1"></i>
+            Bids & Proposals
+        </div>
+        <div class="card-body">
+            {% if bids %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped" id="bidsTable">
+                    <thead>
+                        <tr>
+                            <th>Bid #</th>
+                            <th>Name</th>
+                            <th>Client</th>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bid in bids %}
+                        <tr>
+                            <td>{{ bid.bid_number }}</td>
+                            <td>{{ bid.name }}</td>
+                            <td>{{ bid.client_name }}</td>
+                            <td>{{ bid.proposal_date }}</td>
+                            <td>${{ "{:,.2f}".format(bid.total_amount) }}</td>
+                            <td>
+                                {% if bid.status == 'Draft' %}
+                                <span class="badge bg-secondary">Draft</span>
+                                {% elif bid.status == 'Pending' %}
+                                <span class="badge bg-info">Pending</span>
+                                {% elif bid.status == 'Sent' %}
+                                <span class="badge bg-primary">Sent</span>
+                                {% elif bid.status == 'Reviewing' %}
+                                <span class="badge bg-warning">Reviewing</span>
+                                {% elif bid.status == 'Accepted' %}
+                                <span class="badge bg-success">Accepted</span>
+                                {% elif bid.status == 'Rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% elif bid.status == 'Expired' %}
+                                <span class="badge bg-dark">Expired</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ bid.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('bids.view_bid', bid_id=bid.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('bids.edit_bid', bid_id=bid.id) }}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if bid.status == 'Accepted' and not bid.project_id %}
+                                    <a href="{{ url_for('bids.convert_to_project', bid_id=bid.id) }}" class="btn btn-sm btn-success" title="Convert to Project">
+                                        <i class="fas fa-project-diagram"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-file-contract fa-3x text-muted"></i>
+                </div>
+                <h5>No Bids Found</h5>
+                <p class="text-muted">
+                    {% if current_status or current_client_id %}
+                    No bids match your current filters. Try changing your filter options or <a href="{{ url_for('bids.list_bids') }}">clear all filters</a>.
+                    {% else %}
+                    You haven't created any bids yet. Get started by creating your first bid.
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('bids.create_bid_route') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> Create New Bid
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize DataTable for better sorting/filtering if there are bids
+        const bidsTable = document.getElementById('bidsTable');
+        if (bidsTable) {
+            $(bidsTable).DataTable({
+                responsive: true,
+                order: [[3, 'desc']], // Sort by date descending by default
+                columnDefs: [
+                    { orderable: false, targets: 6 } // Disable sorting on actions column
+                ]
+            });
+        }
+        
+        // Auto-submit form when filters change
+        const filterForm = document.getElementById('filterForm');
+        const statusSelect = document.getElementById('status');
+        const clientSelect = document.getElementById('client_id');
+        
+        if (statusSelect) {
+            statusSelect.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        }
+        
+        if (clientSelect) {
+            clientSelect.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        }
+    });
+</script>
+{% endblock %} 

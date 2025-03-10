@@ -1,0 +1,72 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Payment Reminder - Invoice #{{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="email-container">
+    <div class="header">
+        <table width="100%">
+            <tr>
+                <td>
+                    <h1>Payment Reminder</h1>
+                    <h2>Invoice #{{ invoice.invoice_number }}</h2>
+                </td>
+                <td align="right">
+                    <img src="{{ company.logo_url }}" alt="{{ company.name }}" style="max-width: 150px;">
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="body">
+        <p>Dear {{ client.contact_name }},</p>
+
+        {% if invoice.is_overdue() %}
+        <p><strong>This is a friendly reminder that your invoice #{{ invoice.invoice_number }} for ${{ '%.2f' | format(invoice.total_amount) }} is now {{ invoice.days_overdue() }} days overdue.</strong></p>
+        {% else %}
+        <p><strong>This is a friendly reminder that your invoice #{{ invoice.invoice_number }} for ${{ '%.2f' | format(invoice.total_amount) }} is due in {{ invoice.days_until_due() }} days.</strong></p>
+        {% endif %}
+
+        <table class="invoice-summary" cellpadding="8" cellspacing="0" style="width: 100%; margin-bottom: 20px; border: 1px solid #ddd;">
+            <tr style="background-color: #f8f9fa;">
+                <th style="text-align: left; border-bottom: 1px solid #ddd;">Invoice Number</th>
+                <th style="text-align: left; border-bottom: 1px solid #ddd;">Issue Date</th>
+                <th style="text-align: left; border-bottom: 1px solid #ddd;">Due Date</th>
+                <th style="text-align: right; border-bottom: 1px solid #ddd;">Amount Due</th>
+            </tr>
+            <tr>
+                <td style="text-align: left; border-bottom: 1px solid #ddd;">{{ invoice.invoice_number }}</td>
+                <td style="text-align: left; border-bottom: 1px solid #ddd;">{{ invoice.issue_date }}</td>
+                <td style="text-align: left; border-bottom: 1px solid #ddd;">{{ invoice.due_date }}</td>
+                <td style="text-align: right; border-bottom: 1px solid #ddd;">${{ '%.2f' | format(invoice.balance_due) }}</td>
+            </tr>
+        </table>
+
+        {% if invoice.amount_paid > 0 %}
+        <p>We've received a payment of ${{ '%.2f' | format(invoice.amount_paid) }} for this invoice, leaving a remaining balance of ${{ '%.2f' | format(invoice.balance_due) }}.</p>
+        {% endif %}
+
+        <div class="cta-button" style="margin: 30px 0;">
+            <a href="{{ view_url }}" style="background-color: #dc3545; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 4px; display: inline-block;">View Invoice & Pay Now</a>
+        </div>
+
+        {% if invoice.payment_instructions %}
+        <div class="payment-instructions">
+            <h4>Payment Instructions</h4>
+            <p>{{ invoice.payment_instructions }}</p>
+        </div>
+        {% endif %}
+
+        <p>If you have already made this payment, please disregard this message. If you have any questions or concerns about this invoice, please contact us at {{ company.email }} or {{ company.phone }}.</p>
+
+        <p>Thank you for your prompt attention to this matter.</p>
+
+        <p>Sincerely,<br>
+        The {{ company.name }} Team</p>
+    </div>
+
+    <div class="footer">
+        <p>{{ company.name }} | {{ company.address }}, {{ company.city }}, {{ company.state }} {{ company.zip }} | {{ company.phone }}</p>
+    </div>
+</div>
+{% endblock %} 

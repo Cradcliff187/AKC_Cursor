@@ -1,0 +1,36 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Document Shared: {{ document.name }} - Construction CRM{% endblock %}
+
+{% block header %}Document Shared with You{% endblock %}
+
+{% block content %}
+<p>Hello,</p>
+
+<p><strong>{{ sender_name }}</strong> has shared a document with you.</p>
+
+<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+    <h3 style="margin-top: 0;">{{ document.name }}</h3>
+    <p><strong>Type:</strong> {{ document.file_type.upper() if document.file_type else 'Document' }}</p>
+    {% if document.description %}
+    <p><strong>Description:</strong> {{ document.description }}</p>
+    {% endif %}
+    
+    {% if document.category %}
+    <p><strong>Category:</strong> {{ document.category }}</p>
+    {% endif %}
+</div>
+
+{% if message %}
+<div class="alert alert-info">
+    <strong>Message from {{ sender_name }}:</strong><br>
+    {{ message }}
+</div>
+{% endif %}
+
+<p>
+    <a href="{{ download_url }}" class="btn btn-primary">Download Document</a>
+</p>
+
+<p>If you have any questions about this document, please contact the sender directly.</p>
+{% endblock %} 

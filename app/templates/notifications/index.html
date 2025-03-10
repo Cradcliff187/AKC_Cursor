@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Notifications</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Notifications</li>
+    </ol>
+    
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-bell me-1"></i>
+                Notifications
+                {% if unread_count > 0 %}
+                <span class="badge bg-danger ms-2">{{ unread_count }}</span>
+                {% endif %}
+            </div>
+            <div>
+                <button id="mark-all-read" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-check-double"></i> Mark All as Read
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="notification-filter mb-3">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="unread-only" 
+                                {% if request.args.get('unread_only') == 'true' %}checked{% endif %}>
+                            <label class="form-check-label" for="unread-only">Show unread only</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="notification-type" class="form-select form-select-sm">
+                            <option value="">All notification types</option>
+                            <option value="info" {% if request.args.get('type') == 'info' %}selected{% endif %}>Info</option>
+                            <option value="success" {% if request.args.get('type') == 'success' %}selected{% endif %}>Success</option>
+                            <option value="warning" {% if request.args.get('type') == 'warning' %}selected{% endif %}>Warning</option>
+                            <option value="danger" {% if request.args.get('type') == 'danger' %}selected{% endif %}>Danger</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="notification-category" class="form-select form-select-sm">
+                            <option value="">All categories</option>
+                            <option value="project" {% if request.args.get('category') == 'project' %}selected{% endif %}>Project</option>
+                            <option value="task" {% if request.args.get('category') == 'task' %}selected{% endif %}>Task</option>
+                            <option value="document" {% if request.args.get('category') == 'document' %}selected{% endif %}>Document</option>
+                            <option value="system" {% if request.args.get('category') == 'system' %}selected{% endif %}>System</option>
+                            <option value="schedule" {% if request.args.get('category') == 'schedule' %}selected{% endif %}>Schedule</option>
+                            <option value="expense" {% if request.args.get('category') == 'expense' %}selected{% endif %}>Expense</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="notification-list">
+                {% if notifications %}
+                    {% for notification in notifications %}
+                        <div class="notification-item card mb-2 {% if not notification.is_read %}border-start border-4 border-primary{% endif %}" data-id="{{ notification.id }}">
+                            <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="notification-title">
+                                        <h5 class="mb-0">
+                                            <span class="badge bg-{{ notification.notification_type }} me-2">
+                                                <i class="fas fa-{% if notification.notification_type == 'info' %}info-circle{% elif notification.notification_type == 'success' %}check-circle{% elif notification.notification_type == 'warning' %}exclamation-triangle{% elif notification.notification_type == 'danger' %}exclamation-circle{% endif %}"></i>
+                                            </span>
+                                            {{ notification.title }}
+                                            {% if not notification.is_read %}
+                                            <span class="badge bg-primary ms-2">New</span>
+                                            {% endif %}
+                                        </h5>
+                                    </div>
+                                    <div class="notification-actions">
+                                        <button class="btn btn-sm btn-outline-secondary mark-read-btn" data-id="{{ notification.id }}" title="Mark as read">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-notification-btn" data-id="{{ notification.id }}" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="notification-message mb-1">{{ notification.message }}</p>
+                                <div class="notification-meta text-muted small">
+                                    <span class="me-3">
+                                        <i class="fas fa-tag"></i> {{ notification.category | capitalize }}
+                                    </span>
+                                    <span>
+                                        <i class="fas fa-clock"></i> {{ notification.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">
+                        No notifications found.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter handlers
+    document.getElementById('unread-only').addEventListener('change', function() {
+        updateFilters();
+    });
+    
+    document.getElementById('notification-type').addEventListener('change', function() {
+        updateFilters();
+    });
+    
+    document.getElementById('notification-category').addEventListener('change', function() {
+        updateFilters();
+    });
+    
+    // Mark as read button handler
+    document.querySelectorAll('.mark-read-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const notificationId = this.getAttribute('data-id');
+            markAsRead(notificationId);
+        });
+    });
+    
+    // Delete notification button handler
+    document.querySelectorAll('.delete-notification-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const notificationId = this.getAttribute('data-id');
+            deleteNotification(notificationId);
+        });
+    });
+    
+    // Mark all as read button handler
+    document.getElementById('mark-all-read').addEventListener('click', function(e) {
+        e.preventDefault();
+        markAllAsRead();
+    });
+    
+    // Notification item click handler (to view details)
+    document.querySelectorAll('.notification-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            // Don't trigger if clicking on buttons
+            if (e.target.closest('.notification-actions')) {
+                return;
+            }
+            const notificationId = this.getAttribute('data-id');
+            window.location.href = `/notifications/${notificationId}`;
+        });
+    });
+    
+    // Functions
+    function updateFilters() {
+        const unreadOnly = document.getElementById('unread-only').checked;
+        const type = document.getElementById('notification-type').value;
+        const category = document.getElementById('notification-category').value;
+        
+        let url = '/notifications/?';
+        if (unreadOnly) url += 'unread_only=true&';
+        if (type) url += `type=${type}&`;
+        if (category) url += `category=${category}&`;
+        
+        window.location.href = url;
+    }
+    
+    function markAsRead(notificationId) {
+        fetch(`/notifications/${notificationId}/mark-read`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI to show notification as read
+                const item = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+                item.classList.remove('border-start', 'border-4', 'border-primary');
+                const badge = item.querySelector('.badge.bg-primary');
+                if (badge) badge.remove();
+                
+                // Update unread count
+                updateUnreadBadge(data.unread_count);
+            }
+        })
+        .catch(error => console.error('Error marking notification as read:', error));
+    }
+    
+    function deleteNotification(notificationId) {
+        if (!confirm('Are you sure you want to delete this notification?')) {
+            return;
+        }
+        
+        fetch(`/notifications/${notificationId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove notification from UI
+                const item = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+                item.remove();
+                
+                // Update unread count
+                updateUnreadBadge(data.unread_count);
+                
+                // If no notifications left, show message
+                const notificationItems = document.querySelectorAll('.notification-item');
+                if (notificationItems.length === 0) {
+                    document.querySelector('.notification-list').innerHTML = `
+                        <div class="alert alert-info">
+                            No notifications found.
+                        </div>
+                    `;
+                }
+            }
+        })
+        .catch(error => console.error('Error deleting notification:', error));
+    }
+    
+    function markAllAsRead() {
+        fetch('/notifications/mark-all-read', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI to show all notifications as read
+                document.querySelectorAll('.notification-item').forEach(item => {
+                    item.classList.remove('border-start', 'border-4', 'border-primary');
+                    const badge = item.querySelector('.badge.bg-primary');
+                    if (badge) badge.remove();
+                });
+                
+                // Update unread count
+                updateUnreadBadge(0);
+            }
+        })
+        .catch(error => console.error('Error marking all notifications as read:', error));
+    }
+    
+    function updateUnreadBadge(count) {
+        const badge = document.querySelector('.card-header .badge');
+        if (count > 0) {
+            if (badge) {
+                badge.textContent = count;
+            } else {
+                const span = document.createElement('span');
+                span.className = 'badge bg-danger ms-2';
+                span.textContent = count;
+                document.querySelector('.card-header div:first-child').appendChild(span);
+            }
+        } else {
+            if (badge) badge.remove();
+        }
+    }
+});
+</script>
+{% endblock %} 

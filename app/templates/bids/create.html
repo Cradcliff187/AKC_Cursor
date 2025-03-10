@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Create New Bid - Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Create New Bid</h1>
+    
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('bids.list_bids') }}">Bids & Proposals</a></li>
+        <li class="breadcrumb-item active">Create New</li>
+    </ol>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-file-contract me-1"></i>
+                    Bid Information
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="name" class="form-label">Bid Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                                <div class="form-text">Enter a descriptive name for this bid/proposal</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="client_id" class="form-label">Client <span class="text-danger">*</span></label>
+                                <select class="form-select" id="client_id" name="client_id" required>
+                                    <option value="">Select a Client</option>
+                                    {% for client in clients %}
+                                    <option value="{{ client.id }}">{{ client.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Select the client for this bid</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="proposal_date" class="form-label">Proposal Date</label>
+                                <input type="date" class="form-control" id="proposal_date" name="proposal_date" value="{{ today }}">
+                                <div class="form-text">The date this bid is created</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="valid_until" class="form-label">Valid Until</label>
+                                <input type="date" class="form-control" id="valid_until" name="valid_until">
+                                <div class="form-text">The expiration date for this bid (optional)</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4"></textarea>
+                            <div class="form-text">Provide a detailed description of the work to be performed</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="terms_and_conditions" class="form-label">Terms & Conditions</label>
+                            <textarea class="form-control" id="terms_and_conditions" name="terms_and_conditions" rows="4"></textarea>
+                            <div class="form-text">Enter the terms and conditions for this bid (payment terms, etc.)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Internal Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                            <div class="form-text">These notes are for internal use only and won't be visible to the client</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="document" class="form-label">Attach Document</label>
+                            <input type="file" class="form-control" id="document" name="document">
+                            <div class="form-text">Attach a PDF or other document for this bid (optional)</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('bids.list_bids') }}" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Create Bid
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Next Steps
+                </div>
+                <div class="card-body">
+                    <p>After creating the basic bid information, you'll be able to:</p>
+                    <ol>
+                        <li><strong>Add line items</strong> - Add labor, materials, and other costs with detailed descriptions and quantities.</li>
+                        <li><strong>Calculate totals</strong> - The system will automatically calculate subtotals, taxes, and the final amount.</li>
+                        <li><strong>Preview the bid</strong> - See how your bid will appear to clients before sending.</li>
+                        <li><strong>Send to client</strong> - Email the bid directly to your client for review.</li>
+                    </ol>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Bids start as <strong>Draft</strong> status until you're ready to send them to clients.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <i class="fas fa-question-circle me-1"></i>
+                    Help & Tips
+                </div>
+                <div class="card-body">
+                    <h6>Creating Effective Proposals</h6>
+                    <ul class="small">
+                        <li>Be detailed in your descriptions to avoid misunderstandings</li>
+                        <li>Include clear payment terms and conditions</li>
+                        <li>Break down labor and material costs separately</li>
+                        <li>Set a reasonable expiration date</li>
+                        <li>Attach supporting documents when helpful</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set today's date as default for proposal date
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('proposal_date').value = today;
+        
+        // Set default valid_until date (30 days from now)
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+        document.getElementById('valid_until').value = thirtyDaysFromNow.toISOString().split('T')[0];
+        
+        // Add validation before form submission
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(event) {
+            const name = document.getElementById('name').value.trim();
+            const clientId = document.getElementById('client_id').value;
+            
+            if (!name) {
+                event.preventDefault();
+                alert('Please enter a bid name');
+                document.getElementById('name').focus();
+                return false;
+            }
+            
+            if (!clientId) {
+                event.preventDefault();
+                alert('Please select a client');
+                document.getElementById('client_id').focus();
+                return false;
+            }
+            
+            return true;
+        });
+    });
+</script>
+{% endblock %} 

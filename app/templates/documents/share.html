@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Share Document: {{ document.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Share Document</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('documents.list_documents') }}">Documents</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('documents.document_detail', document_id=document.id) }}">{{ document.name }}</a></li>
+        <li class="breadcrumb-item active">Share</li>
+    </ol>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-share-alt me-1"></i>
+                    Share Document via Email
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('documents.share_document', document_id=document.id) }}">
+                        <div class="mb-3">
+                            <label for="recipient_email" class="form-label">Recipient Email</label>
+                            <input type="email" class="form-control" id="recipient_email" name="recipient_email" required>
+                            <div class="form-text">Enter the email address of the person you want to share this document with.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Message (Optional)</label>
+                            <textarea class="form-control" id="message" name="message" rows="4" placeholder="Add a personal message for the recipient"></textarea>
+                            <div class="form-text">This message will be included in the email sent to the recipient.</div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i> Send
+                            </button>
+                            <a href="{{ url_for('documents.document_detail', document_id=document.id) }}" class="btn btn-outline-secondary ms-2">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Document Information
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        {% if document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}
+                            <img src="{{ url_for('documents.download_document', document_id=document.id) }}" alt="{{ document.name }}" class="img-fluid mb-2" style="max-height: 150px;">
+                        {% elif document.file_type == 'pdf' %}
+                            <i class="fas fa-file-pdf fa-5x text-danger mb-2"></i>
+                        {% elif document.file_type in ['doc', 'docx'] %}
+                            <i class="fas fa-file-word fa-5x text-primary mb-2"></i>
+                        {% elif document.file_type in ['xls', 'xlsx', 'csv'] %}
+                            <i class="fas fa-file-excel fa-5x text-success mb-2"></i>
+                        {% else %}
+                            <i class="fas fa-file-alt fa-5x text-secondary mb-2"></i>
+                        {% endif %}
+                        
+                        <h5>{{ document.name }}</h5>
+                        <span class="badge bg-secondary">{{ document.file_type.upper() }}</span>
+                    </div>
+                    
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">File Size:</dt>
+                        <dd class="col-sm-8">{{ document.file_size | filesizeformat if document.file_size else 'Unknown' }}</dd>
+                        
+                        <dt class="col-sm-4">Uploaded:</dt>
+                        <dd class="col-sm-8">{{ document.created_at.strftime('%Y-%m-%d') if document.created_at else 'Unknown' }}</dd>
+                        
+                        {% if document.description %}
+                        <dt class="col-12 mt-2">Description:</dt>
+                        <dd class="col-12">{{ document.description }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-question-circle me-1"></i>
+                    About Sharing
+                </div>
+                <div class="card-body">
+                    <p class="small mb-0">
+                        The recipient will receive an email with a link to download the document. 
+                        The email will include your name as the sender, an optional message, and details about the document.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

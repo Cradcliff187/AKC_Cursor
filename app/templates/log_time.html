@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Log Time{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Log Time</h1>
+            <p class="text-muted">Record your time for project cost tracking</p>
+        </div>
+        <div>
+            <a href="{{ url_for('time_entries.time_entries_list') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-list me-1"></i> View All Time Entries
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Log Time Entry</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('time_entries.add_time_entry') }}" method="post">
+                        {% if error %}
+                        <div class="alert alert-danger">{{ error }}</div>
+                        {% endif %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="employee" class="form-label">Employee</label>
+                                <select class="form-select" id="employee" name="employee_id" required>
+                                    <option value="">Select Employee</option>
+                                    {% for employee in employees %}
+                                    <option value="{{ employee.id }}" {% if current_user_id == employee.id %}selected{% endif %}>
+                                        {{ employee.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="project" class="form-label">Project</label>
+                                <select class="form-select" id="project" name="project_id" required>
+                                    <option value="">Select Project</option>
+                                    {% for project in projects %}
+                                    <option value="{{ project.id }}" {% if request.args.get('project_id') == project.id %}selected{% endif %}>
+                                        {{ project.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="date" class="form-label">Date</label>
+                                <input type="date" class="form-control" id="date" name="date" value="{{ today }}" required>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="hours" class="form-label">Hours</label>
+                                <input type="number" class="form-control" id="hours" name="hours" step="0.25" min="0.25" max="24" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="task" class="form-label">Task (Optional)</label>
+                                <select class="form-select" id="task" name="task_id">
+                                    <option value="">Select Task</option>
+                                    <!-- Tasks will be loaded dynamically based on project selection -->
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mt-4">
+                                    <input class="form-check-input" type="checkbox" id="billable" name="billable" checked>
+                                    <label class="form-check-label" for="billable">Billable Hours</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <div id="costEstimate" class="text-muted">
+                                <!-- Cost estimate will be shown here -->
+                            </div>
+                            
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary me-1" onclick="window.history.back();">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Log Time</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Time Entries</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% if recent_entries %}
+                            {% for entry in recent_entries %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">{{ entry.project_name }}</h6>
+                                    <span class="badge bg-primary">{{ entry.hours }} hrs</span>
+                                </div>
+                                <div class="text-muted small">{{ entry.date }}</div>
+                                <div>{{ entry.description|truncate(60) }}</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="list-group-item text-center py-4">
+                                <i class="fas fa-clock fa-2x text-muted mb-2"></i>
+                                <p>No recent time entries</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if recent_entries %}
+                <div class="card-footer text-center">
+                    <a href="{{ url_for('time_entries.time_entries_list') }}" class="text-primary">View All</a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Tips for Time Tracking</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span>Log your time daily for accuracy</span>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span>Be specific in your descriptions</span>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span>Mark non-billable time appropriately</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span>Assign to tasks when possible for better tracking</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const projectSelect = document.getElementById('project');
+        const taskSelect = document.getElementById('task');
+        const employeeSelect = document.getElementById('employee');
+        const hoursInput = document.getElementById('hours');
+        const costEstimate = document.getElementById('costEstimate');
+        
+        // Employee cost rates (would be loaded from server in production)
+        const employeeCosts = {
+            {% for employee in employees %}
+            "{{ employee.id }}": {{ employee_costs[employee.id]|default(0) }},
+            {% endfor %}
+        };
+        
+        // Update tasks when project changes
+        projectSelect.addEventListener('change', function() {
+            const projectId = this.value;
+            
+            if (projectId) {
+                // Clear current options
+                taskSelect.innerHTML = '<option value="">Select Task</option>';
+                
+                // Fetch tasks for the selected project
+                fetch(`/api/projects/${projectId}/tasks`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.length > 0) {
+                            data.forEach(task => {
+                                const option = document.createElement('option');
+                                option.value = task.id;
+                                option.textContent = task.title;
+                                taskSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching tasks:', error);
+                    });
+            }
+        });
+        
+        // Update cost estimate when employee or hours change
+        function updateCostEstimate() {
+            const employeeId = employeeSelect.value;
+            const hours = parseFloat(hoursInput.value) || 0;
+            
+            if (employeeId && hours > 0) {
+                const hourlyRate = employeeCosts[employeeId] || 0;
+                const cost = hourlyRate * hours;
+                costEstimate.textContent = `Estimated Cost: $${cost.toFixed(2)}`;
+            } else {
+                costEstimate.textContent = '';
+            }
+        }
+        
+        employeeSelect.addEventListener('change', updateCostEstimate);
+        hoursInput.addEventListener('input', updateCostEstimate);
+        
+        // Initialize if default values are present
+        if (projectSelect.value) {
+            projectSelect.dispatchEvent(new Event('change'));
+        }
+    });
+</script>
+{% endblock %} 

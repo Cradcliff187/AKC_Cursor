@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block title %}View Calendar{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Calendar: {{ calendar.calendar_name }}</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('calendar.index') }}">Calendar Management</a></li>
+        <li class="breadcrumb-item active">View Calendar</li>
+    </ol>
+    
+    <div class="row mb-4">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-calendar me-1"></i>
+                        Calendar Details
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#shareCalendarModal">
+                            <i class="fas fa-share-alt"></i> Share
+                        </button>
+                        <a href="{{ calendar.ical_link }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-download"></i> iCal
+                        </a>
+                        <a href="https://calendar.google.com/calendar/r?cid={{ calendar.calendar_id }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-external-link-alt"></i> Open in Google Calendar
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Calendar Name:</dt>
+                                <dd class="col-sm-8">{{ calendar.calendar_name }}</dd>
+                                
+                                <dt class="col-sm-4">Calendar ID:</dt>
+                                <dd class="col-sm-8">{{ calendar.calendar_id }}</dd>
+                                
+                                <dt class="col-sm-4">Created:</dt>
+                                <dd class="col-sm-8">{{ calendar.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Associated Project:</dt>
+                                <dd class="col-sm-8">
+                                    {% if project %}
+                                        <a href="{{ url_for('projects.view', project_id=project.id) }}">{{ project.name }}</a>
+                                    {% else %}
+                                        <span class="text-muted">Project not found</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">Project Status:</dt>
+                                <dd class="col-sm-8">
+                                    {% if project %}
+                                        <span class="badge bg-{{ 'success' if project.status == 'Completed' else 'primary' if project.status == 'In Progress' else 'warning' if project.status == 'On Hold' else 'secondary' }}">
+                                            {{ project.status }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">Project Timeline:</dt>
+                                <dd class="col-sm-8">
+                                    {% if project and project.start_date and project.end_date %}
+                                        {{ project.start_date.strftime('%Y-%m-%d') }} to {{ project.end_date.strftime('%Y-%m-%d') }}
+                                    {% else %}
+                                        <span class="text-muted">No timeline defined</span>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <h5>Embed Code</h5>
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <textarea id="embedCode" class="form-control" rows="3" readonly>{{ calendar.embed_code }}</textarea>
+                                    <button class="btn btn-outline-secondary" type="button" id="copyEmbedButton">
+                                        <i class="fas fa-copy"></i> Copy
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    Use this code to embed the calendar in other websites or applications.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-calendar-week me-1"></i>
+                    Calendar Preview
+                </div>
+                <div class="card-body">
+                    <div class="calendar-embed-container">
+                        {{ calendar.embed_code | safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Share Calendar Modal -->
+<div class="modal fade" id="shareCalendarModal" tabindex="-1" aria-labelledby="shareCalendarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="shareCalendarModalLabel">Share Calendar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="shareCalendarForm">
+                    <input type="hidden" id="calendarId" name="calendar_id" value="{{ calendar.calendar_id }}">
+                    
+                    <div class="mb-3">
+                        <label for="shareEmail" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="shareEmail" name="email" 
+                               placeholder="Enter email address" required>
+                        <div class="form-text">
+                            The calendar will be shared with this email address with read-only access.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Authentication Method</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="share_auth_method" id="shareAuthUser" 
+                                value="user" checked>
+                            <label class="form-check-label" for="shareAuthUser">
+                                Use my Google account
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="share_auth_method" id="shareAuthAdmin" 
+                                value="admin">
+                            <label class="form-check-label" for="shareAuthAdmin">
+                                Use organization admin account
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="shareCalendarSubmit">Share</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Copy Embed Code
+    const copyEmbedButton = document.getElementById('copyEmbedButton');
+    if (copyEmbedButton) {
+        copyEmbedButton.addEventListener('click', function() {
+            const embedCode = document.getElementById('embedCode');
+            embedCode.select();
+            document.execCommand('copy');
+            
+            // Change button text temporarily
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
+        });
+    }
+    
+    // Share Calendar Submit
+    const shareCalendarSubmit = document.getElementById('shareCalendarSubmit');
+    if (shareCalendarSubmit) {
+        shareCalendarSubmit.addEventListener('click', function() {
+            const calendarId = document.getElementById('calendarId').value;
+            const email = document.getElementById('shareEmail').value;
+            const authMethod = document.querySelector('input[name="share_auth_method"]:checked').value;
+            
+            if (!email) {
+                alert('Please enter an email address');
+                return;
+            }
+            
+            // Create a FormData object to submit
+            const formData = new FormData();
+            formData.append('email', email);
+            formData.append('use_service_account', authMethod === 'admin' ? 'true' : 'false');
+            
+            // Submit the share request
+            fetch(`/calendar/share/${calendarId}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Calendar shared successfully!');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('shareCalendarModal'));
+                    modal.hide();
+                } else {
+                    alert(`Error: ${data.error || 'Failed to share calendar'}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error sharing calendar:', error);
+                alert('An error occurred while sharing the calendar');
+            });
+        });
+    }
+});
+</script>
+
+<style>
+.calendar-embed-container {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+    max-width: 100%;
+}
+
+.calendar-embed-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,115 @@
+{% extends "emails/base.html" %}
+
+{% block title %}New Invoice #{{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="email-container">
+    <div class="header">
+        <table width="100%">
+            <tr>
+                <td>
+                    <h1>Invoice #{{ invoice.invoice_number }}</h1>
+                </td>
+                <td align="right">
+                    <img src="{{ company.logo_url }}" alt="{{ company.name }}" style="max-width: 150px;">
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="body">
+        <p>Dear {{ client.contact_name }},</p>
+
+        <p>Please find attached your invoice #{{ invoice.invoice_number }} for {{ '%.2f' | format(invoice.total_amount) }} due on {{ invoice.due_date }}.</p>
+
+        <table class="invoice-summary" cellpadding="8" cellspacing="0" style="width: 100%; margin-bottom: 20px; border: 1px solid #ddd;">
+            <tr style="background-color: #f8f9fa;">
+                <th style="text-align: left; border-bottom: 1px solid #ddd;">Invoice Number</th>
+                <th style="text-align: left; border-bottom: 1px solid #ddd;">Issue Date</th>
+                <th style="text-align: left; border-bottom: 1px solid #ddd;">Due Date</th>
+                <th style="text-align: right; border-bottom: 1px solid #ddd;">Amount Due</th>
+            </tr>
+            <tr>
+                <td style="text-align: left; border-bottom: 1px solid #ddd;">{{ invoice.invoice_number }}</td>
+                <td style="text-align: left; border-bottom: 1px solid #ddd;">{{ invoice.issue_date }}</td>
+                <td style="text-align: left; border-bottom: 1px solid #ddd;">{{ invoice.due_date }}</td>
+                <td style="text-align: right; border-bottom: 1px solid #ddd;">${{ '%.2f' | format(invoice.total_amount) }}</td>
+            </tr>
+        </table>
+
+        <h3>Invoice Details</h3>
+        
+        <table class="invoice-items" cellpadding="8" cellspacing="0" style="width: 100%; margin-bottom: 20px; border: 1px solid #ddd;">
+            <thead>
+                <tr style="background-color: #f8f9fa;">
+                    <th style="text-align: left; border-bottom: 1px solid #ddd;">Description</th>
+                    <th style="text-align: center; border-bottom: 1px solid #ddd;">Quantity</th>
+                    <th style="text-align: right; border-bottom: 1px solid #ddd;">Unit Price</th>
+                    <th style="text-align: right; border-bottom: 1px solid #ddd;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td style="text-align: left; border-bottom: 1px solid #ddd;">{{ item.description }}</td>
+                    <td style="text-align: center; border-bottom: 1px solid #ddd;">{{ item.quantity }}</td>
+                    <td style="text-align: right; border-bottom: 1px solid #ddd;">${{ '%.2f' | format(item.unit_price) }}</td>
+                    <td style="text-align: right; border-bottom: 1px solid #ddd;">${{ '%.2f' | format(item.amount) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" style="text-align: right; border-bottom: 1px solid #ddd;"><strong>Subtotal:</strong></td>
+                    <td style="text-align: right; border-bottom: 1px solid #ddd;">${{ '%.2f' | format(invoice.subtotal) }}</td>
+                </tr>
+                {% if invoice.tax_amount > 0 %}
+                <tr>
+                    <td colspan="3" style="text-align: right; border-bottom: 1px solid #ddd;"><strong>Tax ({{ invoice.tax_rate }}%):</strong></td>
+                    <td style="text-align: right; border-bottom: 1px solid #ddd;">${{ '%.2f' | format(invoice.tax_amount) }}</td>
+                </tr>
+                {% endif %}
+                {% if invoice.discount_amount > 0 %}
+                <tr>
+                    <td colspan="3" style="text-align: right; border-bottom: 1px solid #ddd;"><strong>Discount:</strong></td>
+                    <td style="text-align: right; border-bottom: 1px solid #ddd;">-${{ '%.2f' | format(invoice.discount_amount) }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td colspan="3" style="text-align: right; border-bottom: 1px solid #ddd;"><strong>Total Due:</strong></td>
+                    <td style="text-align: right; border-bottom: 1px solid #ddd;"><strong>${{ '%.2f' | format(invoice.total_amount) }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        {% if invoice.notes %}
+        <div class="notes">
+            <h4>Notes</h4>
+            <p>{{ invoice.notes }}</p>
+        </div>
+        {% endif %}
+
+        {% if invoice.payment_instructions %}
+        <div class="payment-instructions">
+            <h4>Payment Instructions</h4>
+            <p>{{ invoice.payment_instructions }}</p>
+        </div>
+        {% endif %}
+
+        <div class="cta-button" style="margin: 30px 0;">
+            <a href="{{ view_url }}" style="background-color: #007bff; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 4px; display: inline-block;">View Invoice Online</a>
+        </div>
+
+        <p>If you have any questions about this invoice, please contact us at {{ company.email }} or {{ company.phone }}.</p>
+
+        <p>Thank you for your business!</p>
+
+        <p>Sincerely,<br>
+        The {{ company.name }} Team</p>
+    </div>
+
+    <div class="footer">
+        <p>{{ company.name }} | {{ company.address }}, {{ company.city }}, {{ company.state }} {{ company.zip }} | {{ company.phone }}</p>
+    </div>
+</div>
+{% endblock %} 

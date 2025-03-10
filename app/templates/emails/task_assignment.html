@@ -1,0 +1,62 @@
+{% extends "emails/base.html" %}
+
+{% block title %}New Task Assignment: {{ task.title }} - Construction CRM{% endblock %}
+
+{% block header %}New Task Assignment{% endblock %}
+
+{% block content %}
+<p>Hello,</p>
+
+<p>A new task has been assigned to you{% if assigned_by %} by <strong>{{ assigned_by }}</strong>{% endif %}.</p>
+
+<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+    <h3 style="margin-top: 0; color: #3498db;">{{ task.title }}</h3>
+    
+    <table>
+        <tr>
+            <th style="width: 30%;">Project</th>
+            <td>{{ project.name }}</td>
+        </tr>
+        <tr>
+            <th>Priority</th>
+            <td>
+                {% if task.priority == 'High' or task.priority == 'Urgent' %}
+                <span style="color: #e74c3c; font-weight: bold;">{{ task.priority }}</span>
+                {% else %}
+                {{ task.priority }}
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Due Date</th>
+            <td>
+                {% if task.due_date %}
+                <strong>{{ task.due_date.strftime('%B %d, %Y') }}</strong>
+                {% if task.is_overdue %}
+                <span style="color: #e74c3c; font-weight: bold;"> (OVERDUE)</span>
+                {% endif %}
+                {% else %}
+                No due date set
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Estimated Hours</th>
+            <td>{{ task.estimated_hours if task.estimated_hours else 'Not specified' }}</td>
+        </tr>
+    </table>
+    
+    {% if task.description %}
+    <div style="margin-top: 15px;">
+        <h4 style="margin-bottom: 5px;">Description:</h4>
+        <p style="margin-top: 0;">{{ task.description }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<p>
+    <a href="{{ url_for('tasks.view_task', task_id=task.id, _external=True) }}" class="btn btn-primary">View Task Details</a>
+</p>
+
+<p>Please review this task and update its status as you make progress.</p>
+{% endblock %} 

@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Notification Detail{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Notification Detail</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('notifications.list_notifications') }}">Notifications</a></li>
+        <li class="breadcrumb-item active">Detail</li>
+    </ol>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-bell me-1"></i>
+            Notification Details
+        </div>
+        <div class="card-body">
+            <div class="notification-detail">
+                <div class="notification-header mb-4">
+                    <h3>
+                        <span class="badge bg-{{ notification.notification_type }} me-2">
+                            <i class="fas fa-{% if notification.notification_type == 'info' %}info-circle{% elif notification.notification_type == 'success' %}check-circle{% elif notification.notification_type == 'warning' %}exclamation-triangle{% elif notification.notification_type == 'danger' %}exclamation-circle{% endif %}"></i>
+                        </span>
+                        {{ notification.title }}
+                    </h3>
+                    <div class="text-muted">
+                        <span class="me-3">
+                            <i class="fas fa-tag"></i> {{ notification.category | capitalize }}
+                        </span>
+                        <span>
+                            <i class="fas fa-clock"></i> {{ notification.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="notification-body mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="lead">{{ notification.message }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if notification.entity_type and notification.entity_id %}
+                <div class="notification-related mb-4">
+                    <h5>Related Information</h5>
+                    <div class="card">
+                        <div class="card-body">
+                            <p>
+                                <strong>Type:</strong> {{ notification.entity_type | capitalize }}
+                                <br>
+                                <strong>ID:</strong> {{ notification.entity_id }}
+                            </p>
+                            
+                            {% if notification.action_url %}
+                            <a href="{{ notification.action_url }}" class="btn btn-primary">
+                                <i class="fas fa-external-link-alt"></i>
+                                View Related {{ notification.entity_type | capitalize }}
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="notification-actions">
+                    <a href="{{ url_for('notifications.list_notifications') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Notifications
+                    </a>
+                    
+                    <form method="POST" action="{{ url_for('notifications.delete', notification_id=notification.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this notification?');">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

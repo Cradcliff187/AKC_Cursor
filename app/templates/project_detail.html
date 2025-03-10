@@ -12,17 +12,55 @@
                 <a href="{{ url_for('clients.view_client', client_id=client.id) }}">{{ client.name }}</a>
                 {% if client.company_name %} ({{ client.company_name }}){% endif %}
             {% else %}
-                {{ project.client or 'Not specified' }}
+                {% if project.client_id %}Client ID: {{ project.client_id }}{% else %}Not specified{% endif %}
             {% endif %}
         </p>
     </div>
     <div class="col-auto">
-        <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+        <a href="{{ url_for('projects.list_projects') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-1"></i> Back to Projects
         </a>
-        <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-primary">
-            <i class="fas fa-edit me-1"></i> Edit Project
-        </a>
+        {% if can_edit %}
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-cog me-1"></i> Project Actions
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('projects.edit_project', project_id=project.id) }}">
+                        <i class="fas fa-edit me-1"></i> Edit Project
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('projects.project_timeline', project_id=project.id) }}">
+                        <i class="fas fa-clock me-1"></i> View Timeline
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                
+                <!-- Status transitions -->
+                {% if allowed_transitions %}
+                <li><h6 class="dropdown-header">Change Status To:</h6></li>
+                {% for status in allowed_transitions %}
+                <li>
+                    <form action="{{ url_for('projects.update_status', project_id=project.id, new_status=status) }}" method="post" class="d-inline">
+                        <button type="submit" class="dropdown-item">
+                            <i class="fas fa-arrow-right me-1"></i> {{ statuses[status].display }}
+                        </button>
+                    </form>
+                </li>
+                {% endfor %}
+                {% endif %}
+                
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteProjectModal">
+                        <i class="fas fa-trash-alt me-1"></i> Delete Project
+                    </button>
+                </li>
+            </ul>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -38,21 +76,27 @@
                     <div class="col-md-9">{{ project.id }}</div>
                 </div>
                 <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Type:</div>
+                    <div class="col-md-9">
+                        {{ project_types[project.project_type] if project.project_type else 'Not specified' }}
+                    </div>
+                </div>
+                <div class="row mb-3">
                     <div class="col-md-3 fw-bold">Client:</div>
                     <div class="col-md-9">
                         {% if client %}
                             <a href="{{ url_for('clients.view_client', client_id=client.id) }}">{{ client.name }}</a>
                             {% if client.company_name %} ({{ client.company_name }}){% endif %}
                         {% else %}
-                            {{ project.client or 'Not specified' }}
+                            {% if project.client_id %}Client ID: {{ project.client_id }}{% else %}Not specified{% endif %}
                         {% endif %}
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-3 fw-bold">Status:</div>
                     <div class="col-md-9">
-                        <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% elif project.status == 'On Hold' %}bg-warning{% elif project.status == 'Cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
-                            {{ project.status }}
+                        <span class="badge bg-{{ statuses[project.status].badge }}">
+                            {{ statuses[project.status].display }}
                         </span>
                     </div>
                 </div>
@@ -62,11 +106,11 @@
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-3 fw-bold">Start Date:</div>
-                    <div class="col-md-9">{{ project.start_date.strftime('%B %d, %Y') if project.start_date else 'Not set' }}</div>
+                    <div class="col-md-9">{{ project.start_date or 'Not set' }}</div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-3 fw-bold">End Date:</div>
-                    <div class="col-md-9">{{ project.end_date.strftime('%B %d, %Y') if project.end_date else 'Not set' }}</div>
+                    <div class="col-md-9">{{ project.end_date or 'Not set' }}</div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-3 fw-bold">Description:</div>
@@ -75,45 +119,46 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
+        {% if timeline %}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Project Timeline</h5>
+                <a href="{{ url_for('projects.project_timeline', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-clock me-1"></i> View Full Timeline
+                </a>
             </div>
             <div class="card-body">
                 <div class="timeline">
+                    {% for event in timeline[:3] %}
                     <div class="timeline-item">
-                        <div class="timeline-marker bg-success"></div>
+                        <div class="timeline-marker bg-{{ event.color }}"></div>
                         <div class="timeline-content">
-                            <h5>Project Started</h5>
-                            <p class="text-muted">{{ project.start_date.strftime('%B %d, %Y') if project.start_date else 'Date not set' }}</p>
-                            <p>Initial project planning and client consultation completed.</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">{{ event.event }}</h5>
+                                <small class="text-muted">{{ event.date }}</small>
+                            </div>
+                            <p class="mb-0">{{ event.description }}</p>
                         </div>
                     </div>
-                    <div class="timeline-item">
-                        <div class="timeline-marker bg-primary"></div>
-                        <div class="timeline-content">
-                            <h5>Design Phase</h5>
-                            <p class="text-muted">{{ (project.start_date + timedelta(days=15)).strftime('%B %d, %Y') if project.start_date else 'Date not set' }}</p>
-                            <p>Design documents approved by client.</p>
-                        </div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-marker bg-info"></div>
-                        <div class="timeline-content">
-                            <h5>Construction Phase</h5>
-                            <p class="text-muted">{{ (project.start_date + timedelta(days=30)).strftime('%B %d, %Y') if project.start_date else 'Date not set' }}</p>
-                            <p>Construction work has begun on site.</p>
-                        </div>
-                    </div>
+                    {% endfor %}
                 </div>
+                
+                {% if timeline|length > 3 %}
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('projects.project_timeline', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary">
+                        View All {{ timeline|length }} Events
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
+        {% endif %}
 
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="fas fa-tasks me-1"></i> Tasks</span>
                 <div>
-                    <a href="{{ url_for('tasks.create_task', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ url_for('tasks.create_task_route', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-plus me-1"></i> Add Task
                     </a>
                 </div>
@@ -135,18 +180,20 @@
                             {% for task in tasks[:5] %}
                             <tr>
                                 <td>
-                                    <strong>{{ task.title }}</strong>
+                                    <a href="{{ url_for('tasks.view_task', task_id=task.id) }}" class="text-decoration-none text-dark">
+                                        <strong>{{ task.title }}</strong>
+                                    </a>
                                     {% if task.description %}
                                     <p class="mb-0 small text-muted text-truncate">{{ task.description }}</p>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge {{ 'bg-success' if task.status == 'Completed' else 'bg-warning' if task.status == 'In Progress' else 'bg-info' if task.status == 'To Do' else 'bg-secondary' }}">
-                                        {{ task.status }}
+                                    <span class="badge bg-{{ task_statuses[task.status].badge }}">
+                                        {{ task_statuses[task.status].display }}
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge {{ 'bg-danger' if task.priority == 'High' else 'bg-warning' if task.priority == 'Medium' else 'bg-info' }}">
+                                    <span class="badge bg-{{ 'danger' if task.priority == 'HIGH' else 'warning' if task.priority == 'MEDIUM' else 'success' }}">
                                         {{ task.priority }}
                                     </span>
                                 </td>
@@ -165,7 +212,7 @@
                 </div>
                 {% if tasks|length > 5 %}
                 <div class="text-center mt-3">
-                    <a href="{{ url_for('tasks.task_list', project_id=project.id) }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('tasks.project_tasks', project_id=project.id) }}" class="btn btn-outline-primary">
                         Show All {{ tasks|length }} Tasks
                     </a>
                 </div>
@@ -175,7 +222,7 @@
                     <i class="fas fa-tasks fa-3x mb-3 text-muted"></i>
                     <h5>No Tasks Yet</h5>
                     <p class="text-muted">Get started by adding tasks to this project.</p>
-                    <a href="{{ url_for('tasks.create_task', project_id=project.id) }}" class="btn btn-primary mt-2">
+                    <a href="{{ url_for('tasks.create_task_route', project_id=project.id) }}" class="btn btn-primary mt-2">
                         <i class="fas fa-plus-circle me-1"></i> Add First Task
                     </a>
                 </div>
@@ -187,68 +234,22 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Documents</h5>
                 <div>
-                    <a href="{{ url_for('projects.project_documents', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary me-1">
+                    <a href="{{ url_for('documents.project_documents', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary me-1">
                         <i class="fas fa-folder-open me-1"></i> View All
                     </a>
-                    <a href="{{ url_for('documents.upload_document') }}?project_id={{ project.id }}" class="btn btn-sm btn-primary">
+                    <a href="{{ url_for('documents.upload_document') }}?entity_type=project&entity_id={{ project.id }}" class="btn btn-sm btn-primary">
                         <i class="fas fa-upload me-1"></i> Upload
                     </a>
                 </div>
             </div>
             <div class="card-body">
-                <!-- Call API to get document count, this is just a placeholder -->
                 <p class="text-center">
-                    <a href="{{ url_for('projects.project_documents', project_id=project.id) }}" class="text-decoration-none">
+                    <a href="{{ url_for('documents.project_documents', project_id=project.id) }}" class="text-decoration-none">
                         <i class="fas fa-folder fa-3x mb-2 text-primary"></i>
                         <h5>Project Documents</h5>
                         <span class="badge bg-primary">View All Documents</span>
                     </a>
                 </p>
-            </div>
-        </div>
-
-        <!-- Time Entries -->
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-clock me-1"></i> Time Entries</span>
-                <div>
-                    <a href="{{ url_for('time_entries.log_time') }}?project_id={{ project.id }}" class="btn btn-sm btn-outline-primary me-1">
-                        <i class="fas fa-plus me-1"></i> Log Time
-                    </a>
-                    <a href="{{ url_for('time_entries.project_time', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="fas fa-eye me-1"></i> View All
-                    </a>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <div class="card h-100 border-primary">
-                            <div class="card-body text-center">
-                                <h6 class="card-title">Total Hours</h6>
-                                <div id="totalHours" class="display-5">--</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card h-100 border-success">
-                            <div class="card-body text-center">
-                                <h6 class="card-title">Billable Hours</h6>
-                                <div id="billableHours" class="display-5">--</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card h-100 border-info">
-                            <div class="card-body text-center">
-                                <h6 class="card-title">Progress</h6>
-                                <div id="hoursProgress" class="display-5">--</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="recentTimeEntries">Loading recent time entries...</div>
             </div>
         </div>
     </div>
@@ -288,7 +289,7 @@
                 {% endif %}
                 
                 <a href="{{ url_for('clients.view_client', client_id=client.id) }}" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-user me-1"></i> View Full Client Details
+                    <i class="fas fa-user me-1"></i> View Client Details
                 </a>
             </div>
         </div>
@@ -302,40 +303,157 @@
                 <div class="mb-3">
                     <label class="form-label">Progress</label>
                     <div class="progress">
-                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ project.progress }}%;" aria-valuenow="{{ project.progress }}" aria-valuemin="0" aria-valuemax="100">{{ project.progress }}%</div>
+                        <div class="progress-bar bg-primary" role="progressbar" 
+                            style="width: {{ project.progress }}%;" 
+                            aria-valuenow="{{ project.progress }}" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100">
+                            {{ project.progress }}%
+                        </div>
                     </div>
                 </div>
+                
+                {% if financial_summary %}
+                <div class="mb-3">
+                    <label class="form-label">Budget</label>
+                    <p class="mb-1">${{ "{:,.2f}".format(financial_summary.budget|float) }}</p>
+                    
+                    <label class="form-label">Budget Spent</label>
+                    <p class="mb-1">${{ "{:,.2f}".format(financial_summary.budget_spent|float) }}</p>
+                    
+                    <label class="form-label">Remaining Budget</label>
+                    <p class="mb-1 {% if financial_summary.remaining_budget < 0 %}text-danger{% endif %}">
+                        ${{ "{:,.2f}".format(financial_summary.remaining_budget|float) }}
+                    </p>
+                    
+                    <label class="form-label">Budget Utilization</label>
+                    <div class="progress">
+                        <div class="progress-bar {% if financial_summary.budget_percentage > 90 %}bg-danger{% elif financial_summary.budget_percentage > 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                            role="progressbar" 
+                            style="width: {{ financial_summary.budget_percentage }}%;" 
+                            aria-valuenow="{{ financial_summary.budget_percentage }}" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100">
+                            {{ financial_summary.budget_percentage }}%
+                        </div>
+                    </div>
+                </div>
+                {% else %}
                 <div class="mb-3">
                     <label class="form-label">Budget</label>
                     <p class="mb-1">${{ "{:,.2f}".format(project.budget|float) if project.budget else '0.00' }}</p>
+                    
                     <label class="form-label">Budget Spent</label>
                     <p class="mb-1">${{ "{:,.2f}".format(project.budget_spent|float) if project.budget_spent else '0.00' }}</p>
+                    
                     <label class="form-label">Budget Utilization</label>
+                    {% set budget_utilization = ((project.budget_spent|float / project.budget|float * 100) if project.budget and project.budget > 0 else 0)|round(1) %}
                     <div class="progress">
-                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ project.budget_utilization }}%;" aria-valuenow="{{ project.budget_utilization }}" aria-valuemin="0" aria-valuemax="100">{{ "%.1f"|format(project.budget_utilization) }}%</div>
+                        <div class="progress-bar {% if budget_utilization > 90 %}bg-danger{% elif budget_utilization > 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                            role="progressbar" 
+                            style="width: {{ budget_utilization }}%;" 
+                            aria-valuenow="{{ budget_utilization }}" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100">
+                            {{ budget_utilization }}%
+                        </div>
                     </div>
                 </div>
+                {% endif %}
+                
+                {% if can_edit %}
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                    <i class="fas fa-plus me-1"></i> Add Expense
+                </button>
+                <a href="{{ url_for('projects.project_expenses', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary ms-1">
+                    <i class="fas fa-chart-pie me-1"></i> View Expense Report
+                </a>
+                {% endif %}
             </div>
         </div>
 
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Contact Information</h5>
+                <h5 class="card-title mb-0">Project Team</h5>
             </div>
             <div class="card-body">
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item">
+                    <li class="list-group-item px-0">
                         <div class="fw-bold">Project Manager</div>
-                        <div>Michael Johnson</div>
-                        <div><a href="mailto:michael@example.com">michael@example.com</a></div>
+                        <div>{{ project.project_manager or 'Not assigned' }}</div>
                     </li>
-                    <li class="list-group-item">
+                    <li class="list-group-item px-0">
                         <div class="fw-bold">Site Supervisor</div>
-                        <div>Sarah Williams</div>
-                        <div><a href="mailto:sarah@example.com">sarah@example.com</a></div>
+                        <div>{{ project.site_supervisor or 'Not assigned' }}</div>
                     </li>
                 </ul>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Project Modal -->
+<div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteProjectModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the project <strong>{{ project.name }}</strong>?</p>
+                <p class="text-danger">This action cannot be undone and will delete all project data, including tasks, documents, and time entries.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('projects.delete_project', project_id=project.id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">Delete Project</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Expense Modal -->
+<div class="modal fade" id="addExpenseModal" tabindex="-1" aria-labelledby="addExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addExpenseModalLabel">Add Expense</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('projects.add_expense', project_id=project.id) }}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="expenseType" class="form-label">Expense Type</label>
+                        <select class="form-select" id="expenseType" name="expense_type" required>
+                            <option value="labor">Labor</option>
+                            <option value="material">Material</option>
+                            <option value="subcontractor">Subcontractor</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expenseAmount" class="form-label">Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="expenseAmount" name="amount" step="0.01" min="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expenseDate" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="expenseDate" name="date" value="{{ today }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expenseDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="expenseDescription" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -364,95 +482,4 @@
     border-bottom: 1px solid #e9ecef;
 }
 </style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Existing code...
-        
-        // Load time entries
-        loadProjectTimeEntries();
-    });
-
-    // Load project time entries
-    function loadProjectTimeEntries() {
-        fetch(`/projects/{{ project.id }}/time`)
-            .then(response => response.text())
-            .then(html => {
-                // Extract time data from the HTML
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                
-                // Find metrics
-                const totalHours = doc.querySelector('.border-primary .display-4')?.textContent || '0.0';
-                const billableHours = doc.querySelector('.border-success .display-4')?.textContent || '0.0';
-                
-                // Calculate progress percentage if budget hours is set
-                const budgetHours = {{ project.budget_hours or 0 }};
-                let progressText = '--';
-                if (budgetHours > 0) {
-                    const total = parseFloat(totalHours);
-                    const percentage = (total / budgetHours * 100).toFixed(1);
-                    progressText = `${percentage}%`;
-                }
-                
-                // Update metrics cards
-                document.getElementById('totalHours').textContent = totalHours;
-                document.getElementById('billableHours').textContent = billableHours;
-                document.getElementById('hoursProgress').textContent = progressText;
-                
-                // Get recent entries (limit to 5)
-                const timeEntries = Array.from(doc.querySelectorAll('.time-entry')).slice(0, 5);
-                
-                if (timeEntries.length > 0) {
-                    let html = '<h6 class="mb-3">Recent Time Entries</h6>';
-                    html += '<div class="table-responsive"><table class="table table-sm">';
-                    html += '<thead><tr><th>Date</th><th>User</th><th>Hours</th><th>Description</th></tr></thead>';
-                    html += '<tbody>';
-                    
-                    timeEntries.forEach(entry => {
-                        const date = entry.querySelector('td:nth-child(1)').textContent;
-                        const user = entry.querySelector('td:nth-child(2)').textContent;
-                        const hours = entry.querySelector('td:nth-child(3)').textContent.trim().split('\n')[0];
-                        const description = entry.querySelector('td:nth-child(4)').textContent;
-                        
-                        html += `<tr>
-                            <td>${date}</td>
-                            <td>${user}</td>
-                            <td>${hours}</td>
-                            <td>${description}</td>
-                        </tr>`;
-                    });
-                    
-                    html += '</tbody></table></div>';
-                    html += `<div class="text-end mt-2">
-                        <a href="{{ url_for('time_entries.project_time', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">View All Time Entries</a>
-                    </div>`;
-                    
-                    document.getElementById('recentTimeEntries').innerHTML = html;
-                } else {
-                    // No time entries
-                    document.getElementById('recentTimeEntries').innerHTML = `
-                        <div class="text-center py-3">
-                            <i class="fas fa-clock fa-2x mb-2 text-muted"></i>
-                            <h6>No time entries yet</h6>
-                            <p class="small text-muted">Start tracking time for this project</p>
-                            <a href="{{ url_for('time_entries.log_time') }}?project_id={{ project.id }}" class="btn btn-sm btn-primary">
-                                <i class="fas fa-plus me-1"></i> Log Time
-                            </a>
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                console.error('Error loading time entries:', error);
-                document.getElementById('recentTimeEntries').innerHTML = `
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-1"></i> Could not load time entries
-                    </div>
-                `;
-            });
-    }
-</script>
 {% endblock %} 

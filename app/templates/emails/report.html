@@ -1,0 +1,53 @@
+{% extends "emails/base.html" %}
+
+{% block title %}{{ report_name }} - Construction CRM{% endblock %}
+
+{% block header %}{{ report_name }}{% endblock %}
+
+{% block content %}
+<p>Hello,</p>
+
+<p>Please find attached your requested report: <strong>{{ report_name }}</strong>.</p>
+
+{% if report_data %}
+<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+    {% if report_data.summary %}
+    <h3 style="margin-top: 0;">Summary</h3>
+    <table>
+        {% for key, value in report_data.summary.items() %}
+        <tr>
+            <th style="width: 40%;">{{ key | capitalize }}</th>
+            <td>{{ value }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+    
+    {% if report_data.highlights %}
+    <h3 style="margin-top: 15px;">Highlights</h3>
+    <ul>
+        {% for highlight in report_data.highlights %}
+        <li>{{ highlight }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    
+    {% if report_data.custom_message %}
+    <div style="margin-top: 15px;">
+        <h4 style="margin-bottom: 5px;">Note:</h4>
+        <p style="margin-top: 0;">{{ report_data.custom_message }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<p>
+    The complete report details are available in the attached file. You can also view and download this report from the Construction CRM application.
+</p>
+
+<p>
+    <a href="{{ url_for('reports.show_reports', _external=True) }}" class="btn btn-primary">View All Reports</a>
+</p>
+
+<p>If you have any questions about this report, please contact your project manager or system administrator.</p>
+{% endblock %} 

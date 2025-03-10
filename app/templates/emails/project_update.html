@@ -1,0 +1,85 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Project Update: {{ project.name }} - Construction CRM{% endblock %}
+
+{% block header %}Project Update: {{ project.name }}{% endblock %}
+
+{% block content %}
+<p>Hello,</p>
+
+<p>There has been an update to the project <strong>{{ project.name }}</strong>.</p>
+
+<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+    <h3 style="margin-top: 0;">Update Type: {{ update_type }}</h3>
+    
+    <table>
+        <tr>
+            <th style="width: 30%;">Project</th>
+            <td>{{ project.name }}</td>
+        </tr>
+        <tr>
+            <th>Status</th>
+            <td>
+                {% if project.status == 'Completed' %}
+                <span style="color: #2ecc71; font-weight: bold;">{{ project.status }}</span>
+                {% elif project.status == 'In Progress' %}
+                <span style="color: #3498db; font-weight: bold;">{{ project.status }}</span>
+                {% elif project.status == 'On Hold' %}
+                <span style="color: #f39c12; font-weight: bold;">{{ project.status }}</span>
+                {% elif project.status == 'Cancelled' %}
+                <span style="color: #e74c3c; font-weight: bold;">{{ project.status }}</span>
+                {% else %}
+                {{ project.status }}
+                {% endif %}
+            </td>
+        </tr>
+        {% if project.start_date %}
+        <tr>
+            <th>Start Date</th>
+            <td>{{ project.start_date.strftime('%B %d, %Y') }}</td>
+        </tr>
+        {% endif %}
+        {% if project.end_date %}
+        <tr>
+            <th>End Date</th>
+            <td>
+                <strong>{{ project.end_date.strftime('%B %d, %Y') }}</strong>
+                {% if project.is_overdue and not project.is_completed %}
+                <span style="color: #e74c3c; font-weight: bold;"> (OVERDUE)</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endif %}
+        {% if project.budget %}
+        <tr>
+            <th>Budget</th>
+            <td>${{ '{:,.2f}'.format(project.budget) }}</td>
+        </tr>
+        {% endif %}
+        {% if project.budget_spent %}
+        <tr>
+            <th>Budget Spent</th>
+            <td>
+                ${{ '{:,.2f}'.format(project.budget_spent) }}
+                {% if project.is_over_budget %}
+                <span style="color: #e74c3c; font-weight: bold;"> (OVER BUDGET)</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endif %}
+    </table>
+    
+    {% if update_details %}
+    <div style="margin-top: 15px;">
+        <h4 style="margin-bottom: 5px;">Details:</h4>
+        <p style="margin-top: 0;">{{ update_details }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<p>
+    <a href="{{ url_for('projects.view', project_id=project.id, _external=True) }}" class="btn btn-primary">View Project Details</a>
+</p>
+
+<p>Please review this update and take any necessary actions.</p>
+{% endblock %} 

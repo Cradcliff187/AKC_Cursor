@@ -1,0 +1,93 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Payment Receipt - Invoice #{{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="email-container">
+    <div class="header">
+        <table width="100%">
+            <tr>
+                <td>
+                    <h1>Payment Receipt</h1>
+                    <h2>Invoice #{{ invoice.invoice_number }}</h2>
+                </td>
+                <td align="right">
+                    <img src="{{ company.logo_url }}" alt="{{ company.name }}" style="max-width: 150px;">
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="body">
+        <p>Dear {{ client.contact_name }},</p>
+
+        <p><strong>Thank you for your payment of ${{ '%.2f' | format(payment.amount) }} on {{ payment.payment_date }} for invoice #{{ invoice.invoice_number }}.</strong></p>
+
+        <div class="receipt-details" style="margin: 20px 0; padding: 20px; border: 1px solid #ddd; background-color: #f8f9fa;">
+            <h3>Payment Details</h3>
+            <table cellpadding="5" cellspacing="0" style="width: 100%;">
+                <tr>
+                    <td style="width: 40%;"><strong>Payment Amount:</strong></td>
+                    <td>${{ '%.2f' | format(payment.amount) }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Payment Date:</strong></td>
+                    <td>{{ payment.payment_date }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Payment Method:</strong></td>
+                    <td>{{ payment.payment_method }}</td>
+                </tr>
+                {% if payment.reference_number %}
+                <tr>
+                    <td><strong>Reference Number:</strong></td>
+                    <td>{{ payment.reference_number }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td><strong>Invoice Number:</strong></td>
+                    <td>{{ invoice.invoice_number }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Invoice Total:</strong></td>
+                    <td>${{ '%.2f' | format(invoice.total_amount) }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Amount Paid (including this payment):</strong></td>
+                    <td>${{ '%.2f' | format(invoice.amount_paid) }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Remaining Balance:</strong></td>
+                    <td>${{ '%.2f' | format(invoice.balance_due) }}</td>
+                </tr>
+            </table>
+        </div>
+
+        {% if invoice.status == 'Paid' %}
+        <p style="font-size: 18px; color: #28a745; font-weight: bold; text-align: center; margin: 30px 0; padding: 10px; border: 1px solid #28a745; background-color: #f8fff8; border-radius: 4px;">
+            This invoice has been fully paid. Thank you!
+        </p>
+        {% else %}
+        <p>Your remaining balance for this invoice is ${{ '%.2f' | format(invoice.balance_due) }}. 
+            {% if invoice.due_date %}
+            The due date for the remaining balance is {{ invoice.due_date }}.
+            {% endif %}
+        </p>
+        <div class="cta-button" style="margin: 30px 0;">
+            <a href="{{ view_url }}" style="background-color: #28a745; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 4px; display: inline-block;">View Invoice</a>
+        </div>
+        {% endif %}
+
+        <p>If you have any questions about this payment or invoice, please contact us at {{ company.email }} or {{ company.phone }}.</p>
+
+        <p>Thank you for your business!</p>
+
+        <p>Sincerely,<br>
+        The {{ company.name }} Team</p>
+    </div>
+
+    <div class="footer">
+        <p>{{ company.name }} | {{ company.address }}, {{ company.city }}, {{ company.state }} {{ company.zip }} | {{ company.phone }}</p>
+    </div>
+</div>
+{% endblock %} 

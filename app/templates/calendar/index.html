@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+
+{% block title %}Calendar Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Calendar Management</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Calendar Management</li>
+    </ol>
+    
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-calendar me-1"></i>
+                    Google Calendar Integration
+                </div>
+                <div class="card-body">
+                    {% if not has_credentials %}
+                        <div class="alert alert-info">
+                            <h5><i class="fas fa-info-circle"></i> Google Calendar Not Connected</h5>
+                            <p>
+                                Integrate with Google Calendar to create project calendars, add tasks and important dates,
+                                and share calendars with team members.
+                            </p>
+                            <a href="{{ url_for('calendar.auth') }}" class="btn btn-primary">
+                                <i class="fab fa-google"></i> Connect with Google Calendar
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-check-circle"></i> Google Calendar Connected</h5>
+                            <p>
+                                Your account is connected to Google Calendar. You can create project-specific calendars
+                                and sync project timelines.
+                            </p>
+                            <a href="{{ url_for('calendar.auth') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-sync"></i> Re-authorize
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-calendar-plus me-1"></i>
+                    Create Project Calendar
+                </div>
+                <div class="card-body">
+                    {% if not projects %}
+                        <div class="alert alert-warning">
+                            <p>No projects available. Create a project first to create a calendar.</p>
+                            <a href="{{ url_for('projects.create') }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Create Project
+                            </a>
+                        </div>
+                    {% else %}
+                        <form id="createCalendarForm" method="POST">
+                            <div class="mb-3">
+                                <label for="project" class="form-label">Select Project</label>
+                                <select id="project" name="project_id" class="form-select" required>
+                                    <option value="">-- Select a project --</option>
+                                    {% for project in projects %}
+                                        <option value="{{ project.id }}">{{ project.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Authentication Method</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="auth_method" id="authUser" 
+                                        value="user" checked {% if not has_credentials %}disabled{% endif %}>
+                                    <label class="form-check-label" for="authUser">
+                                        Use my Google account
+                                    </label>
+                                    {% if not has_credentials %}
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-info-circle"></i> 
+                                        Connect your Google account first to use this option
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="auth_method" id="authAdmin" 
+                                        value="admin" {% if not service_account_available %}disabled{% endif %}>
+                                    <label class="form-check-label" for="authAdmin">
+                                        Use organization admin account
+                                    </label>
+                                    {% if not service_account_available %}
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-info-circle"></i> 
+                                        Service account not configured
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary" 
+                                    {% if not has_credentials and not service_account_available %}disabled{% endif %}>
+                                    <i class="fas fa-calendar-plus"></i> Create Calendar
+                                </button>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-calendar-alt me-1"></i>
+                    Project Calendars
+                </div>
+                <div class="card-body">
+                    {% if not calendar_links %}
+                        <div class="alert alert-info">
+                            <p>No calendars created yet. Create a project calendar to view it here.</p>
+                        </div>
+                    {% else %}
+                        <div class="list-group">
+                            {% for calendar in calendar_links %}
+                                <div class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">{{ calendar.calendar_name }}</h5>
+                                        <small>Created: {{ calendar.created_at.strftime('%Y-%m-%d') }}</small>
+                                    </div>
+                                    <div class="mb-2">
+                                        <a href="{{ url_for('calendar.view', calendar_id=calendar.calendar_id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-success share-calendar-btn" 
+                                                data-id="{{ calendar.calendar_id }}">
+                                            <i class="fas fa-share-alt"></i> Share
+                                        </button>
+                                        <a href="{{ calendar.ical_link }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-download"></i> iCal
+                                        </a>
+                                    </div>
+                                    <small class="text-muted">
+                                        ID: {{ calendar.calendar_id }}
+                                    </small>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Share Calendar Modal -->
+<div class="modal fade" id="shareCalendarModal" tabindex="-1" aria-labelledby="shareCalendarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="shareCalendarModalLabel">Share Calendar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="shareCalendarForm">
+                    <input type="hidden" id="calendarId" name="calendar_id">
+                    
+                    <div class="mb-3">
+                        <label for="shareEmail" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="shareEmail" name="email" 
+                               placeholder="Enter email address" required>
+                        <div class="form-text">
+                            The calendar will be shared with this email address with read-only access.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Authentication Method</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="share_auth_method" id="shareAuthUser" 
+                                value="user" checked {% if not has_credentials %}disabled{% endif %}>
+                            <label class="form-check-label" for="shareAuthUser">
+                                Use my Google account
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="share_auth_method" id="shareAuthAdmin" 
+                                value="admin" {% if not service_account_available %}disabled{% endif %}>
+                            <label class="form-check-label" for="shareAuthAdmin">
+                                Use organization admin account
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="shareCalendarSubmit">Share</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Create Calendar Form
+    const createCalendarForm = document.getElementById('createCalendarForm');
+    if (createCalendarForm) {
+        createCalendarForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const projectId = document.getElementById('project').value;
+            const authMethod = document.querySelector('input[name="auth_method"]:checked').value;
+            
+            if (!projectId) {
+                alert('Please select a project');
+                return;
+            }
+            
+            // Create a FormData object to submit
+            const formData = new FormData();
+            formData.append('use_service_account', authMethod === 'admin' ? 'true' : 'false');
+            
+            // Submit the form
+            fetch(`/calendar/create/${projectId}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    return response.json();
+                }
+            })
+            .then(data => {
+                if (data && data.error) {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error creating calendar:', error);
+                alert('An error occurred while creating the calendar');
+            });
+        });
+    }
+    
+    // Share Calendar Buttons
+    const shareButtons = document.querySelectorAll('.share-calendar-btn');
+    shareButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const calendarId = this.getAttribute('data-id');
+            document.getElementById('calendarId').value = calendarId;
+            
+            const modal = new bootstrap.Modal(document.getElementById('shareCalendarModal'));
+            modal.show();
+        });
+    });
+    
+    // Share Calendar Submit
+    const shareCalendarSubmit = document.getElementById('shareCalendarSubmit');
+    if (shareCalendarSubmit) {
+        shareCalendarSubmit.addEventListener('click', function() {
+            const form = document.getElementById('shareCalendarForm');
+            const calendarId = document.getElementById('calendarId').value;
+            const email = document.getElementById('shareEmail').value;
+            const authMethod = document.querySelector('input[name="share_auth_method"]:checked').value;
+            
+            if (!email) {
+                alert('Please enter an email address');
+                return;
+            }
+            
+            // Create a FormData object to submit
+            const formData = new FormData();
+            formData.append('email', email);
+            formData.append('use_service_account', authMethod === 'admin' ? 'true' : 'false');
+            
+            // Submit the share request
+            fetch(`/calendar/share/${calendarId}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Calendar shared successfully!');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('shareCalendarModal'));
+                    modal.hide();
+                } else {
+                    alert(`Error: ${data.error || 'Failed to share calendar'}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error sharing calendar:', error);
+                alert('An error occurred while sharing the calendar');
+            });
+        });
+    }
+});
+</script>
+{% endblock %} 

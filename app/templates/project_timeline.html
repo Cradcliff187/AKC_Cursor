@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+
+{% block title %}Timeline - {{ project.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timeline {
+        position: relative;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px 0;
+    }
+    
+    .timeline::after {
+        content: '';
+        position: absolute;
+        width: 6px;
+        background-color: #dee2e6;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        margin-left: -3px;
+        border-radius: 3px;
+    }
+    
+    .timeline-container {
+        padding: 10px 40px;
+        position: relative;
+        background-color: inherit;
+        width: 50%;
+    }
+    
+    .timeline-container::after {
+        content: '';
+        position: absolute;
+        width: 25px;
+        height: 25px;
+        right: -17px;
+        background-color: white;
+        border: 4px solid;
+        top: 15px;
+        border-radius: 50%;
+        z-index: 1;
+    }
+    
+    .left {
+        left: 0;
+    }
+    
+    .right {
+        left: 50%;
+    }
+    
+    .left::before {
+        content: " ";
+        height: 0;
+        position: absolute;
+        top: 22px;
+        width: 0;
+        z-index: 1;
+        right: 30px;
+        border: medium solid white;
+        border-width: 10px 0 10px 10px;
+        border-color: transparent transparent transparent white;
+    }
+    
+    .right::before {
+        content: " ";
+        height: 0;
+        position: absolute;
+        top: 22px;
+        width: 0;
+        z-index: 1;
+        left: 30px;
+        border: medium solid white;
+        border-width: 10px 10px 10px 0;
+        border-color: transparent white transparent transparent;
+    }
+    
+    .right::after {
+        left: -16px;
+    }
+    
+    .timeline-content {
+        padding: 20px;
+        background-color: white;
+        position: relative;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid;
+    }
+    
+    .timeline-date {
+        font-weight: bold;
+        color: #6c757d;
+        margin-bottom: 8px;
+    }
+    
+    .timeline-title {
+        margin: 0 0 10px 0;
+        color: #212529;
+    }
+    
+    .timeline-desc {
+        color: #6c757d;
+    }
+    
+    .timeline-icon {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        top: 16px;
+        z-index: 2;
+        background-color: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    
+    .left .timeline-icon {
+        right: -60px;
+    }
+    
+    .right .timeline-icon {
+        left: -60px;
+    }
+    
+    /* Colors for different event types */
+    .color-primary {
+        border-color: #0d6efd;
+    }
+    .color-primary::after {
+        border-color: #0d6efd;
+    }
+    
+    .color-success {
+        border-color: #198754;
+    }
+    .color-success::after {
+        border-color: #198754;
+    }
+    
+    .color-danger {
+        border-color: #dc3545;
+    }
+    .color-danger::after {
+        border-color: #dc3545;
+    }
+    
+    .color-warning {
+        border-color: #ffc107;
+    }
+    .color-warning::after {
+        border-color: #ffc107;
+    }
+    
+    .color-info {
+        border-color: #0dcaf0;
+    }
+    .color-info::after {
+        border-color: #0dcaf0;
+    }
+    
+    .color-secondary {
+        border-color: #6c757d;
+    }
+    .color-secondary::after {
+        border-color: #6c757d;
+    }
+    
+    /* Responsive layout - mobile */
+    @media screen and (max-width: 768px) {
+        .timeline::after {
+            left: 31px;
+        }
+        
+        .timeline-container {
+            width: 100%;
+            padding-left: 70px;
+            padding-right: 25px;
+        }
+        
+        .timeline-container::before {
+            left: 60px;
+            border-width: 10px 10px 10px 0;
+            border-color: transparent white transparent transparent;
+        }
+        
+        .left::after, .right::after {
+            left: 15px;
+        }
+        
+        .left .timeline-icon, .right .timeline-icon {
+            left: 10px;
+        }
+        
+        .right {
+            left: 0%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Project Timeline</h1>
+            <p class="text-muted">{{ project.name }}</p>
+        </div>
+        <div>
+            <a href="{{ url_for('projects.view_project', project_id=project.id) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Project
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-9">
+            {% if timeline %}
+            <div class="timeline">
+                {% for event in timeline %}
+                <div class="timeline-container {{ 'left' if loop.index is odd else 'right' }} color-{{ event.color }}">
+                    <div class="timeline-icon">
+                        <i class="fas {{ event.icon }}"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">
+                            {{ event.date|default('-') }}
+                        </div>
+                        <h4 class="timeline-title">{{ event.event }}</h4>
+                        <p class="timeline-desc">{{ event.description }}</p>
+                        
+                        {% if event.type == 'task' and event.task_id %}
+                        <a href="{{ url_for('tasks.view_task', task_id=event.task_id) }}" class="btn btn-sm btn-outline-primary mt-2">
+                            <i class="fas fa-tasks me-1"></i> View Task
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> No timeline events found for this project.
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-3">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Project Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Client:</strong>
+                        <div>
+                            {% if client %}
+                                {{ client.name }}
+                            {% else %}
+                                Not specified
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Status:</strong>
+                        <div>
+                            <span class="badge bg-{{ project_statuses[project.status].badge }}">
+                                {{ project_statuses[project.status].display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Date Range:</strong>
+                        <div>
+                            {% if project.start_date %}
+                                {{ project.start_date }}
+                                {% if project.end_date %}
+                                    to {{ project.end_date }}
+                                {% endif %}
+                            {% else %}
+                                Not specified
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <strong>Location:</strong>
+                        <div>{{ project.location|default('Not specified') }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Legend</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="me-2" style="width: 15px; height: 15px; background-color: #0d6efd; border-radius: 3px;"></div>
+                        <span>Project Created</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="me-2" style="width: 15px; height: 15px; background-color: #198754; border-radius: 3px;"></div>
+                        <span>Project Start</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="me-2" style="width: 15px; height: 15px; background-color: #0dcaf0; border-radius: 3px;"></div>
+                        <span>Project End</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="me-2" style="width: 15px; height: 15px; background-color: #6c757d; border-radius: 3px;"></div>
+                        <span>Task Created</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="me-2" style="width: 15px; height: 15px; background-color: #ffc107; border-radius: 3px;"></div>
+                        <span>Task Due</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="me-2" style="width: 15px; height: 15px; background-color: #198754; border-radius: 3px;"></div>
+                        <span>Task Completed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

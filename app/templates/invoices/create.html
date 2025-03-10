@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Invoice{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Create Invoice</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('invoices.list_invoices') }}">Invoices</a></li>
+        <li class="breadcrumb-item active">Create</li>
+    </ol>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-file-invoice me-1"></i>
+            New Invoice
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('invoices.create_invoice_route') }}">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="client_id" class="form-label">Client <span class="text-danger">*</span></label>
+                        <select class="form-select" id="client_id" name="client_id" required>
+                            <option value="">Select Client</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}">{{ client.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Client information will be displayed on the invoice.</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="project_id" class="form-label">Project (Optional)</label>
+                        <select class="form-select" id="project_id" name="project_id">
+                            <option value="">No Project</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Link this invoice to a specific project.</div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="issue_date" class="form-label">Issue Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="issue_date" name="issue_date" value="{{ today }}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="due_date" class="form-label">Due Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="due_date" name="due_date" value="{{ due_date }}" required>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="tax_rate" class="form-label">Tax Rate (%)</label>
+                        <input type="number" class="form-control" id="tax_rate" name="tax_rate" value="0" min="0" max="100" step="0.01">
+                        <div class="form-text">Tax rate will be applied to taxable items.</div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Notes (Optional)</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    <div class="form-text">Notes will be displayed on the invoice.</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="terms" class="form-label">Terms (Optional)</label>
+                    <textarea class="form-control" id="terms" name="terms" rows="3">Payment due within 30 days of receipt.</textarea>
+                    <div class="form-text">Terms will be displayed on the invoice.</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="footer" class="form-label">Footer (Optional)</label>
+                    <textarea class="form-control" id="footer" name="footer" rows="2">Thank you for your business!</textarea>
+                    <div class="form-text">Footer text will be displayed at the bottom of the invoice.</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="payment_instructions" class="form-label">Payment Instructions (Optional)</label>
+                    <textarea class="form-control" id="payment_instructions" name="payment_instructions" rows="3">Please make checks payable to AKC LLC Construction or pay by bank transfer to Account: 12345678, Routing: 987654321</textarea>
+                    <div class="form-text">Provide instructions for how the client can pay this invoice.</div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    After creating the invoice, you'll be able to add line items to it.
+                </div>
+                
+                <div class="mt-4 d-flex justify-content-between">
+                    <a href="{{ url_for('invoices.list_invoices') }}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Create Invoice</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Filter projects based on selected client
+        $('#client_id').change(function() {
+            var clientId = $(this).val();
+            if (clientId) {
+                var $projectSelect = $('#project_id');
+                
+                // Hide all projects first
+                $projectSelect.find('option').hide();
+                $projectSelect.find('option[value=""]').show();
+                
+                // Show only projects for the selected client
+                $projectSelect.find('option[data-client="' + clientId + '"]').show();
+                
+                // Reset selection if current selection is now hidden
+                if ($projectSelect.find('option:selected').css('display') == 'none') {
+                    $projectSelect.val('');
+                }
+            }
+        });
+        
+        // Set default due date (30 days from issue date)
+        $('#issue_date').change(function() {
+            var issueDate = new Date($(this).val());
+            if (!isNaN(issueDate.getTime())) {
+                var dueDate = new Date(issueDate);
+                dueDate.setDate(dueDate.getDate() + 30);
+                
+                // Format the date as YYYY-MM-DD
+                var dueDateString = dueDate.toISOString().split('T')[0];
+                $('#due_date').val(dueDateString);
+            }
+        });
+    });
+</script>
+{% endblock %} 

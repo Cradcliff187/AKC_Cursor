@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+
+{% block title %}Convert Bid to Project - {{ bid.name }} - Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Convert Bid to Project</h1>
+    
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('bids.list_bids') }}">Bids & Proposals</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('bids.view_bid', bid_id=bid.id) }}">{{ bid.name }}</a></li>
+        <li class="breadcrumb-item active">Convert to Project</li>
+    </ol>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-project-diagram me-1"></i>
+                    Project Details
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Project Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ bid.name }}" required>
+                            <div class="form-text">You can keep the bid name or modify it for the project</div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">Initial Status <span class="text-danger">*</span></label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="Planning" selected>Planning</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="On Hold">On Hold</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="budget" class="form-label">Budget</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="budget" name="budget" value="{{ bid.total_amount }}" step="0.01" min="0" readonly>
+                                </div>
+                                <div class="form-text">Budget is set from the bid total amount</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="start_date" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date">
+                                <div class="form-text">When will this project begin?</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end_date" class="form-label">Expected End Date</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date">
+                                <div class="form-text">When do you expect to complete this project?</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4">{{ bid.description }}</textarea>
+                            <div class="form-text">The project description is pre-filled from the bid but can be modified</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('bids.view_bid', bid_id=bid.id) }}" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-project-diagram me-1"></i> Create Project
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Bid Information
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <span class="badge bg-success">Accepted</span>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ bid.name }}</h5>
+                            <div class="text-muted small">{{ bid.bid_number }}</div>
+                        </div>
+                    </div>
+                    
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Client:</th>
+                            <td>{{ bid.client_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date:</th>
+                            <td>{{ bid.proposal_date }}</td>
+                        </tr>
+                        <tr>
+                            <th>Total Amount:</th>
+                            <td><strong>${{ "{:,.2f}".format(bid.total_amount) }}</strong></td>
+                        </tr>
+                    </table>
+                    
+                    <hr>
+                    
+                    <h6>Cost Breakdown</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Labor:</th>
+                            <td>${{ "{:,.2f}".format(bid.labor_cost) }}</td>
+                        </tr>
+                        <tr>
+                            <th>Materials:</th>
+                            <td>${{ "{:,.2f}".format(bid.material_cost) }}</td>
+                        </tr>
+                        <tr>
+                            <th>Other:</th>
+                            <td>${{ "{:,.2f}".format(bid.overhead_cost) }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <i class="fas fa-question-circle me-1"></i>
+                    About Converting
+                </div>
+                <div class="card-body small">
+                    <p>Converting this accepted bid to a project will:</p>
+                    <ul>
+                        <li>Create a new project with details from this bid</li>
+                        <li>Set the project budget based on the bid amount</li>
+                        <li>Link this bid to the new project for future reference</li>
+                        <li>Allow you to track costs against the bid estimates</li>
+                    </ul>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        After conversion, the bid cannot be deleted as it will be linked to the project.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default dates
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('start_date').value = today;
+        
+        // Set end date default to 30 days from now
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+        document.getElementById('end_date').value = thirtyDaysFromNow.toISOString().split('T')[0];
+        
+        // Form validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(event) {
+            const name = document.getElementById('name').value.trim();
+            const status = document.getElementById('status').value;
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            
+            if (!name) {
+                event.preventDefault();
+                alert('Please enter a project name');
+                document.getElementById('name').focus();
+                return false;
+            }
+            
+            if (!status) {
+                event.preventDefault();
+                alert('Please select a project status');
+                document.getElementById('status').focus();
+                return false;
+            }
+            
+            if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+                event.preventDefault();
+                alert('End date cannot be earlier than start date');
+                document.getElementById('end_date').focus();
+                return false;
+            }
+            
+            return true;
+        });
+    });
+</script>
+{% endblock %} 

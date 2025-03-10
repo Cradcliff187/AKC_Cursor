@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Set a flag for development mode based on environment
+DEV_MODE = os.environ.get("FLASK_ENV") == "development"
+
 # Initialize Supabase client
 try:
     url = os.environ.get("SUPABASE_URL")
@@ -12,14 +15,23 @@ try:
     
     if not url or not key:
         print("Warning: SUPABASE_URL or SUPABASE_KEY environment variables are not set.")
-        # Setting a dummy client for development mode
-        supabase = None
+        # Only use mock data in development mode
+        if DEV_MODE:
+            print("Using mock data in development mode.")
+            supabase = None
+        else:
+            raise ValueError("Supabase credentials must be provided in production mode")
     else:
         supabase = create_client(url, key)
+        print("Supabase client initialized successfully")
 except Exception as e:
     print(f"Error initializing Supabase client: {e}")
-    # Setting a dummy client for development mode
-    supabase = None
+    if DEV_MODE:
+        print("Falling back to mock data in development mode")
+        supabase = None
+    else:
+        # In production, we should raise the error
+        raise
 
 # Mock data for development when Supabase is not available
 MOCK_USERS = {
@@ -82,8 +94,11 @@ def execute_query(query, params=None):
     """Execute a raw SQL query against Supabase"""
     try:
         if supabase is None:
-            print("Warning: Using mock data as Supabase is not available")
-            return None
+            if DEV_MODE:
+                print("Warning: Using mock data as Supabase is not available")
+                return None
+            else:
+                raise ValueError("Supabase client not initialized")
             
         if params:
             response = supabase.rpc(query, params)
@@ -92,6 +107,8 @@ def execute_query(query, params=None):
         return response
     except Exception as e:
         print(f"Error executing query: {e}")
+        if not DEV_MODE:
+            raise
         return None
 
 # User functions
@@ -197,4 +214,126 @@ def get_projects_by_user(user_id):
     except Exception as e:
         print(f"Error getting projects by user: {e}")
         # Return mock data as fallback
-        return [p for p in MOCK_PROJECTS if p['user_id'] == user_id] 
+        return [p for p in MOCK_PROJECTS if p['user_id'] == user_id]
+
+# Add more comprehensive Supabase functions
+
+def get_table_data(table_name, columns="*", filters=None, limit=None):
+    """Generic function to get data from a Supabase table with optional filters"""
+    try:
+        if supabase is None and DEV_MODE:
+            print(f"Warning: Using mock data for {table_name}")
+            # Return appropriate mock data based on table_name
+            if table_name == "users":
+                return list(MOCK_USERS.values())
+            elif table_name == "projects":
+                return MOCK_PROJECTS
+            return []
+            
+        query = supabase.from_(table_name).select(columns)
+        
+        # Apply filters if provided
+        if filters:
+            for field, value in filters.items():
+                query = query.eq(field, value)
+        
+        # Apply limit if provided
+        if limit:
+            query = query.limit(limit)
+            
+        response = query.execute()
+        return response.data
+    except Exception as e:
+        print(f"Error fetching data from {table_name}: {e}")
+        if not DEV_MODE:
+            raise
+        return []
+
+def insert_record(table_name, data):
+    """Insert a record into a Supabase table"""
+    try:
+        if supabase is None and DEV_MODE:
+            print(f"Warning: Mock insert into {table_name}")
+            return {"id": 999, **data}  # Fake ID for development
+            
+        response = supabase.from_(table_name).insert(data).execute()
+        return response.data[0] if response.data else None
+    except Exception as e:
+        print(f"Error inserting into {table_name}: {e}")
+        if not DEV_MODE:
+            raise
+        return None
+
+def update_record(table_name, record_id, data, id_field="id"):
+    """Update a record in a Supabase table"""
+    try:
+        if supabase is None and DEV_MODE:
+            print(f"Warning: Mock update for {table_name}")
+            return {"id": record_id, **data}
+            
+        response = supabase.from_(table_name).update(data).eq(id_field, record_id).execute()
+        return response.data[0] if response.data else None
+    except Exception as e:
+        print(f"Error updating record in {table_name}: {e}")
+        if not DEV_MODE:
+            raise
+        return None
+
+def delete_record(table_name, record_id, id_field="id"):
+    """Delete a record from a Supabase table"""
+    try:
+        if supabase is None and DEV_MODE:
+            print(f"Warning: Mock delete from {table_name}")
+            return True
+            
+        response = supabase.from_(table_name).delete().eq(id_field, record_id).execute()
+        return True if response.data else False
+    except Exception as e:
+        print(f"Error deleting record from {table_name}: {e}")
+        if not DEV_MODE:
+            raise
+        return False
+
+# Storage functions for document management
+def upload_file_to_storage(bucket, file_path, file_name, content_type=None):
+    """Upload a file to Supabase Storage"""
+    try:
+        if supabase is None and DEV_MODE:
+            print(f"Warning: Mock file upload to {bucket}")
+            return {"key": file_name, "status": "mocked"}
+            
+        with open(file_path, 'rb') as f:
+            file_data = f.read()
+        
+        # Create the bucket if it doesn't exist
+        try:
+            supabase.storage.get_bucket(bucket)
+        except:
+            supabase.storage.create_bucket(bucket)
+        
+        response = supabase.storage.from_(bucket).upload(
+            path=file_name,
+            file=file_data,
+            file_options={"content-type": content_type} if content_type else None
+        )
+        return response
+    except Exception as e:
+        print(f"Error uploading file to storage: {e}")
+        if not DEV_MODE:
+            raise
+        return None
+
+def get_file_url(bucket, file_name):
+    """Get a public URL for a file in Supabase Storage"""
+    try:
+        if supabase is None and DEV_MODE:
+            print(f"Warning: Mock file URL from {bucket}")
+            return f"/mock_storage/{bucket}/{file_name}"
+            
+        response = supabase.storage.from_(bucket).get_public_url(file_name)
+        return response
+    except Exception as e:
+        print(f"Error getting file URL: {e}")
+        if not DEV_MODE:
+            raise
+        return None 

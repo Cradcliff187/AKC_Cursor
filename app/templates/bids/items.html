@@ -1,0 +1,569 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Line Items - {{ bid.name }} - Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Manage Line Items</h1>
+    
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('bids.list_bids') }}">Bids & Proposals</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('bids.view_bid', bid_id=bid.id) }}">{{ bid.name }}</a></li>
+        <li class="breadcrumb-item active">Line Items</li>
+    </ol>
+    
+    <div class="row">
+        <div class="col-xl-9">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-list-alt me-1"></i>
+                    Line Items
+                </div>
+                <div class="card-body">
+                    <form id="itemsForm" action="{{ url_for('bids.manage_bid_items', bid_id=bid.id) }}" method="post">
+                        <input type="hidden" name="item_data" id="itemData" value="">
+                        
+                        <div class="mb-4">
+                            <ul class="nav nav-tabs" id="itemTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="labor-tab" data-bs-toggle="tab" data-bs-target="#labor" type="button" role="tab" aria-controls="labor" aria-selected="true">Labor</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="materials-tab" data-bs-toggle="tab" data-bs-target="#materials" type="button" role="tab" aria-controls="materials" aria-selected="false">Materials</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="other-tab" data-bs-toggle="tab" data-bs-target="#other" type="button" role="tab" aria-controls="other" aria-selected="false">Other</button>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content pt-4" id="itemTabContent">
+                                <!-- Labor Tab -->
+                                <div class="tab-pane fade show active" id="labor" role="tabpanel" aria-labelledby="labor-tab">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <h5>Labor Items</h5>
+                                        <button type="button" class="btn btn-sm btn-success" onclick="addItem('Labor')">
+                                            <i class="fas fa-plus me-1"></i> Add Labor Item
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="laborTable">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 40%">Description</th>
+                                                    <th>Quantity</th>
+                                                    <th>Unit</th>
+                                                    <th>Unit Cost</th>
+                                                    <th>Markup %</th>
+                                                    <th>Total</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="laborItems">
+                                                <!-- Labor items will be loaded here dynamically -->
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td colspan="5" class="text-end"><strong>Labor Subtotal:</strong></td>
+                                                    <td id="laborSubtotal" class="text-end">$0.00</td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    
+                                    <div id="noLaborItems" class="alert alert-info">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        No labor items added yet. Click "Add Labor Item" to get started.
+                                    </div>
+                                </div>
+                                
+                                <!-- Materials Tab -->
+                                <div class="tab-pane fade" id="materials" role="tabpanel" aria-labelledby="materials-tab">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <h5>Material Items</h5>
+                                        <button type="button" class="btn btn-sm btn-success" onclick="addItem('Material')">
+                                            <i class="fas fa-plus me-1"></i> Add Material Item
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="materialsTable">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 40%">Description</th>
+                                                    <th>Quantity</th>
+                                                    <th>Unit</th>
+                                                    <th>Unit Cost</th>
+                                                    <th>Markup %</th>
+                                                    <th>Total</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="materialItems">
+                                                <!-- Material items will be loaded here dynamically -->
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td colspan="5" class="text-end"><strong>Materials Subtotal:</strong></td>
+                                                    <td id="materialsSubtotal" class="text-end">$0.00</td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    
+                                    <div id="noMaterialItems" class="alert alert-info">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        No material items added yet. Click "Add Material Item" to get started.
+                                    </div>
+                                </div>
+                                
+                                <!-- Other Tab -->
+                                <div class="tab-pane fade" id="other" role="tabpanel" aria-labelledby="other-tab">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <h5>Other Items</h5>
+                                        <button type="button" class="btn btn-sm btn-success" onclick="addItem('Other')">
+                                            <i class="fas fa-plus me-1"></i> Add Other Item
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="otherTable">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 40%">Description</th>
+                                                    <th>Quantity</th>
+                                                    <th>Unit</th>
+                                                    <th>Unit Cost</th>
+                                                    <th>Markup %</th>
+                                                    <th>Total</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="otherItems">
+                                                <!-- Other items will be loaded here dynamically -->
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td colspan="5" class="text-end"><strong>Other Subtotal:</strong></td>
+                                                    <td id="otherSubtotal" class="text-end">$0.00</td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    
+                                    <div id="noOtherItems" class="alert alert-info">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        No other items added yet. Click "Add Other Item" to get started.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('bids.view_bid', bid_id=bid.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Bid
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="saveButton">
+                                <i class="fas fa-save me-1"></i> Save All Items
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-calculator me-1"></i>
+                    Bid Summary
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Labor Cost</h6>
+                        <h5 id="laborTotal">$0.00</h5>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Materials Cost</h6>
+                        <h5 id="materialsTotal">$0.00</h5>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Other Expenses</h6>
+                        <h5 id="otherTotal">$0.00</h5>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <h5 class="text-muted mb-2">Total Amount</h5>
+                        <h3 class="text-primary" id="grandTotal">$0.00</h3>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <i class="fas fa-question-circle me-1"></i>
+                    Help & Tips
+                </div>
+                <div class="card-body small">
+                    <h6>Working with Line Items</h6>
+                    <ul>
+                        <li>Group similar items by type (Labor, Materials, Other)</li>
+                        <li>Be specific in descriptions for client clarity</li>
+                        <li>Use appropriate units (Hours, Each, Linear Feet, etc.)</li>
+                        <li>Apply markup consistently according to your company policy</li>
+                        <li>Click "Save All Items" when finished with all tabs</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Item Row Template (hidden) -->
+<template id="itemRowTemplate">
+    <tr class="item-row" data-id="">
+        <td>
+            <input type="text" class="form-control form-control-sm item-description" placeholder="Description" required>
+        </td>
+        <td>
+            <input type="number" class="form-control form-control-sm item-quantity" value="1" min="0.01" step="0.01" required>
+        </td>
+        <td>
+            <select class="form-select form-select-sm item-unit">
+                <option value="Hours">Hours</option>
+                <option value="Each">Each</option>
+                <option value="Days">Days</option>
+                <option value="Square Feet">Square Feet</option>
+                <option value="Linear Feet">Linear Feet</option>
+                <option value="Yards">Yards</option>
+                <option value="Gallons">Gallons</option>
+                <option value="Lump Sum">Lump Sum</option>
+            </select>
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control form-control-sm item-unit-cost" value="0.00" min="0" step="0.01" required>
+            </div>
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <input type="number" class="form-control form-control-sm item-markup" value="0" min="0" step="0.1">
+                <span class="input-group-text">%</span>
+            </div>
+        </td>
+        <td class="text-end item-total">$0.00</td>
+        <td>
+            <button type="button" class="btn btn-sm btn-danger" onclick="removeItem(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Global variables
+    let allItems = [];
+    const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+    
+    // Initialize on document load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load existing items
+        loadItems();
+        
+        // Form submission
+        document.getElementById('itemsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveItems();
+        });
+    });
+    
+    // Load items from API
+    function loadItems() {
+        fetch('{{ url_for("bids.api_get_bid_items", bid_id=bid.id) }}')
+            .then(response => response.json())
+            .then(items => {
+                allItems = items;
+                displayItems();
+                calculateTotals();
+            })
+            .catch(error => {
+                console.error('Error loading items:', error);
+                alert('Error loading bid items. Please try again.');
+            });
+    }
+    
+    // Display items in their respective tables
+    function displayItems() {
+        // Clear existing rows
+        document.getElementById('laborItems').innerHTML = '';
+        document.getElementById('materialItems').innerHTML = '';
+        document.getElementById('otherItems').innerHTML = '';
+        
+        // Group items by type
+        const laborItems = allItems.filter(item => item.item_type === 'Labor');
+        const materialItems = allItems.filter(item => item.item_type === 'Material');
+        const otherItems = allItems.filter(item => item.item_type === 'Other');
+        
+        // Display items
+        laborItems.forEach(item => addItemRow('Labor', item));
+        materialItems.forEach(item => addItemRow('Material', item));
+        otherItems.forEach(item => addItemRow('Other', item));
+        
+        // Show/hide empty messages
+        document.getElementById('noLaborItems').style.display = laborItems.length > 0 ? 'none' : 'block';
+        document.getElementById('noMaterialItems').style.display = materialItems.length > 0 ? 'none' : 'block';
+        document.getElementById('noOtherItems').style.display = otherItems.length > 0 ? 'none' : 'block';
+        
+        // Show tables if they have items
+        document.getElementById('laborTable').style.display = laborItems.length > 0 ? 'table' : 'none';
+        document.getElementById('materialsTable').style.display = materialItems.length > 0 ? 'table' : 'none';
+        document.getElementById('otherTable').style.display = otherItems.length > 0 ? 'table' : 'none';
+    }
+    
+    // Add a new item
+    function addItem(itemType) {
+        const newItem = {
+            id: 'new_' + Date.now(), // Temporary ID
+            bid_id: '{{ bid.id }}',
+            item_type: itemType,
+            description: '',
+            quantity: 1,
+            unit: itemType === 'Labor' ? 'Hours' : 'Each',
+            unit_cost: 0,
+            total_cost: 0,
+            markup_percentage: 0,
+            markup_amount: 0,
+            total_price: 0,
+            sort_order: allItems.length
+        };
+        
+        allItems.push(newItem);
+        addItemRow(itemType, newItem);
+        
+        // Hide empty message and show table
+        const emptyMsgId = 'no' + (itemType === 'Material' ? 'Material' : itemType) + 'Items';
+        const tableId = (itemType === 'Material' ? 'materials' : itemType.toLowerCase()) + 'Table';
+        
+        document.getElementById(emptyMsgId).style.display = 'none';
+        document.getElementById(tableId).style.display = 'table';
+        
+        // Focus on the description field of the new row
+        const tbody = document.getElementById((itemType === 'Material' ? 'material' : itemType.toLowerCase()) + 'Items');
+        const lastRow = tbody.lastElementChild;
+        if (lastRow) {
+            const descInput = lastRow.querySelector('.item-description');
+            if (descInput) descInput.focus();
+        }
+    }
+    
+    // Add an item row to the appropriate table
+    function addItemRow(itemType, item) {
+        // Clone the template
+        const template = document.getElementById('itemRowTemplate');
+        const clone = document.importNode(template.content, true);
+        
+        // Set item data
+        const row = clone.querySelector('tr');
+        row.dataset.id = item.id;
+        row.dataset.type = itemType;
+        
+        // Fill in the values
+        const descInput = row.querySelector('.item-description');
+        const quantityInput = row.querySelector('.item-quantity');
+        const unitSelect = row.querySelector('.item-unit');
+        const unitCostInput = row.querySelector('.item-unit-cost');
+        const markupInput = row.querySelector('.item-markup');
+        
+        descInput.value = item.description;
+        quantityInput.value = item.quantity;
+        unitSelect.value = item.unit;
+        unitCostInput.value = parseFloat(item.unit_cost).toFixed(2);
+        markupInput.value = parseFloat(item.markup_percentage).toFixed(1);
+        
+        // Add event listeners for calculations
+        quantityInput.addEventListener('input', () => updateItemRow(row));
+        unitCostInput.addEventListener('input', () => updateItemRow(row));
+        markupInput.addEventListener('input', () => updateItemRow(row));
+        
+        // Initially calculate the total
+        updateItemRow(row);
+        
+        // Add to the appropriate table
+        const tbody = document.getElementById((itemType === 'Material' ? 'material' : itemType.toLowerCase()) + 'Items');
+        tbody.appendChild(row);
+    }
+    
+    // Update calculations for a row
+    function updateItemRow(row) {
+        const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
+        const unitCost = parseFloat(row.querySelector('.item-unit-cost').value) || 0;
+        const markup = parseFloat(row.querySelector('.item-markup').value) || 0;
+        
+        const totalCost = quantity * unitCost;
+        const markupAmount = totalCost * (markup / 100);
+        const totalPrice = totalCost + markupAmount;
+        
+        // Update the total display
+        row.querySelector('.item-total').textContent = currencyFormatter.format(totalPrice);
+        
+        // Update the item in the allItems array
+        const itemId = row.dataset.id;
+        const itemIndex = allItems.findIndex(item => item.id == itemId);
+        
+        if (itemIndex >= 0) {
+            allItems[itemIndex].description = row.querySelector('.item-description').value;
+            allItems[itemIndex].quantity = quantity;
+            allItems[itemIndex].unit = row.querySelector('.item-unit').value;
+            allItems[itemIndex].unit_cost = unitCost;
+            allItems[itemIndex].total_cost = totalCost;
+            allItems[itemIndex].markup_percentage = markup;
+            allItems[itemIndex].markup_amount = markupAmount;
+            allItems[itemIndex].total_price = totalPrice;
+        }
+        
+        // Recalculate all totals
+        calculateTotals();
+    }
+    
+    // Remove an item
+    function removeItem(button) {
+        const row = button.closest('tr');
+        const itemId = row.dataset.id;
+        const itemType = row.dataset.type;
+        
+        // Remove from allItems array
+        const itemIndex = allItems.findIndex(item => item.id == itemId);
+        if (itemIndex >= 0) {
+            allItems.splice(itemIndex, 1);
+        }
+        
+        // Remove the row
+        row.remove();
+        
+        // Check if the table is now empty
+        const tbody = document.getElementById((itemType === 'Material' ? 'material' : itemType.toLowerCase()) + 'Items');
+        if (tbody.children.length === 0) {
+            const emptyMsgId = 'no' + (itemType === 'Material' ? 'Material' : itemType) + 'Items';
+            const tableId = (itemType === 'Material' ? 'materials' : itemType.toLowerCase()) + 'Table';
+            
+            document.getElementById(emptyMsgId).style.display = 'block';
+            document.getElementById(tableId).style.display = 'none';
+        }
+        
+        // Recalculate totals
+        calculateTotals();
+    }
+    
+    // Calculate totals
+    function calculateTotals() {
+        let laborTotal = 0;
+        let materialsTotal = 0;
+        let otherTotal = 0;
+        
+        allItems.forEach(item => {
+            if (item.item_type === 'Labor') {
+                laborTotal += parseFloat(item.total_price) || 0;
+            } else if (item.item_type === 'Material') {
+                materialsTotal += parseFloat(item.total_price) || 0;
+            } else {
+                otherTotal += parseFloat(item.total_price) || 0;
+            }
+        });
+        
+        const grandTotal = laborTotal + materialsTotal + otherTotal;
+        
+        // Update the displays
+        document.getElementById('laborSubtotal').textContent = currencyFormatter.format(laborTotal);
+        document.getElementById('materialsSubtotal').textContent = currencyFormatter.format(materialsTotal);
+        document.getElementById('otherSubtotal').textContent = currencyFormatter.format(otherTotal);
+        
+        document.getElementById('laborTotal').textContent = currencyFormatter.format(laborTotal);
+        document.getElementById('materialsTotal').textContent = currencyFormatter.format(materialsTotal);
+        document.getElementById('otherTotal').textContent = currencyFormatter.format(otherTotal);
+        document.getElementById('grandTotal').textContent = currencyFormatter.format(grandTotal);
+    }
+    
+    // Save all items
+    function saveItems() {
+        // Validate all inputs first
+        let isValid = true;
+        const descInputs = document.querySelectorAll('.item-description');
+        const quantityInputs = document.querySelectorAll('.item-quantity');
+        const unitCostInputs = document.querySelectorAll('.item-unit-cost');
+        
+        descInputs.forEach(input => {
+            if (!input.value.trim()) {
+                input.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+        
+        quantityInputs.forEach(input => {
+            if (isNaN(parseFloat(input.value)) || parseFloat(input.value) <= 0) {
+                input.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+        
+        unitCostInputs.forEach(input => {
+            if (isNaN(parseFloat(input.value)) || parseFloat(input.value) < 0) {
+                input.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            alert('Please fix the highlighted fields before saving.');
+            return;
+        }
+        
+        // Set the item data for submission
+        document.getElementById('itemData').value = JSON.stringify(allItems);
+        
+        // Show saving indicator
+        const saveButton = document.getElementById('saveButton');
+        const originalText = saveButton.innerHTML;
+        saveButton.innerHTML = '<i class="fas fa-spin fa-spinner me-1"></i> Saving...';
+        saveButton.disabled = true;
+        
+        // Submit the form via AJAX
+        const form = document.getElementById('itemsForm');
+        const formData = new FormData(form);
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Items saved successfully!');
+                window.location.href = '{{ url_for("bids.view_bid", bid_id=bid.id) }}';
+            } else {
+                alert('Error: ' + data.message);
+                saveButton.innerHTML = originalText;
+                saveButton.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error saving items:', error);
+            alert('An error occurred while saving. Please try again.');
+            saveButton.innerHTML = originalText;
+            saveButton.disabled = false;
+        });
+    }
+</script>
+{% endblock %} 

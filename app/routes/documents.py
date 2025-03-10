@@ -13,6 +13,7 @@ from app.services.projects import get_all_projects, get_project_by_id
 from app.services.clients import get_all_clients, get_client_by_id
 import os
 from werkzeug.utils import secure_filename
+from app.services.email import send_document_share_email
 
 bp = Blueprint('documents', __name__, url_prefix='/documents')
 
@@ -295,4 +296,96 @@ def api_documents():
     else:
         documents = get_all_documents()
     
-    return jsonify(documents) 
+    return jsonify(documents)
+
+@bp.route('/preview/<document_id>')
+@login_required
+def preview_document(document_id):
+    """Preview a document in the browser"""
+    document = get_document(document_id)
+    
+    if not document:
+        flash('Document not found', 'danger')
+        return redirect(url_for('documents.list_documents'))
+    
+    # Get file extension to determine preview method
+    file_path = document.get('file_path')
+    if not file_path:
+        flash('Document file not found', 'danger')
+        return redirect(url_for('documents.document_detail', document_id=document_id))
+    
+    _, file_extension = os.path.splitext(file_path)
+    file_extension = file_extension.lower().replace('.', '')
+    
+    # Get the document's owner entity (project or client)
+    owner_entity = None
+    if document.get('entity_type') == 'project' and document.get('entity_id'):
+        owner_entity = get_project_by_id(document.get('entity_id'))
+    elif document.get('entity_type') == 'client' and document.get('entity_id'):
+        owner_entity = get_client_by_id(document.get('entity_id'))
+    
+    # Determine if we should use Google Drive viewer
+    google_preview_extensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'txt']
+    use_google_viewer = file_extension in google_preview_extensions
+    
+    # Generate Google Drive preview URL if applicable
+    download_url = url_for('documents.download_document', document_id=document_id, _external=True)
+    google_viewer_url = f"https://docs.google.com/viewer?url={download_url}&embedded=true" if use_google_viewer else None
+    
+    # For images, we'll use direct embedding
+    is_image = file_extension in ALLOWED_FILE_TYPES['images']
+    
+    return render_template(
+        'documents/preview.html',
+        document=document,
+        owner_entity=owner_entity,
+        file_extension=file_extension,
+        use_google_viewer=use_google_viewer,
+        google_viewer_url=google_viewer_url,
+        is_image=is_image,
+        download_url=download_url
+    )
+
+@bp.route('/share/<document_id>', methods=['GET', 'POST'])
+@login_required
+def share_document(document_id):
+    """Share a document via email"""
+    document = get_document(document_id)
+    
+    if not document:
+        flash('Document not found', 'danger')
+        return redirect(url_for('documents.list_documents'))
+    
+    if request.method == 'POST':
+        recipient_email = request.form.get('recipient_email')
+        message = request.form.get('message', '')
+        
+        if not recipient_email:
+            flash('Email address is required', 'danger')
+            return redirect(url_for('documents.share_document', document_id=document_id))
+        
+        # Generate a download URL for the document
+        download_url = url_for('documents.download_document', document_id=document_id, _external=True)
+        
+        # Get the sender's name from the session
+        sender_name = session.get('user_name', 'A user')
+        
+        # Send the email
+        success = send_document_share_email(
+            to=recipient_email,
+            document=document,
+            sender_name=sender_name,
+            message=message,
+            download_url=download_url
+        )
+        
+        if success:
+            flash(f'Document successfully shared with {recipient_email}', 'success')
+            return redirect(url_for('documents.document_detail', document_id=document_id))
+        else:
+            flash('Failed to share document. Please try again later.', 'danger')
+    
+    return render_template(
+        'documents/share.html',
+        document=document
+    ) 
