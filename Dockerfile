@@ -24,7 +24,7 @@ RUN mkdir -p /app/instance/uploads && \
 
 # Set environment variables
 ENV PORT=8080
-ENV FLASK_APP=app.py
+ENV FLASK_APP=run.py
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
@@ -32,4 +32,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8080
 
 # Run the application
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 app:app 
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 run:app 

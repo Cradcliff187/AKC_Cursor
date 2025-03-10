@@ -1,7 +1,14 @@
 steps:
-  # Build the container image
+  # Build the container image with optimized caching
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/akc-crm', '.']
+    args: [
+      'build', 
+      '-t', 
+      'gcr.io/$PROJECT_ID/akc-crm', 
+      '--cache-from', 
+      'gcr.io/$PROJECT_ID/akc-crm:latest',
+      '.'
+    ]
 
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
@@ -31,6 +38,18 @@ steps:
     - 'SUPABASE_DB_PASSWORD=SUPABASE_DB_PASSWORD:latest'
     - '--set-secrets'
     - 'FLASK_SECRET_KEY=FLASK_SECRET_KEY:latest'
+    - '--memory'
+    - '512Mi'
+
+  # Create a latest tag for future cache optimization
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['tag', 'gcr.io/$PROJECT_ID/akc-crm', 'gcr.io/$PROJECT_ID/akc-crm:latest']
+  
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/akc-crm:latest']
+
+timeout: 1800s  # Set a 30-minute timeout instead of the default 10 minutes
 
 images:
   - 'gcr.io/$PROJECT_ID/akc-crm' 
+  - 'gcr.io/$PROJECT_ID/akc-crm:latest' 
