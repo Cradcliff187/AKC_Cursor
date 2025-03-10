@@ -18,11 +18,18 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Create instance and uploads directories
+RUN mkdir -p /app/instance/uploads && \
+    chmod -R 777 /app/instance
+
 # Set environment variables
 ENV PORT=8080
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=production
+ENV PYTHONUNBUFFERED=1
 
 # Expose port
 EXPOSE 8080
 
 # Run the application
-CMD ["python", "app.py"] 
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 app:app 
