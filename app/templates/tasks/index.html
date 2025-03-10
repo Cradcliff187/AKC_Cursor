@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block title %}Tasks - AKC LLC Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-tasks me-2"></i>Task Management</h2>
+        <div>
+            <a href="{{ url_for('tasks.create_task_route') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Create Task
+            </a>
+            {% if session.get('role') == 'admin' %}
+            <a href="{{ url_for('tasks.my_tasks') }}" class="btn btn-outline-primary ms-2">
+                <i class="fas fa-user-clock me-1"></i> My Tasks
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Task Stats -->
+    <div class="row mb-4">
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Task Overview</h5>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>Total Tasks</div>
+                        <div class="badge bg-primary rounded-pill">{{ stats.total|default(0) }}</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div>Completed</div>
+                        <div class="badge bg-success rounded-pill">{{ stats.completed|default(0) }}</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div>In Progress</div>
+                        <div class="badge bg-primary rounded-pill">{{ stats.in_progress|default(0) }}</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div>To Do</div>
+                        <div class="badge bg-secondary rounded-pill">{{ stats.todo|default(0) }}</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div>Overdue</div>
+                        <div class="badge bg-danger rounded-pill">{{ stats.overdue|default(0) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Priority Breakdown</h5>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div><span class="badge bg-danger me-1">High</span> Priority</div>
+                        <div class="badge bg-secondary rounded-pill">{{ stats.high_priority|default(0) }}</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div><span class="badge bg-warning text-dark me-1">Medium</span> Priority</div>
+                        <div class="badge bg-secondary rounded-pill">{{ stats.medium_priority|default(0) }}</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div><span class="badge bg-success me-1">Low</span> Priority</div>
+                        <div class="badge bg-secondary rounded-pill">{{ stats.low_priority|default(0) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Time Tracking</h5>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>Estimated Hours</div>
+                        <div class="badge bg-primary rounded-pill">{{ "%.1f"|format(stats.estimated_hours|default(0)) }}</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div>Actual Hours</div>
+                        <div class="badge bg-info rounded-pill">{{ "%.1f"|format(stats.actual_hours|default(0)) }}</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div>Completion Rate</div>
+                        <div class="badge bg-success rounded-pill">{{ "%.1f"|format(stats.completion_rate|default(0)) }}%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Actions</h5>
+                    <div class="d-grid gap-2 mt-3">
+                        <a href="{{ url_for('tasks.create_task_route') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-plus me-1"></i> New Task
+                        </a>
+                        <a href="{{ url_for('tasks.my_tasks') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-user-check me-1"></i> My Tasks
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-success" id="exportTasksBtn">
+                            <i class="fas fa-file-export me-1"></i> Export Tasks
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task List -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-list-ul me-1"></i> All Tasks</h5>
+                <div class="input-group" style="max-width: 300px;">
+                    <input type="text" class="form-control form-control-sm" id="taskSearch" placeholder="Search tasks...">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="taskSearchBtn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if tasks %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Title</th>
+                            <th scope="col">Project</th>
+                            <th scope="col">Due Date</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Priority</th>
+                            <th scope="col" class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('tasks.view_task', task_id=task.id) }}" class="text-decoration-none">
+                                    {{ task.title }}
+                                </a>
+                            </td>
+                            <td>
+                                {% for project in projects %}
+                                    {% if project.id|string == task.project_id|string %}
+                                        {{ project.name }}
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% if task.due_date %}
+                                    {{ task.due_date }}
+                                {% else %}
+                                    <span class="text-muted">Not set</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ statuses[task.status].badge }}">
+                                    {{ statuses[task.status].display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ priorities[task.priority].badge }}">
+                                    {{ priorities[task.priority].display }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('tasks.edit_task', task_id=task.id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('tasks.view_task', task_id=task.id) }}" class="btn btn-outline-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger delete-task-btn" data-task-id="{{ task.id }}" data-bs-toggle="modal" data-bs-target="#deleteTaskModal">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info m-3">
+                <i class="fas fa-info-circle me-2"></i> No tasks found. <a href="{{ url_for('tasks.create_task_route') }}" class="alert-link">Create your first task</a>.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Task Modal -->
+<div class="modal fade" id="deleteTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteTaskModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this task? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteTaskForm" action="" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up delete task modal
+        const deleteTaskBtns = document.querySelectorAll('.delete-task-btn');
+        const deleteTaskForm = document.getElementById('deleteTaskForm');
+        
+        deleteTaskBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                deleteTaskForm.action = "{{ url_for('tasks.delete_task_route', task_id='TASK_ID') }}".replace('TASK_ID', taskId);
+            });
+        });
+        
+        // Task search functionality
+        const taskSearch = document.getElementById('taskSearch');
+        const taskSearchBtn = document.getElementById('taskSearchBtn');
+        const taskRows = document.querySelectorAll('tbody tr');
+        
+        function filterTasks() {
+            const searchTerm = taskSearch.value.toLowerCase();
+            
+            taskRows.forEach(row => {
+                const title = row.querySelector('td:first-child').textContent.toLowerCase();
+                const project = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                
+                if (title.includes(searchTerm) || project.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        taskSearch.addEventListener('keyup', filterTasks);
+        taskSearchBtn.addEventListener('click', filterTasks);
+        
+        // Export tasks functionality
+        document.getElementById('exportTasksBtn').addEventListener('click', function() {
+            alert('Export functionality will be implemented in a future update.');
+        });
+    });
+</script>
+{% endblock %} 

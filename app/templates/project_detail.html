@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - AKC LLC{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>{{ project.name }}</h1>
+        <p class="text-muted">
+            Client: 
+            {% if client %}
+                <a href="{{ url_for('clients.view_client', client_id=client.id) }}">{{ client.name }}</a>
+                {% if client.company_name %} ({{ client.company_name }}){% endif %}
+            {% else %}
+                {{ project.client or 'Not specified' }}
+            {% endif %}
+        </p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Projects
+        </a>
+        <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-primary">
+            <i class="fas fa-edit me-1"></i> Edit Project
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Project Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Project ID:</div>
+                    <div class="col-md-9">{{ project.id }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Client:</div>
+                    <div class="col-md-9">
+                        {% if client %}
+                            <a href="{{ url_for('clients.view_client', client_id=client.id) }}">{{ client.name }}</a>
+                            {% if client.company_name %} ({{ client.company_name }}){% endif %}
+                        {% else %}
+                            {{ project.client or 'Not specified' }}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Status:</div>
+                    <div class="col-md-9">
+                        <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% elif project.status == 'On Hold' %}bg-warning{% elif project.status == 'Cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ project.status }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Location:</div>
+                    <div class="col-md-9">{{ project.location or 'Not specified' }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Start Date:</div>
+                    <div class="col-md-9">{{ project.start_date.strftime('%B %d, %Y') if project.start_date else 'Not set' }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">End Date:</div>
+                    <div class="col-md-9">{{ project.end_date.strftime('%B %d, %Y') if project.end_date else 'Not set' }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Description:</div>
+                    <div class="col-md-9">{{ project.description or 'No description provided' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Project Timeline</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-success"></div>
+                        <div class="timeline-content">
+                            <h5>Project Started</h5>
+                            <p class="text-muted">{{ project.start_date.strftime('%B %d, %Y') if project.start_date else 'Date not set' }}</p>
+                            <p>Initial project planning and client consultation completed.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-primary"></div>
+                        <div class="timeline-content">
+                            <h5>Design Phase</h5>
+                            <p class="text-muted">{{ (project.start_date + timedelta(days=15)).strftime('%B %d, %Y') if project.start_date else 'Date not set' }}</p>
+                            <p>Design documents approved by client.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-info"></div>
+                        <div class="timeline-content">
+                            <h5>Construction Phase</h5>
+                            <p class="text-muted">{{ (project.start_date + timedelta(days=30)).strftime('%B %d, %Y') if project.start_date else 'Date not set' }}</p>
+                            <p>Construction work has begun on site.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-tasks me-1"></i> Tasks</span>
+                <div>
+                    <a href="{{ url_for('tasks.create_task', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-plus me-1"></i> Add Task
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if tasks %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Task</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Due Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks[:5] %}
+                            <tr>
+                                <td>
+                                    <strong>{{ task.title }}</strong>
+                                    {% if task.description %}
+                                    <p class="mb-0 small text-muted text-truncate">{{ task.description }}</p>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if task.status == 'Completed' else 'bg-warning' if task.status == 'In Progress' else 'bg-info' if task.status == 'To Do' else 'bg-secondary' }}">
+                                        {{ task.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-danger' if task.priority == 'High' else 'bg-warning' if task.priority == 'Medium' else 'bg-info' }}">
+                                        {{ task.priority }}
+                                    </span>
+                                </td>
+                                <td>{{ task.due_date or 'Not set' }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('tasks.edit_task', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if tasks|length > 5 %}
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('tasks.task_list', project_id=project.id) }}" class="btn btn-outline-primary">
+                        Show All {{ tasks|length }} Tasks
+                    </a>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-tasks fa-3x mb-3 text-muted"></i>
+                    <h5>No Tasks Yet</h5>
+                    <p class="text-muted">Get started by adding tasks to this project.</p>
+                    <a href="{{ url_for('tasks.create_task', project_id=project.id) }}" class="btn btn-primary mt-2">
+                        <i class="fas fa-plus-circle me-1"></i> Add First Task
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Documents</h5>
+                <div>
+                    <a href="{{ url_for('projects.project_documents', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary me-1">
+                        <i class="fas fa-folder-open me-1"></i> View All
+                    </a>
+                    <a href="{{ url_for('documents.upload_document') }}?project_id={{ project.id }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-upload me-1"></i> Upload
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Call API to get document count, this is just a placeholder -->
+                <p class="text-center">
+                    <a href="{{ url_for('projects.project_documents', project_id=project.id) }}" class="text-decoration-none">
+                        <i class="fas fa-folder fa-3x mb-2 text-primary"></i>
+                        <h5>Project Documents</h5>
+                        <span class="badge bg-primary">View All Documents</span>
+                    </a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Time Entries -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-clock me-1"></i> Time Entries</span>
+                <div>
+                    <a href="{{ url_for('time_entries.log_time') }}?project_id={{ project.id }}" class="btn btn-sm btn-outline-primary me-1">
+                        <i class="fas fa-plus me-1"></i> Log Time
+                    </a>
+                    <a href="{{ url_for('time_entries.project_time', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-eye me-1"></i> View All
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="card h-100 border-primary">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Total Hours</h6>
+                                <div id="totalHours" class="display-5">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100 border-success">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Billable Hours</h6>
+                                <div id="billableHours" class="display-5">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100 border-info">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Progress</h6>
+                                <div id="hoursProgress" class="display-5">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="recentTimeEntries">Loading recent time entries...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        {% if client %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Client Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-light rounded-circle p-3 me-3">
+                        <i class="fas fa-user fa-2x text-primary"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ client.name }}</h5>
+                        <div class="text-muted">{{ client.company_name or '' }}</div>
+                    </div>
+                </div>
+                
+                {% if client.email or client.phone %}
+                <div class="mb-3">
+                    {% if client.email %}
+                    <div class="mb-2">
+                        <i class="fas fa-envelope me-2 text-muted"></i>
+                        <a href="mailto:{{ client.email }}">{{ client.email }}</a>
+                    </div>
+                    {% endif %}
+                    {% if client.phone %}
+                    <div>
+                        <i class="fas fa-phone me-2 text-muted"></i>
+                        <a href="tel:{{ client.phone }}">{{ client.phone }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <a href="{{ url_for('clients.view_client', client_id=client.id) }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-user me-1"></i> View Full Client Details
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Project Stats</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Progress</label>
+                    <div class="progress">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ project.progress }}%;" aria-valuenow="{{ project.progress }}" aria-valuemin="0" aria-valuemax="100">{{ project.progress }}%</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Budget</label>
+                    <p class="mb-1">${{ "{:,.2f}".format(project.budget|float) if project.budget else '0.00' }}</p>
+                    <label class="form-label">Budget Spent</label>
+                    <p class="mb-1">${{ "{:,.2f}".format(project.budget_spent|float) if project.budget_spent else '0.00' }}</p>
+                    <label class="form-label">Budget Utilization</label>
+                    <div class="progress">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ project.budget_utilization }}%;" aria-valuenow="{{ project.budget_utilization }}" aria-valuemin="0" aria-valuemax="100">{{ "%.1f"|format(project.budget_utilization) }}%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Contact Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <div class="fw-bold">Project Manager</div>
+                        <div>Michael Johnson</div>
+                        <div><a href="mailto:michael@example.com">michael@example.com</a></div>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="fw-bold">Site Supervisor</div>
+                        <div>Sarah Williams</div>
+                        <div><a href="mailto:sarah@example.com">sarah@example.com</a></div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+.timeline-item {
+    position: relative;
+    margin-bottom: 2rem;
+}
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    top: 5px;
+}
+.timeline-content {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Existing code...
+        
+        // Load time entries
+        loadProjectTimeEntries();
+    });
+
+    // Load project time entries
+    function loadProjectTimeEntries() {
+        fetch(`/projects/{{ project.id }}/time`)
+            .then(response => response.text())
+            .then(html => {
+                // Extract time data from the HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Find metrics
+                const totalHours = doc.querySelector('.border-primary .display-4')?.textContent || '0.0';
+                const billableHours = doc.querySelector('.border-success .display-4')?.textContent || '0.0';
+                
+                // Calculate progress percentage if budget hours is set
+                const budgetHours = {{ project.budget_hours or 0 }};
+                let progressText = '--';
+                if (budgetHours > 0) {
+                    const total = parseFloat(totalHours);
+                    const percentage = (total / budgetHours * 100).toFixed(1);
+                    progressText = `${percentage}%`;
+                }
+                
+                // Update metrics cards
+                document.getElementById('totalHours').textContent = totalHours;
+                document.getElementById('billableHours').textContent = billableHours;
+                document.getElementById('hoursProgress').textContent = progressText;
+                
+                // Get recent entries (limit to 5)
+                const timeEntries = Array.from(doc.querySelectorAll('.time-entry')).slice(0, 5);
+                
+                if (timeEntries.length > 0) {
+                    let html = '<h6 class="mb-3">Recent Time Entries</h6>';
+                    html += '<div class="table-responsive"><table class="table table-sm">';
+                    html += '<thead><tr><th>Date</th><th>User</th><th>Hours</th><th>Description</th></tr></thead>';
+                    html += '<tbody>';
+                    
+                    timeEntries.forEach(entry => {
+                        const date = entry.querySelector('td:nth-child(1)').textContent;
+                        const user = entry.querySelector('td:nth-child(2)').textContent;
+                        const hours = entry.querySelector('td:nth-child(3)').textContent.trim().split('\n')[0];
+                        const description = entry.querySelector('td:nth-child(4)').textContent;
+                        
+                        html += `<tr>
+                            <td>${date}</td>
+                            <td>${user}</td>
+                            <td>${hours}</td>
+                            <td>${description}</td>
+                        </tr>`;
+                    });
+                    
+                    html += '</tbody></table></div>';
+                    html += `<div class="text-end mt-2">
+                        <a href="{{ url_for('time_entries.project_time', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">View All Time Entries</a>
+                    </div>`;
+                    
+                    document.getElementById('recentTimeEntries').innerHTML = html;
+                } else {
+                    // No time entries
+                    document.getElementById('recentTimeEntries').innerHTML = `
+                        <div class="text-center py-3">
+                            <i class="fas fa-clock fa-2x mb-2 text-muted"></i>
+                            <h6>No time entries yet</h6>
+                            <p class="small text-muted">Start tracking time for this project</p>
+                            <a href="{{ url_for('time_entries.log_time') }}?project_id={{ project.id }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-plus me-1"></i> Log Time
+                            </a>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading time entries:', error);
+                document.getElementById('recentTimeEntries').innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i> Could not load time entries
+                    </div>
+                `;
+            });
+    }
+</script>
+{% endblock %} 

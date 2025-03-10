@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Vendors - AKC LLC Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-truck me-2"></i>Vendors</h2>
+        <a href="{{ url_for('create_vendor') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Vendor
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <!-- Search and Filter Section -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search vendors...">
+                        <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="vendorTypeFilter">
+                        <option value="">All Vendor Types</option>
+                        {% set vendor_types = [] %}
+                        {% for vendor in vendors %}
+                            {% if vendor.vendor_type and vendor.vendor_type not in vendor_types %}
+                                {% set vendor_types = vendor_types + [vendor.vendor_type] %}
+                                <option value="{{ vendor.vendor_type }}">{{ vendor.vendor_type }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="statusFilter">
+                        <option value="">All Statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Vendors Table -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Contact Info</th>
+                            <th>Payment Terms</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vendor in vendors %}
+                        <tr class="vendor-row" 
+                            data-vendor-type="{{ vendor.vendor_type }}" 
+                            data-status="{{ vendor.status }}">
+                            <td>
+                                <a href="{{ url_for('vendor_detail', vendor_id=vendor.id) }}" class="fw-bold text-decoration-none">
+                                    {{ vendor.name }}
+                                </a>
+                            </td>
+                            <td>{{ vendor.vendor_type or "-" }}</td>
+                            <td>
+                                {% if vendor.email %}
+                                <div><i class="fas fa-envelope me-1 text-muted"></i> {{ vendor.email }}</div>
+                                {% endif %}
+                                {% if vendor.phone %}
+                                <div><i class="fas fa-phone me-1 text-muted"></i> {{ vendor.phone }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ vendor.payment_terms or "-" }}</td>
+                            <td>
+                                {% if vendor.status == 'Active' %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('vendor_detail', vendor_id=vendor.id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('edit_vendor', vendor_id=vendor.id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('vendor_purchases', vendor_id=vendor.id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="mb-3">
+                                    <i class="fas fa-truck fa-3x text-secondary"></i>
+                                </div>
+                                <h4>No Vendors Found</h4>
+                                <p class="text-muted">Get started by adding your first vendor</p>
+                                <a href="{{ url_for('create_vendor') }}" class="btn btn-primary mt-2">
+                                    <i class="fas fa-plus me-1"></i> Add Vendor
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile Cards View (visible only on mobile) -->
+            <div class="d-md-none mt-3">
+                <div class="row" id="mobileVendorCards">
+                    {% for vendor in vendors %}
+                    <div class="col-12 mb-3 vendor-card"
+                         data-vendor-type="{{ vendor.vendor_type }}" 
+                         data-status="{{ vendor.status }}">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">{{ vendor.name }}</h5>
+                                {% if vendor.status == 'Active' %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                {% if vendor.vendor_type %}
+                                <p class="mb-1"><strong>Type:</strong> {{ vendor.vendor_type }}</p>
+                                {% endif %}
+                                {% if vendor.payment_terms %}
+                                <p class="mb-1"><strong>Payment Terms:</strong> {{ vendor.payment_terms }}</p>
+                                {% endif %}
+                                {% if vendor.email %}
+                                <p class="mb-1">
+                                    <i class="fas fa-envelope me-1 text-muted"></i> 
+                                    <a href="mailto:{{ vendor.email }}">{{ vendor.email }}</a>
+                                </p>
+                                {% endif %}
+                                {% if vendor.phone %}
+                                <p class="mb-1">
+                                    <i class="fas fa-phone me-1 text-muted"></i> 
+                                    <a href="tel:{{ vendor.phone }}">{{ vendor.phone }}</a>
+                                </p>
+                                {% endif %}
+                                <div class="mt-3 text-end">
+                                    <a href="{{ url_for('vendor_detail', vendor_id=vendor.id) }}" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="fas fa-eye me-1"></i> View
+                                    </a>
+                                    <a href="{{ url_for('edit_vendor', vendor_id=vendor.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit me-1"></i> Edit
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if vendors|length == 0 %}
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="fas fa-truck fa-3x text-secondary"></i>
+                    </div>
+                    <h4>No Vendors Found</h4>
+                    <p class="text-muted">Get started by adding your first vendor</p>
+                    <a href="{{ url_for('create_vendor') }}" class="btn btn-primary mt-2">
+                        <i class="fas fa-plus me-1"></i> Add Vendor
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const vendorTypeFilter = document.getElementById('vendorTypeFilter');
+        const statusFilter = document.getElementById('statusFilter');
+        const vendorRows = document.querySelectorAll('.vendor-row');
+        const mobileVendorCards = document.querySelectorAll('.vendor-card');
+        
+        // Function to filter vendors
+        function filterVendors() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const vendorType = vendorTypeFilter.value;
+            const status = statusFilter.value;
+            
+            // Filter table rows
+            vendorRows.forEach(row => {
+                const rowText = row.textContent.toLowerCase();
+                const rowVendorType = row.getAttribute('data-vendor-type');
+                const rowStatus = row.getAttribute('data-status');
+                
+                let visible = rowText.includes(searchTerm);
+                
+                if (visible && vendorType && rowVendorType !== vendorType) {
+                    visible = false;
+                }
+                
+                if (visible && status && rowStatus !== status) {
+                    visible = false;
+                }
+                
+                row.style.display = visible ? '' : 'none';
+            });
+            
+            // Filter mobile cards
+            mobileVendorCards.forEach(card => {
+                const cardText = card.textContent.toLowerCase();
+                const cardVendorType = card.getAttribute('data-vendor-type');
+                const cardStatus = card.getAttribute('data-status');
+                
+                let visible = cardText.includes(searchTerm);
+                
+                if (visible && vendorType && cardVendorType !== vendorType) {
+                    visible = false;
+                }
+                
+                if (visible && status && cardStatus !== status) {
+                    visible = false;
+                }
+                
+                card.style.display = visible ? '' : 'none';
+            });
+            
+            // Check if any results are visible
+            const hasVisibleRows = Array.from(vendorRows).some(row => row.style.display !== 'none');
+            const hasVisibleCards = Array.from(mobileVendorCards).some(card => card.style.display !== 'none');
+            
+            // Show/hide no results message
+            const tableBody = document.querySelector('tbody');
+            const mobileCardContainer = document.getElementById('mobileVendorCards');
+            
+            if (!hasVisibleRows && tableBody) {
+                // If there are no visible rows and there are vendors
+                if (vendorRows.length > 0) {
+                    // Check if we already have a no results message
+                    let noResultsRow = tableBody.querySelector('.no-results-row');
+                    if (!noResultsRow) {
+                        noResultsRow = document.createElement('tr');
+                        noResultsRow.className = 'no-results-row';
+                        noResultsRow.innerHTML = `
+                            <td colspan="6" class="text-center py-4">
+                                <i class="fas fa-search fa-2x mb-3 text-muted"></i>
+                                <h5>No matching vendors found</h5>
+                                <p class="text-muted">Try adjusting your search criteria</p>
+                                <button class="btn btn-outline-secondary btn-sm mt-2" id="clearFiltersBtn">
+                                    <i class="fas fa-times me-1"></i> Clear Filters
+                                </button>
+                            </td>
+                        `;
+                        tableBody.appendChild(noResultsRow);
+                        
+                        // Add event listener to the clear filters button
+                        document.getElementById('clearFiltersBtn').addEventListener('click', clearFilters);
+                    }
+                }
+            } else {
+                // Remove no results message if exists
+                const noResultsRow = tableBody?.querySelector('.no-results-row');
+                if (noResultsRow) {
+                    noResultsRow.remove();
+                }
+            }
+            
+            // Do the same for mobile cards
+            if (!hasVisibleCards && mobileCardContainer && mobileVendorCards.length > 0) {
+                let noResultsCard = mobileCardContainer.querySelector('.no-results-card');
+                if (!noResultsCard) {
+                    noResultsCard = document.createElement('div');
+                    noResultsCard.className = 'col-12 no-results-card';
+                    noResultsCard.innerHTML = `
+                        <div class="card">
+                            <div class="card-body text-center py-4">
+                                <i class="fas fa-search fa-2x mb-3 text-muted"></i>
+                                <h5>No matching vendors found</h5>
+                                <p class="text-muted">Try adjusting your search criteria</p>
+                                <button class="btn btn-outline-secondary btn-sm mt-2" id="mobileResetBtn">
+                                    <i class="fas fa-times me-1"></i> Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    mobileCardContainer.appendChild(noResultsCard);
+                    
+                    // Add event listener to the clear filters button
+                    document.getElementById('mobileResetBtn').addEventListener('click', clearFilters);
+                }
+            } else {
+                // Remove no results message if exists
+                const noResultsCard = mobileCardContainer?.querySelector('.no-results-card');
+                if (noResultsCard) {
+                    noResultsCard.remove();
+                }
+            }
+        }
+        
+        // Function to clear all filters
+        function clearFilters() {
+            searchInput.value = '';
+            vendorTypeFilter.value = '';
+            statusFilter.value = '';
+            filterVendors();
+        }
+        
+        // Add event listeners
+        searchBtn.addEventListener('click', filterVendors);
+        searchInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                filterVendors();
+            }
+        });
+        vendorTypeFilter.addEventListener('change', filterVendors);
+        statusFilter.addEventListener('change', filterVendors);
+    });
+</script>
+{% endblock %} 

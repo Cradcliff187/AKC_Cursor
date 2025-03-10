@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if vendor %}Edit Vendor{% else %}Add Vendor{% endif %} - AKC LLC Construction CRM
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>
+                    <i class="fas fa-truck me-2"></i>
+                    {% if vendor %}Edit Vendor{% else %}Add Vendor{% endif %}
+                </h2>
+                <a href="{{ url_for('vendors') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </a>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" id="vendorForm">
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-12">
+                                <h5 class="border-bottom pb-2 mb-3">Basic Information</h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Vendor Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" 
+                                       value="{{ vendor.name if vendor else '' }}" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="vendor_type" class="form-label">Vendor Type</label>
+                                <select class="form-select" id="vendor_type" name="vendor_type">
+                                    <option value="">Select Type</option>
+                                    <option value="Materials" {% if vendor and vendor.vendor_type == 'Materials' %}selected{% endif %}>Materials</option>
+                                    <option value="Equipment" {% if vendor and vendor.vendor_type == 'Equipment' %}selected{% endif %}>Equipment</option>
+                                    <option value="Services" {% if vendor and vendor.vendor_type == 'Services' %}selected{% endif %}>Services</option>
+                                    <option value="Tools" {% if vendor and vendor.vendor_type == 'Tools' %}selected{% endif %}>Tools</option>
+                                    <option value="Office Supplies" {% if vendor and vendor.vendor_type == 'Office Supplies' %}selected{% endif %}>Office Supplies</option>
+                                    <option value="Other" {% if vendor and vendor.vendor_type == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="contact_person" class="form-label">Contact Person</label>
+                                <input type="text" class="form-control" id="contact_person" name="contact_person"
+                                       value="{{ vendor.contact_person if vendor else '' }}">
+                            </div>
+                            
+                            <!-- Contact Information -->
+                            <div class="col-12 mt-3">
+                                <h5 class="border-bottom pb-2 mb-3">Contact Information</h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                       value="{{ vendor.email if vendor else '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="phone" name="phone"
+                                       value="{{ vendor.phone if vendor else '' }}">
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label for="address" class="form-label">Address</label>
+                                <textarea class="form-control" id="address" name="address" rows="2">{{ vendor.address if vendor else '' }}</textarea>
+                            </div>
+                            
+                            <!-- Payment Information -->
+                            <div class="col-12 mt-3">
+                                <h5 class="border-bottom pb-2 mb-3">Payment Information</h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="payment_terms" class="form-label">Payment Terms</label>
+                                <select class="form-select" id="payment_terms" name="payment_terms">
+                                    <option value="Net 15" {% if vendor and vendor.payment_terms == 'Net 15' %}selected{% endif %}>Net 15</option>
+                                    <option value="Net 30" {% if vendor and vendor.payment_terms == 'Net 30' %}selected{% endif %}>Net 30</option>
+                                    <option value="Net 45" {% if vendor and vendor.payment_terms == 'Net 45' %}selected{% endif %}>Net 45</option>
+                                    <option value="Net 60" {% if vendor and vendor.payment_terms == 'Net 60' %}selected{% endif %}>Net 60</option>
+                                    <option value="Due on Receipt" {% if vendor and vendor.payment_terms == 'Due on Receipt' %}selected{% endif %}>Due on Receipt</option>
+                                    <option value="COD" {% if vendor and vendor.payment_terms == 'COD' %}selected{% endif %}>COD (Cash on Delivery)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="tax_id" class="form-label">Tax ID / EIN</label>
+                                <input type="text" class="form-control" id="tax_id" name="tax_id"
+                                       value="{{ vendor.tax_id if vendor else '' }}">
+                            </div>
+                            
+                            <!-- Additional Information -->
+                            <div class="col-12 mt-3">
+                                <h5 class="border-bottom pb-2 mb-3">Additional Information</h5>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label for="notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3">{{ vendor.notes if vendor else '' }}</textarea>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="Active" {% if not vendor or vendor.status == 'Active' %}selected{% endif %}>Active</option>
+                                    <option value="Inactive" {% if vendor and vendor.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Form Actions -->
+                            <div class="col-12 mt-4 d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i> 
+                                    {% if vendor %}Update Vendor{% else %}Save Vendor{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('vendorForm');
+        
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Basic validation
+            const name = document.getElementById('name').value.trim();
+            if (!name) {
+                alert('Vendor Name is required');
+                return;
+            }
+            
+            // Submit the form if validation passes
+            this.submit();
+        });
+    });
+</script>
+{% endblock %} 

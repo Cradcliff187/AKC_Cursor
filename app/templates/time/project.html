@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+
+{% block title %}Time Entries for {{ project.name }} - AKC LLC Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-clock me-2"></i>Time Entries: {{ project.name }}</h2>
+        <div>
+            <a href="{{ url_for('log_time') }}?project_id={{ project.id }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Log Time
+            </a>
+            <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-arrow-left me-1"></i> Back to Project
+            </a>
+        </div>
+    </div>
+
+    <!-- Project Time Summary -->
+    <div class="row mb-4">
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Hours</h5>
+                    <p class="card-text display-4">{{ "%.1f"|format(total_hours) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-success">
+                <div class="card-body">
+                    <h5 class="card-title">Billable Hours</h5>
+                    <p class="card-text display-4">{{ "%.1f"|format(billable_hours) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-info">
+                <div class="card-body">
+                    <h5 class="card-title">Budget Utilization</h5>
+                    <p class="card-text display-4">
+                        {% if project.budget_hours %}
+                        {{ "%.1f"|format(total_hours / project.budget_hours * 100) }}%
+                        {% else %}
+                        --
+                        {% endif %}
+                    </p>
+                    {% if project.budget_hours %}
+                    <p class="card-text text-muted">{{ "%.1f"|format(total_hours) }} / {{ project.budget_hours }} hrs</p>
+                    {% else %}
+                    <p class="card-text text-muted">No budget set</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Team Members</h5>
+                    <p class="card-text display-4">{{ entries_by_user|length }}</p>
+                    <p class="card-text text-muted">People logged time</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters for Project Time -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <a class="text-decoration-none text-dark" data-bs-toggle="collapse" href="#timeFilters">
+                <i class="fas fa-filter me-1"></i> Filter Time Entries <i class="fas fa-chevron-down float-end mt-1"></i>
+            </a>
+        </div>
+        <div id="timeFilters" class="collapse">
+            <div class="card-body">
+                <form id="filterForm" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="startDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDate" name="start_date">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="endDate" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="endDate" name="end_date">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="userFilter" class="form-label">User</label>
+                        <select class="form-select" id="userFilter" name="user_id">
+                            <option value="">All Users</option>
+                            {% for user_key in entries_by_user.keys() %}
+                            {% set user_id, user_name = user_key.split(':') %}
+                            <option value="{{ user_id }}">{{ user_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="statusFilter" class="form-label">Status</label>
+                        <select class="form-select" id="statusFilter" name="status">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="billableFilter" class="form-label">Billable</label>
+                        <select class="form-select" id="billableFilter" name="billable">
+                            <option value="">All</option>
+                            <option value="true">Billable Only</option>
+                            <option value="false">Non-Billable Only</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="sortBy" class="form-label">Sort By</label>
+                        <select class="form-select" id="sortBy" name="sort_by">
+                            <option value="date_desc">Date (Newest First)</option>
+                            <option value="date_asc">Date (Oldest First)</option>
+                            <option value="hours_desc">Hours (High to Low)</option>
+                            <option value="hours_asc">Hours (Low to High)</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-secondary" id="clearFiltersBtn">Clear Filters</button>
+                            <button type="button" class="btn btn-primary" id="applyFiltersBtn">Apply Filters</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time by Team Member -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-users me-1"></i> Hours by Team Member
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Total Hours</th>
+                            <th>Billable Hours</th>
+                            <th>Last Entry</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user_key, user_entries in entries_by_user.items() %}
+                        {% set user_id, user_name = user_key.split(':') %}
+                        <tr>
+                            <td>{{ user_name }}</td>
+                            <td>{{ "%.1f"|format(user_entries|sum(attribute='hours')|float) }}</td>
+                            <td>{{ "%.1f"|format(user_entries|selectattr('billable')|sum(attribute='hours')|float) }}</td>
+                            <td>{{ user_entries|map(attribute='date')|sort|last }}</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-primary" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#userEntries{{ user_id }}" 
+                                        aria-expanded="false" 
+                                        aria-controls="userEntries{{ user_id }}">
+                                    <i class="fas fa-eye me-1"></i> View Details
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="collapse" id="userEntries{{ user_id }}">
+                            <td colspan="5" class="p-0">
+                                <div class="p-3 bg-light">
+                                    <h6 class="mb-3">Time Entries for {{ user_name }}</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Hours</th>
+                                                    <th>Description</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for entry in user_entries %}
+                                                <tr class="time-entry"
+                                                    data-user="{{ user_id }}"
+                                                    data-date="{{ entry.date }}"
+                                                    data-status="{{ entry.status }}"
+                                                    data-billable="{{ entry.billable|lower }}">
+                                                    <td>{{ entry.date }}</td>
+                                                    <td>
+                                                        {{ "%.1f"|format(entry.hours|float) }}
+                                                        {% if entry.billable %}
+                                                        <span class="badge bg-success">B</span>
+                                                        {% else %}
+                                                        <span class="badge bg-secondary">NB</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ entry.description|truncate(50) }}</td>
+                                                    <td>
+                                                        {% if entry.status == 'approved' %}
+                                                        <span class="badge bg-success">Approved</span>
+                                                        {% elif entry.status == 'rejected' %}
+                                                        <span class="badge bg-danger">Rejected</span>
+                                                        {% else %}
+                                                        <span class="badge bg-warning text-dark">Pending</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Time Entries for This Project -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-list me-1"></i> All Time Entries
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped" id="timeEntriesTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>User</th>
+                            <th>Hours</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in time_entries %}
+                        <tr class="time-entry"
+                            data-user="{{ entry.user_id }}"
+                            data-date="{{ entry.date }}"
+                            data-status="{{ entry.status }}"
+                            data-billable="{{ entry.billable|lower }}">
+                            <td>{{ entry.date }}</td>
+                            <td>{{ entry.username }}</td>
+                            <td>
+                                {{ "%.1f"|format(entry.hours|float) }}
+                                {% if entry.billable %}
+                                <span class="badge bg-success">Billable</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ entry.description|truncate(50) }}</td>
+                            <td>
+                                {% if entry.status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                                {% elif entry.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('edit_time', entry_id=entry.id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if session.get('role') == 'admin' %}
+                                    <button type="button" class="btn btn-outline-success status-action" data-entry-id="{{ entry.id }}" data-action="approve" {% if entry.status == 'approved' %}disabled{% endif %}>
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger status-action" data-entry-id="{{ entry.id }}" data-action="reject" {% if entry.status == 'rejected' %}disabled{% endif %}>
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- No Entries Message -->
+            {% if time_entries|length == 0 %}
+            <div class="text-center py-5">
+                <i class="fas fa-clock fa-3x mb-3 text-muted"></i>
+                <h4>No time entries found</h4>
+                <p class="text-muted">Start tracking time for this project.</p>
+                <a href="{{ url_for('log_time') }}?project_id={{ project.id }}" class="btn btn-primary mt-2">
+                    <i class="fas fa-plus me-1"></i> Log Time for This Project
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle status actions
+        const statusActionBtns = document.querySelectorAll('.status-action');
+        statusActionBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const entryId = this.getAttribute('data-entry-id');
+                const action = this.getAttribute('data-action');
+                
+                // Send AJAX request to update status
+                fetch("{{ url_for('update_time_status') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        entry_id: entryId,
+                        status: action === 'approve' ? 'approved' : 'rejected'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Refresh the page to see updated statuses
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
+            });
+        });
+
+        // Handle filtering
+        const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        
+        applyFiltersBtn.addEventListener('click', function() {
+            applyFilters();
+        });
+        
+        clearFiltersBtn.addEventListener('click', function() {
+            document.getElementById('filterForm').reset();
+            applyFilters();
+        });
+        
+        function applyFilters() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const userId = document.getElementById('userFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            const billable = document.getElementById('billableFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+            
+            // Apply filters to time entries
+            const timeEntries = document.querySelectorAll('.time-entry');
+            let visibleCount = 0;
+            
+            timeEntries.forEach(entry => {
+                let visible = true;
+                
+                // Date range filter
+                if (visible && startDate && endDate) {
+                    const entryDate = entry.getAttribute('data-date');
+                    if (entryDate < startDate || entryDate > endDate) {
+                        visible = false;
+                    }
+                }
+                
+                // User filter
+                if (visible && userId) {
+                    if (entry.getAttribute('data-user') !== userId) {
+                        visible = false;
+                    }
+                }
+                
+                // Status filter
+                if (visible && status) {
+                    if (entry.getAttribute('data-status') !== status) {
+                        visible = false;
+                    }
+                }
+                
+                // Billable filter
+                if (visible && billable) {
+                    if (entry.getAttribute('data-billable') !== billable) {
+                        visible = false;
+                    }
+                }
+                
+                // Set visibility
+                entry.style.display = visible ? '' : 'none';
+                
+                if (visible) {
+                    visibleCount++;
+                }
+            });
+            
+            // Handle sorting (would be more efficient server-side, but this works for demo)
+            if (sortBy) {
+                const table = document.getElementById('timeEntriesTable');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr.time-entry'));
+                
+                // Only sort visible rows
+                const visibleRows = rows.filter(row => row.style.display !== 'none');
+                
+                visibleRows.sort((a, b) => {
+                    if (sortBy === 'date_desc' || sortBy === 'date_asc') {
+                        const dateA = a.getAttribute('data-date');
+                        const dateB = b.getAttribute('data-date');
+                        return sortBy === 'date_asc' ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+                    } else if (sortBy === 'hours_desc' || sortBy === 'hours_asc') {
+                        const hoursA = parseFloat(a.querySelector('td:nth-child(3)').textContent);
+                        const hoursB = parseFloat(b.querySelector('td:nth-child(3)').textContent);
+                        return sortBy === 'hours_asc' ? hoursA - hoursB : hoursB - hoursA;
+                    }
+                    return 0;
+                });
+                
+                // Clear and re-append rows in the new order
+                tbody.innerHTML = '';
+                visibleRows.forEach(row => tbody.appendChild(row));
+            }
+            
+            // Show message if no entries match filters
+            const noEntriesMessage = document.querySelector('.text-center.py-5');
+            if (noEntriesMessage) {
+                if (visibleCount === 0 && timeEntries.length > 0) {
+                    noEntriesMessage.style.display = 'block';
+                    noEntriesMessage.querySelector('h4').textContent = 'No time entries match your filters';
+                    noEntriesMessage.querySelector('p').textContent = 'Try adjusting your filter criteria';
+                    noEntriesMessage.querySelector('a').style.display = 'none';
+                } else if (timeEntries.length > 0) {
+                    noEntriesMessage.style.display = 'none';
+                }
+            }
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if subcontractor %}Edit Subcontractor{% else %}Add Subcontractor{% endif %} - AKC LLC Construction CRM
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>
+                    <i class="fas fa-hard-hat me-2"></i>
+                    {% if subcontractor %}Edit Subcontractor{% else %}Add Subcontractor{% endif %}
+                </h2>
+                <a href="{{ url_for('subcontractors') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </a>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" id="subcontractorForm">
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-12">
+                                <h5 class="border-bottom pb-2 mb-3">Basic Information</h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" 
+                                       value="{{ subcontractor.name if subcontractor else '' }}" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="company_name" class="form-label">Company Name</label>
+                                <input type="text" class="form-control" id="company_name" name="company_name"
+                                       value="{{ subcontractor.company_name if subcontractor else '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="contact_person" class="form-label">Contact Person</label>
+                                <input type="text" class="form-control" id="contact_person" name="contact_person"
+                                       value="{{ subcontractor.contact_person if subcontractor else '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="specialty" class="form-label">Specialty</label>
+                                <select class="form-select" id="specialty" name="specialty">
+                                    <option value="">Select Specialty</option>
+                                    <option value="Electrical" {% if subcontractor and subcontractor.specialty == 'Electrical' %}selected{% endif %}>Electrical</option>
+                                    <option value="Plumbing" {% if subcontractor and subcontractor.specialty == 'Plumbing' %}selected{% endif %}>Plumbing</option>
+                                    <option value="HVAC" {% if subcontractor and subcontractor.specialty == 'HVAC' %}selected{% endif %}>HVAC</option>
+                                    <option value="Carpentry" {% if subcontractor and subcontractor.specialty == 'Carpentry' %}selected{% endif %}>Carpentry</option>
+                                    <option value="Masonry" {% if subcontractor and subcontractor.specialty == 'Masonry' %}selected{% endif %}>Masonry</option>
+                                    <option value="Roofing" {% if subcontractor and subcontractor.specialty == 'Roofing' %}selected{% endif %}>Roofing</option>
+                                    <option value="Painting" {% if subcontractor and subcontractor.specialty == 'Painting' %}selected{% endif %}>Painting</option>
+                                    <option value="Flooring" {% if subcontractor and subcontractor.specialty == 'Flooring' %}selected{% endif %}>Flooring</option>
+                                    <option value="Landscaping" {% if subcontractor and subcontractor.specialty == 'Landscaping' %}selected{% endif %}>Landscaping</option>
+                                    <option value="Concrete" {% if subcontractor and subcontractor.specialty == 'Concrete' %}selected{% endif %}>Concrete</option>
+                                    <option value="Drywall" {% if subcontractor and subcontractor.specialty == 'Drywall' %}selected{% endif %}>Drywall</option>
+                                    <option value="Other" {% if subcontractor and subcontractor.specialty == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Contact Information -->
+                            <div class="col-12 mt-3">
+                                <h5 class="border-bottom pb-2 mb-3">Contact Information</h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                       value="{{ subcontractor.email if subcontractor else '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="phone" name="phone"
+                                       value="{{ subcontractor.phone if subcontractor else '' }}">
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label for="address" class="form-label">Address</label>
+                                <textarea class="form-control" id="address" name="address" rows="2">{{ subcontractor.address if subcontractor else '' }}</textarea>
+                            </div>
+                            
+                            <!-- Payment Information -->
+                            <div class="col-12 mt-3">
+                                <h5 class="border-bottom pb-2 mb-3">Payment Information</h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="rate_type" class="form-label">Rate Type</label>
+                                <select class="form-select" id="rate_type" name="rate_type">
+                                    <option value="Hourly" {% if subcontractor and subcontractor.rate_type == 'Hourly' %}selected{% endif %}>Hourly</option>
+                                    <option value="Fixed" {% if subcontractor and subcontractor.rate_type == 'Fixed' %}selected{% endif %}>Fixed</option>
+                                    <option value="Per Project" {% if subcontractor and subcontractor.rate_type == 'Per Project' %}selected{% endif %}>Per Project</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="hourly_rate" class="form-label">Hourly Rate ($)</label>
+                                <input type="number" step="0.01" class="form-control" id="hourly_rate" name="hourly_rate"
+                                       value="{{ subcontractor.hourly_rate if subcontractor else '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="tax_id" class="form-label">Tax ID / SSN</label>
+                                <input type="text" class="form-control" id="tax_id" name="tax_id"
+                                       value="{{ subcontractor.tax_id if subcontractor else '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="payment_terms" class="form-label">Payment Terms</label>
+                                <select class="form-select" id="payment_terms" name="payment_terms">
+                                    <option value="Net 15" {% if subcontractor and subcontractor.payment_terms == 'Net 15' %}selected{% endif %}>Net 15</option>
+                                    <option value="Net 30" {% if subcontractor and subcontractor.payment_terms == 'Net 30' %}selected{% endif %}>Net 30</option>
+                                    <option value="Net 45" {% if subcontractor and subcontractor.payment_terms == 'Net 45' %}selected{% endif %}>Net 45</option>
+                                    <option value="Net 60" {% if subcontractor and subcontractor.payment_terms == 'Net 60' %}selected{% endif %}>Net 60</option>
+                                    <option value="Due on Receipt" {% if subcontractor and subcontractor.payment_terms == 'Due on Receipt' %}selected{% endif %}>Due on Receipt</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Additional Information -->
+                            <div class="col-12 mt-3">
+                                <h5 class="border-bottom pb-2 mb-3">Additional Information</h5>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label for="notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3">{{ subcontractor.notes if subcontractor else '' }}</textarea>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="Active" {% if not subcontractor or subcontractor.status == 'Active' %}selected{% endif %}>Active</option>
+                                    <option value="Inactive" {% if subcontractor and subcontractor.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Form Actions -->
+                            <div class="col-12 mt-4 d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i> 
+                                    {% if subcontractor %}Update Subcontractor{% else %}Save Subcontractor{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('subcontractorForm');
+        
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Basic validation
+            const name = document.getElementById('name').value.trim();
+            if (!name) {
+                alert('Name is required');
+                return;
+            }
+            
+            // Submit the form if validation passes
+            this.submit();
+        });
+        
+        // Show/hide hourly rate field based on rate type
+        const rateTypeSelect = document.getElementById('rate_type');
+        const hourlyRateField = document.getElementById('hourly_rate').parentElement;
+        
+        function toggleHourlyRate() {
+            if (rateTypeSelect.value === 'Hourly') {
+                hourlyRateField.style.display = 'block';
+            } else {
+                hourlyRateField.style.display = 'none';
+            }
+        }
+        
+        // Initial toggle
+        toggleHourlyRate();
+        
+        // Toggle on change
+        rateTypeSelect.addEventListener('change', toggleHourlyRate);
+    });
+</script>
+{% endblock %} 

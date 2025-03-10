@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}Log Time - AKC LLC Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-clock me-2"></i>Log Time</h2>
+        <a href="{{ url_for('time.list_entries') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Time Entries
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Time Entry Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" id="timeLogForm">
+                        <!-- Project Selection -->
+                        <div class="mb-3">
+                            <label for="project_id" class="form-label">Project <span class="text-danger">*</span></label>
+                            <select class="form-select" id="project_id" name="project_id" required>
+                                <option value="">Select a project</option>
+                                {% for project in projects %}
+                                <option value="{{ project.id }}">{{ project.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Hours and Date -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="hours" class="form-label">Hours <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="hours" name="hours" step="0.25" min="0.25" max="24" required placeholder="0.00">
+                                    <button type="button" class="btn btn-outline-secondary" id="decrementHours">-</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="incrementHours">+</button>
+                                </div>
+                                <div class="form-text">Enter time in hours (e.g., 1.5 for 1 hour and 30 minutes)</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="date" name="date" value="{{ today }}" required>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="description" name="description" rows="3" required placeholder="Describe the work performed..."></textarea>
+                        </div>
+
+                        <!-- Billable Option -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="billable" name="billable" checked>
+                                <label class="form-check-label" for="billable">Billable Time</label>
+                            </div>
+                        </div>
+
+                        <!-- Task Selection (Optional) -->
+                        <div class="mb-3">
+                            <label for="task_id" class="form-label">Related Task (Optional)</label>
+                            <select class="form-select" id="task_id" name="task_id">
+                                <option value="">Select a task (if applicable)</option>
+                                <!-- Task options will be populated by JavaScript when a project is selected -->
+                            </select>
+                        </div>
+
+                        <!-- Location Tracking -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="trackLocation" checked>
+                                <label class="form-check-label" for="trackLocation">Track Location</label>
+                            </div>
+                            <div class="form-text">Your location is used to verify work at job sites.</div>
+                            
+                            <!-- Hidden fields for location data -->
+                            <input type="hidden" id="latitude" name="latitude">
+                            <input type="hidden" id="longitude" name="longitude">
+                            
+                            <div id="locationStatus" class="mt-2 small"></div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <button type="submit" class="btn btn-primary" name="submit">
+                                <i class="fas fa-save me-1"></i> Save Time Entry
+                            </button>
+                            <button type="submit" class="btn btn-outline-primary" name="add_another" value="1">
+                                <i class="fas fa-plus me-1"></i> Save & Add Another
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tips and Recent Entries -->
+        <div class="col-lg-4 mt-3 mt-lg-0">
+            <!-- Time Entry Tips -->
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <i class="fas fa-lightbulb me-1"></i> Tips for Time Tracking
+                </div>
+                <div class="card-body">
+                    <ul class="small mb-0">
+                        <li class="mb-2">Log your time as soon as possible for accuracy.</li>
+                        <li class="mb-2">Be specific in your descriptions to help with billing.</li>
+                        <li class="mb-2">Round to the nearest 15 minutes (0.25 hours).</li>
+                        <li class="mb-2">Mark non-billable time that shouldn't be charged to clients.</li>
+                        <li>Use location tracking to verify work at job sites.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Recent Time Entries -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <i class="fas fa-history me-1"></i> Your Recent Entries
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for entry in recent_entries %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ entry.project_name }}</strong><br>
+                                    <small class="text-muted">{{ entry.date }} &middot; {{ "%.1f"|format(entry.hours) }} hrs</small>
+                                </div>
+                                <a href="{{ url_for('time.edit_time_entry', entry_id=entry.id) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+                            <div class="mt-1 small">{{ entry.description|truncate(50) }}</div>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-center text-muted py-3">
+                            No recent time entries found
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Preset Buttons (Mobile Only) -->
+    <div class="d-md-none mt-3">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-bolt me-1"></i> Quick Presets
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-center">
+                    <button type="button" class="btn btn-outline-primary m-1 preset-btn" data-hours="1">1 hr</button>
+                    <button type="button" class="btn btn-outline-primary m-1 preset-btn" data-hours="2">2 hrs</button>
+                    <button type="button" class="btn btn-outline-primary m-1 preset-btn" data-hours="4">4 hrs</button>
+                    <button type="button" class="btn btn-outline-primary m-1 preset-btn" data-hours="8">8 hrs</button>
+                    <button type="button" class="btn btn-outline-secondary m-1 preset-btn" data-hours="0.5">30 min</button>
+                    <button type="button" class="btn btn-outline-secondary m-1 preset-btn" data-hours="0.25">15 min</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const hoursInput = document.getElementById('hours');
+        const decrementBtn = document.getElementById('decrementHours');
+        const incrementBtn = document.getElementById('incrementHours');
+        const projectSelect = document.getElementById('project_id');
+        const taskSelect = document.getElementById('task_id');
+        const trackLocationCheckbox = document.getElementById('trackLocation');
+        const latitudeInput = document.getElementById('latitude');
+        const longitudeInput = document.getElementById('longitude');
+        const locationStatus = document.getElementById('locationStatus');
+        const presetBtns = document.querySelectorAll('.preset-btn');
+        
+        // Handle increment/decrement buttons
+        decrementBtn.addEventListener('click', function() {
+            let currentValue = parseFloat(hoursInput.value) || 0;
+            if (currentValue >= 0.5) {
+                hoursInput.value = (currentValue - 0.25).toFixed(2);
+            }
+        });
+        
+        incrementBtn.addEventListener('click', function() {
+            let currentValue = parseFloat(hoursInput.value) || 0;
+            hoursInput.value = (currentValue + 0.25).toFixed(2);
+        });
+        
+        // Handle preset buttons
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const hours = parseFloat(this.getAttribute('data-hours'));
+                hoursInput.value = hours.toFixed(2);
+            });
+        });
+        
+        // Get tasks for selected project
+        projectSelect.addEventListener('change', function() {
+            const projectId = this.value;
+            
+            // Clear existing options
+            taskSelect.innerHTML = '<option value="">Select a task (if applicable)</option>';
+            
+            // If a project is selected, fetch tasks for that project
+            if (projectId) {
+                fetch(`/api/projects/${projectId}/tasks`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.tasks.length > 0) {
+                            data.tasks.forEach(task => {
+                                const option = document.createElement('option');
+                                option.value = task.id;
+                                option.textContent = task.name;
+                                taskSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching tasks:', error);
+                    });
+            }
+        });
+        
+        // Location tracking
+        function getLocation() {
+            if (navigator.geolocation && trackLocationCheckbox.checked) {
+                locationStatus.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Getting your location...';
+                locationStatus.className = 'mt-2 small text-info';
+                
+                navigator.geolocation.getCurrentPosition(
+                    // Success callback
+                    function(position) {
+                        latitudeInput.value = position.coords.latitude;
+                        longitudeInput.value = position.coords.longitude;
+                        
+                        locationStatus.innerHTML = '<i class="fas fa-map-marker-alt me-1"></i> Location captured successfully';
+                        locationStatus.className = 'mt-2 small text-success';
+                    },
+                    // Error callback
+                    function(error) {
+                        console.error('Geolocation error:', error);
+                        locationStatus.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Could not get location: ' + getLocationErrorMessage(error);
+                        locationStatus.className = 'mt-2 small text-danger';
+                        
+                        // Clear location values
+                        latitudeInput.value = '';
+                        longitudeInput.value = '';
+                    },
+                    // Options
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                // Clear location values and status if tracking is disabled
+                latitudeInput.value = '';
+                longitudeInput.value = '';
+                locationStatus.innerHTML = '';
+                locationStatus.className = 'mt-2 small';
+            }
+        }
+        
+        function getLocationErrorMessage(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    return "Location permission denied.";
+                case error.POSITION_UNAVAILABLE:
+                    return "Location information unavailable.";
+                case error.TIMEOUT:
+                    return "Request timed out.";
+                case error.UNKNOWN_ERROR:
+                    return "Unknown error occurred.";
+                default:
+                    return "Error getting location.";
+            }
+        }
+        
+        // Track location when checkbox changes
+        trackLocationCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                getLocation();
+            } else {
+                latitudeInput.value = '';
+                longitudeInput.value = '';
+                locationStatus.innerHTML = '<i class="fas fa-location-slash me-1"></i> Location tracking disabled';
+                locationStatus.className = 'mt-2 small text-muted';
+            }
+        });
+        
+        // Initial location check
+        if (trackLocationCheckbox.checked) {
+            getLocation();
+        }
+        
+        // Validate form before submission
+        document.getElementById('timeLogForm').addEventListener('submit', function(event) {
+            const project = projectSelect.value;
+            const hours = parseFloat(hoursInput.value);
+            const description = document.getElementById('description').value.trim();
+            
+            let isValid = true;
+            
+            if (!project) {
+                alert('Please select a project');
+                isValid = false;
+            } else if (!hours || hours <= 0 || hours > 24) {
+                alert('Please enter valid hours (between 0.25 and 24)');
+                isValid = false;
+            } else if (!description) {
+                alert('Please enter a description of the work performed');
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %} 

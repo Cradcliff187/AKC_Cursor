@@ -1,0 +1,51 @@
+{
+  "PROJECT_STATUSES": {
+    "PENDING": "Initial state when project is created",
+    "APPROVED": "Project is approved but work hasn't started",
+    "IN_PROGRESS": "Work is actively being done",
+    "COMPLETED": "Work is finished",
+    "CANCELED": "Project was canceled"
+  },
+  
+  "ESTIMATE_STATUSES": {
+    "PENDING": "Initial state",
+    "APPROVED": "Estimate is approved",
+    "REJECTED": "Estimate is rejected",
+    "CANCELED": "Estimate is canceled",
+    "COMPLETED": "Work completed",
+    "CLOSED": "Final state"
+  },
+  
+  "VENDOR_STATUSES": {
+    "ACTIVE": "Active vendor",
+    "INACTIVE": "Inactive vendor"
+  },
+  
+  "CUSTOMER_STATUSES": {
+    "ACTIVE": "Active customer",
+    "INACTIVE": "Inactive customer",
+    "PENDING": "Pending customer",
+    "ARCHIVED": "Archived customer"
+  }
+}
+
+{
+  "STATUS_TRANSITIONS": {
+    "PROJECT": {
+      "PENDING": ["APPROVED", "CANCELED"],
+      "APPROVED": ["IN_PROGRESS", "CANCELED"],
+      "IN_PROGRESS": ["COMPLETED", "CANCELED"],
+      "COMPLETED": ["CLOSED"],
+      "CANCELED": [],
+      "CLOSED": []
+    },
+    "ESTIMATE": {
+      "PENDING": ["APPROVED", "REJECTED", "CANCELED"],
+      "APPROVED": ["COMPLETED", "CANCELED"],
+      "REJECTED": ["PENDING", "CANCELED"],
+      "COMPLETED": ["CLOSED"],
+      "CANCELED": [],
+      "CLOSED": []
+    }
+  }
+}

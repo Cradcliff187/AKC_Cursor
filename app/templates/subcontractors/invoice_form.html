@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if invoice %}Edit Invoice{% else %}Add Invoice{% endif %} - AKC LLC Construction CRM
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>
+                    <i class="fas fa-file-invoice-dollar me-2"></i>
+                    {% if invoice %}Edit Invoice{% else %}Add Invoice{% endif %}
+                </h2>
+                <a href="{{ url_for('subcontractor_detail', subcontractor_id=subcontractor_id) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Subcontractor
+                </a>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" id="invoiceForm" enctype="multipart/form-data">
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-12">
+                                <h5 class="border-bottom pb-2 mb-3">Invoice Information</h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="invoice_number" class="form-label">Invoice Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="invoice_number" name="invoice_number" 
+                                       value="{{ invoice.invoice_number if invoice else '' }}" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="project_id" class="form-label">Project</label>
+                                <select class="form-select" id="project_id" name="project_id">
+                                    <option value="">Select Project</option>
+                                    {% for project in subcontractor_projects %}
+                                    <option value="{{ project.project_id }}" {% if invoice and invoice.project_id == project.project_id %}selected{% endif %}>
+                                        {{ project.project_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="invoice_date" class="form-label">Invoice Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="invoice_date" name="invoice_date"
+                                       value="{{ invoice.invoice_date if invoice else '' }}" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="due_date" class="form-label">Due Date</label>
+                                <input type="date" class="form-control" id="due_date" name="due_date"
+                                       value="{{ invoice.due_date if invoice else '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="amount" class="form-label">Amount ($) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" class="form-control" id="amount" name="amount"
+                                       value="{{ invoice.amount if invoice else '' }}" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="paid_amount" class="form-label">Paid Amount ($)</label>
+                                <input type="number" step="0.01" class="form-control" id="paid_amount" name="paid_amount"
+                                       value="{{ invoice.paid_amount if invoice else '0' }}">
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3">{{ invoice.description if invoice else '' }}</textarea>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="Pending" {% if invoice and invoice.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Paid" {% if invoice and invoice.status == 'Paid' %}selected{% endif %}>Paid</option>
+                                    <option value="Overdue" {% if invoice and invoice.status == 'Overdue' %}selected{% endif %}>Overdue</option>
+                                    <option value="Cancelled" {% if invoice and invoice.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="invoice_file" class="form-label">
+                                    {% if invoice and invoice.file_path %}
+                                    Replace Invoice File
+                                    {% else %}
+                                    Upload Invoice
+                                    {% endif %}
+                                </label>
+                                <input type="file" class="form-control" id="invoice_file" name="invoice_file">
+                                <div class="form-text">Accepted formats: PDF, JPG, PNG (max 10MB)</div>
+                                
+                                {% if invoice and invoice.file_path %}
+                                <div class="mt-2">
+                                    <a href="{{ url_for('download_file', file_path=invoice.file_path) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download me-1"></i> Download Current File
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Form Actions -->
+                            <div class="col-12 mt-4 d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i> 
+                                    {% if invoice %}Update Invoice{% else %}Save Invoice{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('invoiceForm');
+        const amountInput = document.getElementById('amount');
+        const paidAmountInput = document.getElementById('paid_amount');
+        const statusSelect = document.getElementById('status');
+        
+        // Set today's date as default for invoice date if not set
+        if (!document.getElementById('invoice_date').value) {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('invoice_date').value = today;
+            
+            // Calculate due date (Net 30 by default)
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 30);
+            document.getElementById('due_date').value = dueDate.toISOString().split('T')[0];
+        }
+        
+        // Update status based on paid amount
+        function updateStatus() {
+            const amount = parseFloat(amountInput.value) || 0;
+            const paidAmount = parseFloat(paidAmountInput.value) || 0;
+            
+            if (amount > 0 && paidAmount >= amount) {
+                statusSelect.value = 'Paid';
+            } else if (paidAmount > 0 && paidAmount < amount) {
+                statusSelect.value = 'Pending';
+            }
+        }
+        
+        // Add event listeners
+        amountInput.addEventListener('change', updateStatus);
+        paidAmountInput.addEventListener('change', updateStatus);
+        
+        // Form validation
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Basic validation
+            const invoiceNumber = document.getElementById('invoice_number').value.trim();
+            const invoiceDate = document.getElementById('invoice_date').value;
+            const amount = document.getElementById('amount').value;
+            
+            if (!invoiceNumber) {
+                alert('Invoice Number is required');
+                return;
+            }
+            
+            if (!invoiceDate) {
+                alert('Invoice Date is required');
+                return;
+            }
+            
+            if (!amount || parseFloat(amount) <= 0) {
+                alert('Amount must be greater than zero');
+                return;
+            }
+            
+            // Submit the form if validation passes
+            this.submit();
+        });
+    });
+</script>
+{% endblock %} 

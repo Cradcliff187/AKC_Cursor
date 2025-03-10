@@ -1,0 +1,550 @@
+{% extends "base.html" %}
+
+{% block title %}My Time Entries - AKC LLC Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-user-clock me-2"></i>My Time Entries</h2>
+        <div>
+            <a href="{{ url_for('log_time') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Log Time
+            </a>
+            <a href="{{ url_for('time_list') }}" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-arrow-left me-1"></i> Back to Time List
+            </a>
+        </div>
+    </div>
+
+    <!-- Time Summary -->
+    <div class="row mb-4">
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Hours</h5>
+                    <p class="card-text display-4">{{ "%.1f"|format(total_hours) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-success">
+                <div class="card-body">
+                    <h5 class="card-title">Billable Hours</h5>
+                    <p class="card-text display-4">{{ "%.1f"|format(billable_hours) }}</p>
+                    <p class="card-text text-muted">{{ "%.1f"|format(billable_hours / total_hours * 100 if total_hours else 0) }}% of total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Projects</h5>
+                    <p class="card-text display-4">{{ time_entries|map(attribute='project_id')|unique|list|length }}</p>
+                    <p class="card-text text-muted">Distinct projects tracked</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Weekly Average</h5>
+                    {% set dates = time_entries|map(attribute='date')|list %}
+                    {% if dates|length > 0 %}
+                    {% set date_range = (dates|sort|first, dates|sort|last) %}
+                    {% set days_diff = (date_range[1]|string|strptime('%Y-%m-%d') - date_range[0]|string|strptime('%Y-%m-%d')).days + 1 %}
+                    {% set weeks = (days_diff / 7)|round(1, 'ceil') %}
+                    {% set weekly_avg = total_hours / weeks if weeks > 0 else total_hours %}
+                    <p class="card-text display-4">{{ "%.1f"|format(weekly_avg) }}</p>
+                    <p class="card-text text-muted">hrs/week over {{ weeks }} weeks</p>
+                    {% else %}
+                    <p class="card-text display-4">--</p>
+                    <p class="card-text text-muted">No data yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar View Tabs -->
+    <ul class="nav nav-tabs mb-3" id="calendarViewTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="month-tab" data-bs-toggle="tab" data-bs-target="#month-view" type="button" role="tab" aria-controls="month-view" aria-selected="true">
+                <i class="fas fa-calendar-alt me-1"></i> Month View
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="list-tab" data-bs-toggle="tab" data-bs-target="#list-view" type="button" role="tab" aria-controls="list-view" aria-selected="false">
+                <i class="fas fa-list me-1"></i> List View
+            </button>
+        </li>
+        <li class="nav-item ms-auto">
+            <div class="input-group">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="prevMonth">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="input-group-text" id="currentMonthDisplay">Month Year</span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="nextMonth">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-sm ms-2" id="todayBtn">Today</button>
+            </div>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="calendarViewTabsContent">
+        <!-- Month View -->
+        <div class="tab-pane fade show active" id="month-view" role="tabpanel" aria-labelledby="month-tab">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered calendar-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Sunday</th>
+                                    <th>Monday</th>
+                                    <th>Tuesday</th>
+                                    <th>Wednesday</th>
+                                    <th>Thursday</th>
+                                    <th>Friday</th>
+                                    <th>Saturday</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calendarBody">
+                                <!-- Calendar cells will be generated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- List View -->
+        <div class="tab-pane fade" id="list-view" role="tabpanel" aria-labelledby="list-tab">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Project</th>
+                                    <th>Hours</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in time_entries|sort(attribute='date', reverse=true) %}
+                                <tr class="time-entry-row" data-date="{{ entry.date }}">
+                                    <td>{{ entry.date }}</td>
+                                    <td>{{ entry.project_name }}</td>
+                                    <td>
+                                        {{ "%.1f"|format(entry.hours|float) }}
+                                        {% if entry.billable %}
+                                        <span class="badge bg-success">Billable</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ entry.description|truncate(50) }}</td>
+                                    <td>
+                                        {% if entry.status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                        {% elif entry.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('edit_time', entry_id=entry.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- No Entries Message -->
+                    {% if time_entries|length == 0 %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-user-clock fa-3x mb-3 text-muted"></i>
+                        <h4>No time entries found</h4>
+                        <p class="text-muted">Start tracking your time by clicking the "Log Time" button.</p>
+                        <a href="{{ url_for('log_time') }}" class="btn btn-primary mt-2">
+                            <i class="fas fa-plus me-1"></i> Log Your First Entry
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day Detail Modal -->
+    <div class="modal fade" id="dayDetailModal" tabindex="-1" aria-labelledby="dayDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dayDetailModalLabel">Time Entries for <span id="modalDate"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="dayEntriesContainer">
+                        <!-- Day entries will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="#" class="btn btn-primary" id="logTimeForDayBtn">
+                        <i class="fas fa-plus me-1"></i> Log Time for This Day
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize calendar
+        const calendarBody = document.getElementById('calendarBody');
+        const currentMonthDisplay = document.getElementById('currentMonthDisplay');
+        const prevMonthBtn = document.getElementById('prevMonth');
+        const nextMonthBtn = document.getElementById('nextMonth');
+        const todayBtn = document.getElementById('todayBtn');
+        const dayDetailModal = new bootstrap.Modal(document.getElementById('dayDetailModal'));
+        const modalDate = document.getElementById('modalDate');
+        const dayEntriesContainer = document.getElementById('dayEntriesContainer');
+        const logTimeForDayBtn = document.getElementById('logTimeForDayBtn');
+        
+        // Time entries data from backend
+        const timeEntriesByDate = {
+            {% for date, entries in entries_by_date.items() %}
+            "{{ date }}": [
+                {% for entry in entries %}
+                {
+                    "id": "{{ entry.id }}",
+                    "project": "{{ entry.project_name }}",
+                    "hours": {{ entry.hours|float }},
+                    "billable": {{ 'true' if entry.billable else 'false' }},
+                    "description": "{{ entry.description|replace('"', '\\"') }}",
+                    "status": "{{ entry.status }}"
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]{% if not loop.last %},{% endif %}
+            {% endfor %}
+        };
+        
+        // Date handling
+        let currentDate = new Date();
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+        
+        // Format date as YYYY-MM-DD
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // Display current month/year
+        function updateMonthDisplay() {
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            currentMonthDisplay.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+        }
+        
+        // Generate calendar
+        function generateCalendar(month, year) {
+            // Clear previous calendar
+            calendarBody.innerHTML = "";
+            
+            // Get first day of month and last day
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            
+            // Get day of week for first day (0 = Sunday, 6 = Saturday)
+            const startingDay = firstDay.getDay();
+            
+            // Get total days in month
+            const daysInMonth = lastDay.getDate();
+            
+            // Initialize variables for building calendar
+            let date = 1;
+            
+            // Create calendar rows
+            for (let i = 0; i < 6; i++) {
+                // Break if we've already added all days
+                if (date > daysInMonth) break;
+                
+                // Create row
+                const row = document.createElement('tr');
+                
+                // Create cells for this row
+                for (let j = 0; j < 7; j++) {
+                    const cell = document.createElement('td');
+                    cell.className = 'calendar-cell';
+                    
+                    // Add date number only if we're in the current month
+                    if (i === 0 && j < startingDay) {
+                        // Empty cell before first day of month
+                        cell.classList.add('empty-cell');
+                    } else if (date > daysInMonth) {
+                        // Empty cell after last day of month
+                        cell.classList.add('empty-cell');
+                    } else {
+                        // Valid date cell
+                        const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                        const cellDate = document.createElement('div');
+                        cellDate.className = 'calendar-date';
+                        cellDate.textContent = date;
+                        
+                        // Highlight today
+                        const today = new Date();
+                        if (date === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                            cellDate.classList.add('today');
+                        }
+                        
+                        cell.appendChild(cellDate);
+                        
+                        // Add time entries for this date if any
+                        const entries = timeEntriesByDate[formattedDate];
+                        if (entries && entries.length > 0) {
+                            // Calculate total hours for the day
+                            let totalHours = 0;
+                            entries.forEach(entry => {
+                                totalHours += parseFloat(entry.hours);
+                            });
+                            
+                            // Add time entry indicator
+                            const entryIndicator = document.createElement('div');
+                            entryIndicator.className = 'time-entry-indicator';
+                            entryIndicator.innerHTML = `<span class="badge bg-primary">${entries.length} entries</span> <span class="badge bg-secondary">${totalHours.toFixed(1)} hrs</span>`;
+                            cell.appendChild(entryIndicator);
+                            
+                            // Add click event to show detail modal
+                            cell.addEventListener('click', () => {
+                                showDayDetail(formattedDate, entries);
+                            });
+                            
+                            cell.classList.add('has-entries');
+                        } else {
+                            // Add click event to log time for empty days
+                            cell.addEventListener('click', () => {
+                                showDayDetail(formattedDate, []);
+                            });
+                        }
+                        
+                        date++;
+                    }
+                    
+                    row.appendChild(cell);
+                }
+                
+                calendarBody.appendChild(row);
+            }
+        }
+        
+        // Show day detail modal
+        function showDayDetail(date, entries) {
+            modalDate.textContent = formatDisplayDate(date);
+            logTimeForDayBtn.href = `{{ url_for('log_time') }}?date=${date}`;
+            
+            // Clear previous entries
+            dayEntriesContainer.innerHTML = '';
+            
+            if (entries && entries.length > 0) {
+                // Calculate total hours
+                let totalHours = 0;
+                let billableHours = 0;
+                entries.forEach(entry => {
+                    totalHours += parseFloat(entry.hours);
+                    if (entry.billable) {
+                        billableHours += parseFloat(entry.hours);
+                    }
+                });
+                
+                // Add summary card
+                const summaryCard = document.createElement('div');
+                summaryCard.className = 'card mb-3';
+                summaryCard.innerHTML = `
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <h5 class="card-title">Total Hours: ${totalHours.toFixed(1)}</h5>
+                                <h6 class="card-subtitle text-muted">Billable: ${billableHours.toFixed(1)}</h6>
+                            </div>
+                            <div class="col-sm-6 text-end">
+                                <h5 class="card-title">${entries.length} Entries</h5>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                dayEntriesContainer.appendChild(summaryCard);
+                
+                // Add entries list
+                entries.forEach(entry => {
+                    const entryCard = document.createElement('div');
+                    entryCard.className = 'card mb-2';
+                    
+                    // Determine status badge
+                    let statusBadge = '';
+                    if (entry.status === 'approved') {
+                        statusBadge = '<span class="badge bg-success">Approved</span>';
+                    } else if (entry.status === 'rejected') {
+                        statusBadge = '<span class="badge bg-danger">Rejected</span>';
+                    } else {
+                        statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+                    }
+                    
+                    entryCard.innerHTML = `
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="card-title">${entry.project}</h5>
+                                <div>
+                                    ${statusBadge}
+                                    ${entry.billable ? '<span class="badge bg-success ms-1">Billable</span>' : ''}
+                                </div>
+                            </div>
+                            <h6 class="card-subtitle mb-2 text-muted">${entry.hours} hours</h6>
+                            <p class="card-text">${entry.description}</p>
+                            <a href="{{ url_for('edit_time', entry_id='') }}${entry.id}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit me-1"></i> Edit
+                            </a>
+                        </div>
+                    `;
+                    dayEntriesContainer.appendChild(entryCard);
+                });
+            } else {
+                // No entries for this day
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'text-center py-4';
+                emptyMessage.innerHTML = `
+                    <i class="fas fa-calendar-day fa-3x mb-3 text-muted"></i>
+                    <h4>No time entries for this day</h4>
+                    <p class="text-muted">Click the button below to log time for ${formatDisplayDate(date)}.</p>
+                `;
+                dayEntriesContainer.appendChild(emptyMessage);
+            }
+            
+            dayDetailModal.show();
+        }
+        
+        // Format date for display (e.g., "Monday, January 1, 2023")
+        function formatDisplayDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+        
+        // Navigation buttons
+        prevMonthBtn.addEventListener('click', function() {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            updateMonthDisplay();
+            generateCalendar(currentMonth, currentYear);
+        });
+        
+        nextMonthBtn.addEventListener('click', function() {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            updateMonthDisplay();
+            generateCalendar(currentMonth, currentYear);
+        });
+        
+        todayBtn.addEventListener('click', function() {
+            const today = new Date();
+            currentMonth = today.getMonth();
+            currentYear = today.getFullYear();
+            updateMonthDisplay();
+            generateCalendar(currentMonth, currentYear);
+        });
+        
+        // Filter list view by month
+        function updateListView() {
+            const rows = document.querySelectorAll('.time-entry-row');
+            rows.forEach(row => {
+                const date = row.getAttribute('data-date');
+                const entryMonth = parseInt(date.split('-')[1]) - 1; // 0-indexed
+                const entryYear = parseInt(date.split('-')[0]);
+                
+                if (entryMonth === currentMonth && entryYear === currentYear) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        // Update list view when month changes
+        prevMonthBtn.addEventListener('click', updateListView);
+        nextMonthBtn.addEventListener('click', updateListView);
+        todayBtn.addEventListener('click', updateListView);
+        
+        // Initialize calendar
+        updateMonthDisplay();
+        generateCalendar(currentMonth, currentYear);
+        updateListView();
+        
+        // Style for calendar
+        const style = document.createElement('style');
+        style.textContent = `
+            .calendar-table th {
+                text-align: center;
+                background-color: #f8f9fa;
+            }
+            .calendar-cell {
+                height: 100px;
+                width: 14.28%;
+                vertical-align: top;
+                padding: 5px;
+                cursor: pointer;
+                position: relative;
+            }
+            .calendar-cell:hover {
+                background-color: #f8f9fa;
+            }
+            .empty-cell {
+                background-color: #f8f9fa;
+                cursor: default;
+            }
+            .calendar-date {
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
+            .today {
+                background-color: #007bff;
+                color: white;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .time-entry-indicator {
+                margin-top: 5px;
+            }
+            .has-entries {
+                border-left: 3px solid #007bff;
+            }
+        `;
+        document.head.appendChild(style);
+    });
+</script>
+{% endblock %} 

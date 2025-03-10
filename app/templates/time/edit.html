@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Time Entry - AKC LLC Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-edit me-2"></i>Edit Time Entry</h2>
+        <a href="{{ url_for('time.list_entries') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Time Entries
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Time Entry Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" id="timeEditForm">
+                        <!-- Project Selection -->
+                        <div class="mb-3">
+                            <label for="project_id" class="form-label">Project <span class="text-danger">*</span></label>
+                            <select class="form-select" id="project_id" name="project_id" required>
+                                <option value="">Select a project</option>
+                                {% for project in projects %}
+                                <option value="{{ project.id }}" {% if project.id == entry.project_id %}selected{% endif %}>
+                                    {{ project.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Hours and Date -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="hours" class="form-label">Hours <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="hours" name="hours" step="0.25" min="0.25" max="24" required value="{{ "%.2f"|format(entry.hours|float) }}">
+                                    <button type="button" class="btn btn-outline-secondary" id="decrementHours">-</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="incrementHours">+</button>
+                                </div>
+                                <div class="form-text">Enter time in hours (e.g., 1.5 for 1 hour and 30 minutes)</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="date" name="date" value="{{ entry.date }}" required>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="description" name="description" rows="3" required>{{ entry.description }}</textarea>
+                        </div>
+
+                        <!-- Billable Option -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="billable" name="billable" {% if entry.billable %}checked{% endif %}>
+                                <label class="form-check-label" for="billable">Billable Time</label>
+                            </div>
+                        </div>
+
+                        <!-- Task Selection (Optional) -->
+                        <div class="mb-3">
+                            <label for="task_id" class="form-label">Related Task (Optional)</label>
+                            <select class="form-select" id="task_id" name="task_id">
+                                <option value="">Select a task (if applicable)</option>
+                                <!-- Task options will be populated by JavaScript when a project is selected -->
+                            </select>
+                        </div>
+
+                        <!-- Admin-only Status Field -->
+                        {% if session.get('role') == 'admin' %}
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="pending" {% if entry.status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="approved" {% if entry.status == 'approved' %}selected{% endif %}>Approved</option>
+                                <option value="rejected" {% if entry.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="admin_notes" class="form-label">Admin Notes</label>
+                            <textarea class="form-control" id="admin_notes" name="admin_notes" rows="2">{{ entry.admin_notes }}</textarea>
+                            <div class="form-text">Add notes visible to administrators only.</div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Location Information (if available) -->
+                        {% if entry.latitude and entry.longitude %}
+                        <div class="mb-3">
+                            <label class="form-label">Location Information</label>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">Latitude</span>
+                                <input type="text" class="form-control" value="{{ entry.latitude }}" readonly>
+                                <span class="input-group-text">Longitude</span>
+                                <input type="text" class="form-control" value="{{ entry.longitude }}" readonly>
+                            </div>
+                            <div class="d-grid">
+                                <a href="https://maps.google.com/?q={{ entry.latitude }},{{ entry.longitude }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                    <i class="fas fa-map-marker-alt me-1"></i> View on Map
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="mb-3">
+                            <div class="alert alert-info small">
+                                <i class="fas fa-info-circle me-1"></i> No location data was recorded for this time entry.
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Update Time Entry
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Entry Details & Admin Actions -->
+        <div class="col-lg-4 mt-3 mt-lg-0">
+            <!-- Entry Details -->
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <i class="fas fa-info-circle me-1"></i> Entry Details
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Created By</span>
+                            <span class="fw-bold">{{ entry.username }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Entry ID</span>
+                            <span class="text-muted">{{ entry.id }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Created At</span>
+                            <span>{{ entry.created_at }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Last Updated</span>
+                            <span>{{ entry.updated_at or 'Never' }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Status</span>
+                            <span>
+                                {% if entry.status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                                {% elif entry.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Admin Quick Actions -->
+            {% if session.get('role') == 'admin' %}
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <i class="fas fa-bolt me-1"></i> Admin Actions
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-success" id="approveBtn" {% if entry.status == 'approved' %}disabled{% endif %}>
+                            <i class="fas fa-check-circle me-1"></i> Approve Entry
+                        </button>
+                        <button type="button" class="btn btn-danger" id="rejectBtn" {% if entry.status == 'rejected' %}disabled{% endif %}>
+                            <i class="fas fa-times-circle me-1"></i> Reject Entry
+                        </button>
+                        <hr>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="fas fa-trash me-1"></i> Delete Entry
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this time entry? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('time.delete_time', entry_id=entry.id) }}" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const hoursInput = document.getElementById('hours');
+        const decrementBtn = document.getElementById('decrementHours');
+        const incrementBtn = document.getElementById('incrementHours');
+        const projectSelect = document.getElementById('project_id');
+        const taskSelect = document.getElementById('task_id');
+        
+        // Handle increment/decrement buttons
+        decrementBtn.addEventListener('click', function() {
+            let currentValue = parseFloat(hoursInput.value) || 0;
+            if (currentValue >= 0.5) {
+                hoursInput.value = (currentValue - 0.25).toFixed(2);
+            }
+        });
+        
+        incrementBtn.addEventListener('click', function() {
+            let currentValue = parseFloat(hoursInput.value) || 0;
+            hoursInput.value = (currentValue + 0.25).toFixed(2);
+        });
+        
+        // Get tasks for selected project
+        function loadTasks(projectId, selectedTaskId) {
+            // Clear existing options
+            taskSelect.innerHTML = '<option value="">Select a task (if applicable)</option>';
+            
+            // If a project is selected, fetch tasks for that project
+            if (projectId) {
+                fetch(`/api/projects/${projectId}/tasks`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.tasks.length > 0) {
+                            data.tasks.forEach(task => {
+                                const option = document.createElement('option');
+                                option.value = task.id;
+                                option.textContent = task.name;
+                                
+                                // Select the current task if it matches
+                                if (task.id == selectedTaskId) {
+                                    option.selected = true;
+                                }
+                                
+                                taskSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching tasks:', error);
+                    });
+            }
+        }
+        
+        // Load tasks when project changes
+        projectSelect.addEventListener('change', function() {
+            loadTasks(this.value, '');
+        });
+        
+        // Load tasks for initial project on page load
+        const initialProjectId = projectSelect.value;
+        const initialTaskId = '{{ entry.task_id }}';
+        if (initialProjectId) {
+            loadTasks(initialProjectId, initialTaskId);
+        }
+        
+        // Admin quick actions
+        const approveBtn = document.getElementById('approveBtn');
+        const rejectBtn = document.getElementById('rejectBtn');
+        const statusSelect = document.getElementById('status');
+        
+        if (approveBtn) {
+            approveBtn.addEventListener('click', function() {
+                statusSelect.value = 'approved';
+                document.getElementById('timeEditForm').submit();
+            });
+        }
+        
+        if (rejectBtn) {
+            rejectBtn.addEventListener('click', function() {
+                statusSelect.value = 'rejected';
+                document.getElementById('timeEditForm').submit();
+            });
+        }
+        
+        // Validate form before submission
+        document.getElementById('timeEditForm').addEventListener('submit', function(event) {
+            const project = projectSelect.value;
+            const hours = parseFloat(hoursInput.value);
+            const description = document.getElementById('description').value.trim();
+            
+            let isValid = true;
+            
+            if (!project) {
+                alert('Please select a project');
+                isValid = false;
+            } else if (!hours || hours <= 0 || hours > 24) {
+                alert('Please enter valid hours (between 0.25 and 24)');
+                isValid = false;
+            } else if (!description) {
+                alert('Please enter a description of the work performed');
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %} 

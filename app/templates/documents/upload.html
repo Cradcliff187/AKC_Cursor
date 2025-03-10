@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Document - AKC LLC Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">Upload Document</h1>
+            <p class="text-muted">Add a new document to the system.</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Document Upload</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('upload_document') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                        <!-- Mobile File Upload -->
+                        <div class="mb-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Select Document <span class="text-danger">*</span></label>
+                                <div class="file-upload-wrapper">
+                                    <!-- Hidden actual file input -->
+                                    <input type="file" name="file" id="actual-file-input" class="d-none" required>
+                                    
+                                    <!-- Custom mobile-friendly file uploader -->
+                                    <div class="d-flex flex-column">
+                                        <button type="button" id="file-upload-btn" class="btn btn-outline-primary btn-lg mb-2">
+                                            <i class="fas fa-cloud-upload-alt me-2"></i> Choose File
+                                        </button>
+                                        <div class="text-center small mb-2">or</div>
+                                        <button type="button" id="camera-upload-btn" class="btn btn-outline-secondary btn-lg mb-3 d-md-none">
+                                            <i class="fas fa-camera me-2"></i> Take Photo
+                                        </button>
+                                        
+                                        <!-- File preview container -->
+                                        <div id="file-preview" class="d-none mt-3 mb-2 p-3 border rounded text-center">
+                                            <div id="preview-content"></div>
+                                            <h6 id="file-name" class="mt-2 mb-1 text-truncate"></h6>
+                                            <div id="file-size" class="small text-muted mb-2"></div>
+                                            <button type="button" id="remove-file" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-times me-1"></i> Remove
+                                            </button>
+                                        </div>
+                                        
+                                        <small class="text-muted">
+                                            Supported formats: PDF, Word, Excel, Images, Zip (Max size: 10MB)
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Document Details -->
+                            <div class="mb-3">
+                                <label for="description" class="form-label fw-bold">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="2" placeholder="Enter a brief description of this document"></textarea>
+                            </div>
+                            
+                            <!-- Project and Client Selection -->
+                            <div class="row mb-3">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label for="project_id" class="form-label fw-bold">Related Project</label>
+                                    <select class="form-select" id="project_id" name="project_id">
+                                        <option value="">None</option>
+                                        {% for project in projects %}
+                                        <option value="{{ project.id }}">{{ project.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="client_id" class="form-label fw-bold">Related Client</label>
+                                    <select class="form-select" id="client_id" name="client_id">
+                                        <option value="">None</option>
+                                        {% for client in clients %}
+                                        <option value="{{ client.id }}">{{ client.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Category and Tags -->
+                            <div class="row mb-3">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label for="category" class="form-label fw-bold">Category</label>
+                                    <select class="form-select" id="category" name="category">
+                                        <option value="">Select a category</option>
+                                        <option value="Contract">Contract</option>
+                                        <option value="Invoice">Invoice</option>
+                                        <option value="Blueprint">Blueprint</option>
+                                        <option value="Permit">Permit</option>
+                                        <option value="Photo">Site Photo</option>
+                                        <option value="Inspection">Inspection Report</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="tags" class="form-label fw-bold">Tags</label>
+                                    <input type="text" class="form-control" id="tags" name="tags" placeholder="Separate with commas">
+                                    <small class="text-muted">E.g., important, urgent, final</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Upload Progress -->
+                        <div id="upload-progress" class="d-none mb-3">
+                            <label class="form-label">Upload Progress</label>
+                            <div class="progress" style="height: 10px;">
+                                <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small id="progress-text" class="text-muted">Preparing upload...</small>
+                        </div>
+                        
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('document_list') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Documents
+                            </a>
+                            <button type="submit" id="upload-btn" class="btn btn-primary" disabled>
+                                <i class="fas fa-upload me-1"></i> Upload Document
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const actualFileInput = document.getElementById('actual-file-input');
+    const fileUploadBtn = document.getElementById('file-upload-btn');
+    const cameraUploadBtn = document.getElementById('camera-upload-btn');
+    const filePreview = document.getElementById('file-preview');
+    const previewContent = document.getElementById('preview-content');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const removeFileBtn = document.getElementById('remove-file');
+    const uploadBtn = document.getElementById('upload-btn');
+    const uploadForm = document.getElementById('uploadForm');
+    const progressContainer = document.getElementById('upload-progress');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    
+    // Handle click on custom file upload button
+    fileUploadBtn.addEventListener('click', function() {
+        actualFileInput.click();
+    });
+    
+    // Handle camera upload for mobile devices
+    if (cameraUploadBtn) {
+        cameraUploadBtn.addEventListener('click', function() {
+            // Set accept attribute to images only for camera
+            actualFileInput.setAttribute('accept', 'image/*');
+            actualFileInput.setAttribute('capture', 'environment');
+            actualFileInput.click();
+            
+            // Reset after click
+            setTimeout(() => {
+                actualFileInput.removeAttribute('capture');
+                actualFileInput.setAttribute('accept', '');
+            }, 1000);
+        });
+    }
+    
+    // Handle file selection
+    actualFileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            
+            // Enable upload button
+            uploadBtn.disabled = false;
+            
+            // Display file name and size
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            
+            // Show file preview
+            filePreview.classList.remove('d-none');
+            
+            // Create preview content based on file type
+            previewContent.innerHTML = ''; // Clear previous preview
+            
+            if (file.type.startsWith('image/')) {
+                // Image preview
+                const img = document.createElement('img');
+                img.className = 'img-thumbnail';
+                img.style.maxHeight = '150px';
+                img.src = URL.createObjectURL(file);
+                previewContent.appendChild(img);
+            } else {
+                // Generic file icon based on type
+                let iconClass = 'fas fa-file fa-4x text-secondary';
+                
+                if (file.type === 'application/pdf') {
+                    iconClass = 'fas fa-file-pdf fa-4x text-danger';
+                } else if (file.type.includes('word') || file.type.includes('document')) {
+                    iconClass = 'fas fa-file-word fa-4x text-primary';
+                } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
+                    iconClass = 'fas fa-file-excel fa-4x text-success';
+                } else if (file.type.includes('zip') || file.type.includes('compressed')) {
+                    iconClass = 'fas fa-file-archive fa-4x text-warning';
+                }
+                
+                const icon = document.createElement('i');
+                icon.className = iconClass;
+                previewContent.appendChild(icon);
+            }
+        }
+    });
+    
+    // Handle remove button
+    removeFileBtn.addEventListener('click', function() {
+        // Clear the file input
+        actualFileInput.value = '';
+        
+        // Hide preview and disable upload button
+        filePreview.classList.add('d-none');
+        uploadBtn.disabled = true;
+    });
+    
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes < 1024) {
+            return bytes + ' bytes';
+        } else if (bytes < 1048576) {
+            return (bytes / 1024).toFixed(1) + ' KB';
+        } else {
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+    }
+    
+    // Simulate upload progress
+    uploadForm.addEventListener('submit', function(e) {
+        // Only show progress UI for larger files
+        if (actualFileInput.files[0] && actualFileInput.files[0].size > 1000000) {
+            // Show progress bar
+            progressContainer.classList.remove('d-none');
+            
+            // Disable submit button to prevent double submissions
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Uploading...';
+            
+            // Simulate progress for demo purposes
+            let progress = 0;
+            const interval = setInterval(function() {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+                
+                progressBar.style.width = progress + '%';
+                progressBar.setAttribute('aria-valuenow', progress);
+                
+                if (progress < 100) {
+                    progressText.textContent = 'Uploading: ' + Math.round(progress) + '%';
+                } else {
+                    progressText.textContent = 'Processing file...';
+                    clearInterval(interval);
+                }
+            }, 400);
+        }
+    });
+});
+</script>
+{% endblock %} 

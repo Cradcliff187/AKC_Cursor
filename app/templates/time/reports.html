@@ -1,0 +1,757 @@
+{% extends "base.html" %}
+
+{% block title %}Time Reports - AKC LLC Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-chart-bar me-2"></i>Time Reports</h2>
+        <div>
+            <a href="{{ url_for('time_list') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Time Entries
+            </a>
+        </div>
+    </div>
+
+    <!-- Time Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Hours</h5>
+                    <p class="card-text display-4">{{ "%.1f"|format(total_hours) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-success">
+                <div class="card-body">
+                    <h5 class="card-title">Billable Hours</h5>
+                    <p class="card-text display-4">{{ "%.1f"|format(billable_hours) }}</p>
+                    <p class="card-text text-muted">{{ "%.1f"|format(billable_percentage) }}% of total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Active Projects</h5>
+                    <p class="card-text display-4">{{ project_summary|length }}</p>
+                    <p class="card-text text-muted">With time entries</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Team Members</h5>
+                    <p class="card-text display-4">{{ user_summary|length }}</p>
+                    <p class="card-text text-muted">Tracking time</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Range Selector -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-calendar me-1"></i> Date Range
+        </div>
+        <div class="card-body">
+            <form id="dateRangeForm" method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="d-grid gap-2 w-100">
+                        <button type="submit" class="btn btn-primary">Apply Date Range</button>
+                    </div>
+                </div>
+            </form>
+            <div class="mt-3">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary" data-range="this-week">This Week</button>
+                    <button type="button" class="btn btn-outline-secondary" data-range="last-week">Last Week</button>
+                    <button type="button" class="btn btn-outline-secondary" data-range="this-month">This Month</button>
+                    <button type="button" class="btn btn-outline-secondary" data-range="last-month">Last Month</button>
+                    <button type="button" class="btn btn-outline-secondary" data-range="this-quarter">This Quarter</button>
+                    <button type="button" class="btn btn-outline-secondary" data-range="this-year">This Year</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Reports Tabs -->
+    <ul class="nav nav-tabs" id="reportTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects-report" type="button" role="tab" aria-controls="projects-report" aria-selected="true">
+                <i class="fas fa-project-diagram me-1"></i> Projects
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-report" type="button" role="tab" aria-controls="users-report" aria-selected="false">
+                <i class="fas fa-users me-1"></i> Users
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="details-tab" data-bs-toggle="tab" data-bs-target="#details-report" type="button" role="tab" aria-controls="details-report" aria-selected="false">
+                <i class="fas fa-list me-1"></i> Detailed Report
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Projects Tab -->
+        <div class="tab-pane fade show active" id="projects-report" role="tabpanel" aria-labelledby="projects-tab">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Hours by Project</h5>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="projectHoursChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="projectBillableChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Total Hours</th>
+                                    <th>Billable Hours</th>
+                                    <th>% Billable</th>
+                                    <th>Team Members</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for project in project_summary %}
+                                <tr>
+                                    <td>{{ project.name }}</td>
+                                    <td>{{ "%.1f"|format(project.total_hours|float) }}</td>
+                                    <td>{{ "%.1f"|format(project.billable_hours|float) }}</td>
+                                    <td>
+                                        {% if project.total_hours|float > 0 %}
+                                        {{ "%.1f"|format(project.billable_hours|float / project.total_hours|float * 100) }}%
+                                        {% else %}
+                                        0%
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ project.team_members|length }}</td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('project_time', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div class="tab-pane fade" id="users-report" role="tabpanel" aria-labelledby="users-tab">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Hours by User</h5>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="userHoursChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="userProjectsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Total Hours</th>
+                                    <th>Billable Hours</th>
+                                    <th>Projects</th>
+                                    <th>Avg Hours/Day</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in user_summary %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ "%.1f"|format(user.total_hours|float) }}</td>
+                                    <td>{{ "%.1f"|format(user.billable_hours|float) }}</td>
+                                    <td>{{ user.projects|length }}</td>
+                                    <td>
+                                        {% if user.days_logged > 0 %}
+                                        {{ "%.1f"|format(user.total_hours|float / user.days_logged) }}
+                                        {% else %}
+                                        0
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-primary view-user-details" 
+                                                data-user-id="{{ user.id }}" 
+                                                data-username="{{ user.username }}">
+                                            <i class="fas fa-eye me-1"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Report Tab -->
+        <div class="tab-pane fade" id="details-report" role="tabpanel" aria-labelledby="details-tab">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Detailed Time Report</h5>
+                    
+                    <!-- Additional Filters -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label for="projectFilter" class="form-label">Project</label>
+                            <select class="form-select" id="projectFilter">
+                                <option value="">All Projects</option>
+                                {% for project in project_summary %}
+                                <option value="{{ project.id }}">{{ project.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="userFilter" class="form-label">User</label>
+                            <select class="form-select" id="userFilter">
+                                <option value="">All Users</option>
+                                {% for user in user_summary %}
+                                <option value="{{ user.id }}">{{ user.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">Status</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="billableFilter" class="form-label">Billable</label>
+                            <select class="form-select" id="billableFilter">
+                                <option value="">All</option>
+                                <option value="true">Billable Only</option>
+                                <option value="false">Non-Billable Only</option>
+                            </select>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="button" id="applyFiltersBtn" class="btn btn-primary">Apply Filters</button>
+                            <button type="button" id="clearFiltersBtn" class="btn btn-outline-secondary ms-2">Clear Filters</button>
+                            <button type="button" id="exportReportBtn" class="btn btn-outline-success ms-2">
+                                <i class="fas fa-file-excel me-1"></i> Export to Excel
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover" id="detailedReportTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>User</th>
+                                    <th>Project</th>
+                                    <th>Hours</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Billable</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in time_entries %}
+                                <tr class="report-entry" 
+                                    data-project="{{ entry.project_id }}" 
+                                    data-user="{{ entry.user_id }}" 
+                                    data-status="{{ entry.status }}" 
+                                    data-billable="{{ entry.billable|lower }}">
+                                    <td>{{ entry.date }}</td>
+                                    <td>{{ entry.username }}</td>
+                                    <td>{{ entry.project_name }}</td>
+                                    <td>{{ "%.1f"|format(entry.hours|float) }}</td>
+                                    <td>{{ entry.description|truncate(50) }}</td>
+                                    <td>
+                                        {% if entry.status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                        {% elif entry.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if entry.billable %}
+                                        <i class="fas fa-check-circle text-success"></i>
+                                        {% else %}
+                                        <i class="fas fa-times-circle text-muted"></i>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="userDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userDetailsModalLabel">Time Details for <span id="modalUsername"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="userTimeDetails">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Loading user time details...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Date range quick buttons
+        const dateRangeButtons = document.querySelectorAll('[data-range]');
+        dateRangeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const range = this.getAttribute('data-range');
+                const now = new Date();
+                let startDate, endDate;
+                
+                switch(range) {
+                    case 'this-week':
+                        startDate = getMonday(now);
+                        endDate = new Date(now);
+                        break;
+                    case 'last-week':
+                        startDate = getMonday(new Date(now.setDate(now.getDate() - 7)));
+                        endDate = new Date(startDate);
+                        endDate.setDate(startDate.getDate() + 6);
+                        break;
+                    case 'this-month':
+                        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                        endDate = new Date(now);
+                        break;
+                    case 'last-month':
+                        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+                        break;
+                    case 'this-quarter':
+                        const quarter = Math.floor(now.getMonth() / 3);
+                        startDate = new Date(now.getFullYear(), quarter * 3, 1);
+                        endDate = new Date(now);
+                        break;
+                    case 'this-year':
+                        startDate = new Date(now.getFullYear(), 0, 1);
+                        endDate = new Date(now);
+                        break;
+                }
+                
+                document.getElementById('start_date').value = formatDate(startDate);
+                document.getElementById('end_date').value = formatDate(endDate);
+                document.getElementById('dateRangeForm').submit();
+            });
+        });
+        
+        // Get Monday of the current week
+        function getMonday(d) {
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+            return new Date(d.setDate(diff));
+        }
+        
+        // Format date as YYYY-MM-DD
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // Charts
+        const projectLabels = [{% for project in project_summary %}"{{ project.name }}"{% if not loop.last %},{% endif %}{% endfor %}];
+        const projectHours = [{% for project in project_summary %}{{ project.total_hours|float }}{% if not loop.last %},{% endif %}{% endfor %}];
+        const projectBillableHours = [{% for project in project_summary %}{{ project.billable_hours|float }}{% if not loop.last %},{% endif %}{% endfor %}];
+        
+        const userLabels = [{% for user in user_summary %}"{{ user.username }}"{% if not loop.last %},{% endif %}{% endfor %}];
+        const userHours = [{% for user in user_summary %}{{ user.total_hours|float }}{% if not loop.last %},{% endif %}{% endfor %}];
+        const userProjects = [{% for user in user_summary %}{{ user.projects|length }}{% if not loop.last %},{% endif %}{% endfor %}];
+        
+        // Project hours chart
+        new Chart(document.getElementById('projectHoursChart'), {
+            type: 'bar',
+            data: {
+                labels: projectLabels,
+                datasets: [{
+                    label: 'Total Hours',
+                    data: projectHours,
+                    backgroundColor: '#4e73df',
+                    borderColor: '#4e73df',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Hours'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Total Hours by Project'
+                    }
+                }
+            }
+        });
+        
+        // Project billable hours chart
+        new Chart(document.getElementById('projectBillableChart'), {
+            type: 'pie',
+            data: {
+                labels: projectLabels,
+                datasets: [{
+                    label: 'Billable Hours',
+                    data: projectBillableHours,
+                    backgroundColor: [
+                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', 
+                        '#858796', '#f8f9fc', '#5a5c69', '#6f42c1', '#fd7e14'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Billable Hours by Project'
+                    }
+                }
+            }
+        });
+        
+        // User hours chart
+        new Chart(document.getElementById('userHoursChart'), {
+            type: 'bar',
+            data: {
+                labels: userLabels,
+                datasets: [{
+                    label: 'Total Hours',
+                    data: userHours,
+                    backgroundColor: '#1cc88a',
+                    borderColor: '#1cc88a',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Hours'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Total Hours by User'
+                    }
+                }
+            }
+        });
+        
+        // User projects chart
+        new Chart(document.getElementById('userProjectsChart'), {
+            type: 'horizontalBar',
+            data: {
+                labels: userLabels,
+                datasets: [{
+                    label: 'Number of Projects',
+                    data: userProjects,
+                    backgroundColor: '#36b9cc',
+                    borderColor: '#36b9cc',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Projects'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Number of Projects by User'
+                    }
+                }
+            }
+        });
+        
+        // Detailed report filters
+        document.getElementById('applyFiltersBtn').addEventListener('click', function() {
+            applyDetailedReportFilters();
+        });
+        
+        document.getElementById('clearFiltersBtn').addEventListener('click', function() {
+            document.getElementById('projectFilter').value = '';
+            document.getElementById('userFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('billableFilter').value = '';
+            applyDetailedReportFilters();
+        });
+        
+        function applyDetailedReportFilters() {
+            const projectId = document.getElementById('projectFilter').value;
+            const userId = document.getElementById('userFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            const billable = document.getElementById('billableFilter').value;
+            
+            const rows = document.querySelectorAll('.report-entry');
+            rows.forEach(row => {
+                let visible = true;
+                
+                if (projectId && row.getAttribute('data-project') !== projectId) {
+                    visible = false;
+                }
+                
+                if (userId && row.getAttribute('data-user') !== userId) {
+                    visible = false;
+                }
+                
+                if (status && row.getAttribute('data-status') !== status) {
+                    visible = false;
+                }
+                
+                if (billable && row.getAttribute('data-billable') !== billable) {
+                    visible = false;
+                }
+                
+                row.style.display = visible ? '' : 'none';
+            });
+        }
+        
+        // User details modal
+        const userDetailsModal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+        const viewUserButtons = document.querySelectorAll('.view-user-details');
+        
+        viewUserButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.getAttribute('data-user-id');
+                const username = this.getAttribute('data-username');
+                
+                document.getElementById('modalUsername').textContent = username;
+                document.getElementById('userTimeDetails').innerHTML = `
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Loading user time details...</p>
+                    </div>
+                `;
+                
+                userDetailsModal.show();
+                
+                // Fetch user time details
+                fetch(`/time/user/${userId}/details`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            let html = `
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <div class="card border-primary">
+                                            <div class="card-body text-center">
+                                                <h5 class="card-title">Total Hours</h5>
+                                                <p class="card-text display-5">${data.total_hours.toFixed(1)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card border-success">
+                                            <div class="card-body text-center">
+                                                <h5 class="card-title">Billable Hours</h5>
+                                                <p class="card-text display-5">${data.billable_hours.toFixed(1)}</p>
+                                                <p class="card-text text-muted">${(data.billable_hours / data.total_hours * 100).toFixed(1)}% of total</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card">
+                                            <div class="card-body text-center">
+                                                <h5 class="card-title">Projects</h5>
+                                                <p class="card-text display-5">${data.projects.length}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            // Projects breakdown
+                            html += `
+                                <h5 class="mb-3">Projects Breakdown</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Project</th>
+                                                <th>Hours</th>
+                                                <th>% of Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                            `;
+                            
+                            data.projects.forEach(project => {
+                                const percentage = (project.hours / data.total_hours * 100).toFixed(1);
+                                html += `
+                                    <tr>
+                                        <td>${project.name}</td>
+                                        <td>${project.hours.toFixed(1)}</td>
+                                        <td>
+                                            <div class="progress">
+                                                <div class="progress-bar" role="progressbar" style="width: ${percentage}%;" 
+                                                    aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100">
+                                                    ${percentage}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                            
+                            html += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                            
+                            document.getElementById('userTimeDetails').innerHTML = html;
+                        } else {
+                            document.getElementById('userTimeDetails').innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle me-1"></i> Error loading user details
+                                </div>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('userTimeDetails').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-1"></i> Error loading user details
+                            </div>
+                        `;
+                    });
+            });
+        });
+        
+        // Export to Excel
+        document.getElementById('exportReportBtn').addEventListener('click', function() {
+            // Get visible rows only
+            const visibleRows = Array.from(document.querySelectorAll('.report-entry'))
+                .filter(row => row.style.display !== 'none');
+            
+            if (visibleRows.length === 0) {
+                alert('No data to export. Please adjust your filters.');
+                return;
+            }
+            
+            // Create CSV content
+            let csv = 'Date,User,Project,Hours,Description,Status,Billable\n';
+            
+            visibleRows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const date = cells[0].textContent.trim();
+                const user = cells[1].textContent.trim();
+                const project = cells[2].textContent.trim();
+                const hours = cells[3].textContent.trim();
+                const description = cells[4].textContent.trim().replace(/,/g, ' ');
+                const status = cells[5].textContent.trim();
+                const billable = row.getAttribute('data-billable') === 'true' ? 'Yes' : 'No';
+                
+                csv += `"${date}","${user}","${project}","${hours}","${description}","${status}","${billable}"\n`;
+            });
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `time_report_${formatDate(new Date())}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    });
+</script>
+{% endblock %} 

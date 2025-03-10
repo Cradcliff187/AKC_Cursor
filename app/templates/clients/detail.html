@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ client.name }} - Client Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('clients.list_clients') }}">Clients</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ client.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1><i class="fas fa-user me-2"></i> {{ client.name }}</h1>
+            <p class="text-muted">Client details and associated projects</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{{ url_for('clients.edit_client', id=client.id) }}" class="btn btn-primary me-2">
+                <i class="fas fa-edit me-1"></i> Edit
+            </a>
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="fas fa-trash me-1"></i> Delete
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Client Information -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Client Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <th style="width: 150px">Contact Name:</th>
+                                <td>{{ client.contact_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Email:</th>
+                                <td>
+                                    {% if client.email %}
+                                    <a href="mailto:{{ client.email }}">{{ client.email }}</a>
+                                    {% else %}
+                                    <span class="text-muted">Not specified</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Phone:</th>
+                                <td>
+                                    {% if client.phone %}
+                                    <a href="tel:{{ client.phone }}">{{ client.phone }}</a>
+                                    {% else %}
+                                    <span class="text-muted">Not specified</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Address:</th>
+                                <td>
+                                    {% if client.address %}
+                                    {{ client.address }}
+                                    {% else %}
+                                    <span class="text-muted">Not specified</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Notes:</th>
+                                <td>
+                                    {% if client.notes %}
+                                    {{ client.notes|nl2br }}
+                                    {% else %}
+                                    <span class="text-muted">No notes</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-project-diagram me-2"></i> Projects</h5>
+                    <a href="{{ url_for('projects.create') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-plus me-1"></i> New Project
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if projects %}
+                    <div class="list-group">
+                        {% for project in projects %}
+                        <a href="{{ url_for('projects.detail', id=project.id) }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ project.name }}</h6>
+                                <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% elif project.status == 'Planning' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {{ project.status }}
+                                </span>
+                            </div>
+                            <p class="mb-1 text-muted small">{{ project.description|truncate(100) }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small>Budget: ${{ "%.2f"|format(project.budget|float) }}</small>
+                                {% if project.end_date %}
+                                <small class="text-muted">Due: {{ project.end_date }}</small>
+                                {% endif %}
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No projects found for this client.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the client <strong>{{ client.name }}</strong>?</p>
+                    <p class="text-danger">This action cannot be undone. All associated data will be permanently deleted.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form action="{{ url_for('clients.delete_client', id=client.id) }}" method="post">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

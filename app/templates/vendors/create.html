@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Add New Vendor{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('vendors.list_vendors') }}">Vendors</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Add New Vendor</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header">
+            <h1 class="h3 mb-0"><i class="fas fa-plus me-2"></i>Add New Vendor</h1>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('vendors.create_vendor') }}" method="post">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label">Vendor Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="contact_name" class="form-label">Contact Person</label>
+                        <input type="text" class="form-control" id="contact_name" name="contact_name">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="phone" name="phone">
+                    </div>
+                    <div class="col-12">
+                        <label for="address" class="form-label">Address</label>
+                        <input type="text" class="form-control" id="address" name="address">
+                    </div>
+                    <div class="col-12">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <h5><i class="fas fa-info-circle me-2"></i> Tips</h5>
+                    <ul class="mb-0">
+                        <li>Only the vendor name is required.</li>
+                        <li>Include contact details to make communication easier.</li>
+                        <li>Use the notes section for important vendor information like payment terms or account numbers.</li>
+                    </ul>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-between">
+                    <a href="{{ url_for('vendors.list_vendors') }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Create Vendor
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

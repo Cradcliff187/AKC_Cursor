@@ -1,0 +1,1280 @@
+{
+  "tables": {
+    "projects": {
+      "tableName": "projects",
+      "columns": [
+        {
+          "name": "projectid",
+          "originalName": "ProjectID",
+          "type": "text",
+          "isRequired": true,
+          "isPrimaryKey": true,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "customerid",
+          "originalName": "CustomerID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "references": {
+            "table": "customers",
+            "column": "customerid"
+          }
+        },
+        {
+          "name": "projectname",
+          "originalName": "ProjectName",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "status",
+          "originalName": "Status",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "folderid",
+          "originalName": "FolderID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "createdon",
+          "originalName": "CreatedOn",
+          "type": "timestamp with time zone",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "createdby",
+          "originalName": "CreatedBy",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "jobid",
+          "originalName": "JobID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "lastmodified",
+          "originalName": "LastModified",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "lastmodifiedby",
+          "originalName": "LastModifiedBy",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "estimatesfolderid",
+          "originalName": "EstimatesFolderID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "materialsfolderid",
+          "originalName": "MaterialsFolderID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "subinvoicesfolderid",
+          "originalName": "SubInvoicesFolderID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "docurl",
+          "originalName": "DocURL",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "customername",
+          "originalName": "CustomerName",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "jobdescription",
+          "originalName": "JobDescription",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "sitelocationaddress",
+          "originalName": "SiteLocationAddress",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "sitelocationcity",
+          "originalName": "SiteLocationCity",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "sitelocationstate",
+          "originalName": "SiteLocationState",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "sitelocationzip",
+          "originalName": "SiteLocationZip",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        }
+      ]
+    },
+    "timelogs": {
+      "tableName": "timelogs",
+      "columns": [
+        {
+          "name": "timelogid",
+          "originalName": "TimeLogID",
+          "type": "text",
+          "isRequired": true,
+          "isPrimaryKey": true,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "projectid",
+          "originalName": "ProjectID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "references": {
+            "table": "projects",
+            "column": "projectid"
+          }
+        },
+        {
+          "name": "dateworked",
+          "originalName": "DateWorked",
+          "type": "timestamp with time zone",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "starttime",
+          "originalName": "StartTime",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "endtime",
+          "originalName": "EndTime",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "totalhours",
+          "originalName": "TotalHours",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "submittinguser",
+          "originalName": "SubmittingUser",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "foruseremail",
+          "originalName": "ForUserEmail",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "createdon",
+          "originalName": "CreatedOn",
+          "type": "timestamp with time zone",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "employee hourly rate",
+          "originalName": "employee hourly rate",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "job id",
+          "originalName": "job id",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        }
+      ]
+    },
+    "materialsreceipts": {
+      "tableName": "materialsreceipts",
+      "columns": [
+        {
+          "name": "receiptid",
+          "originalName": "ReceiptID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "projectid",
+          "originalName": "ProjectID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "references": {
+            "table": "projects",
+            "column": "projectid"
+          }
+        },
+        {
+          "name": "vendorid",
+          "originalName": "VendorID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "references": {
+            "table": "vendors",
+            "column": "vendorid"
+          }
+        },
+        {
+          "name": "vendorname",
+          "originalName": "VendorName",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "amount",
+          "originalName": "Amount",
+          "type": "decimal(10,2)",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "receiptdocurl",
+          "originalName": "ReceiptDocURL",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "submittinguser",
+          "originalName": "SubmittingUser",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "foruseremail",
+          "originalName": "ForUserEmail",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "createdon",
+          "originalName": "CreatedOn",
+          "type": "timestamp with time zone",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        }
+      ]
+    },
+    "subcontractors": {
+      "tableName": "subcontractors",
+      "columns": [
+        {
+          "name": "subid",
+          "originalName": "SubID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "subname",
+          "originalName": "SubName",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "address",
+          "originalName": "Address",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "city",
+          "originalName": "City",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "state",
+          "originalName": "State",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "zip",
+          "originalName": "Zip",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "contactemail",
+          "originalName": "ContactEmail",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "phone",
+          "originalName": "Phone",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "qbvendortype",
+          "originalName": "QbVendorType",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        }
+      ]
+    },
+    "subinvoices": {
+      "tableName": "subinvoices",
+      "columns": [
+        {
+          "name": "subinvoiceid",
+          "originalName": "SubInvoiceID",
+          "type": "text",
+          "isRequired": true,
+          "isPrimaryKey": true,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "projectid",
+          "originalName": "ProjectID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "references": {
+            "table": "projects",
+            "column": "projectid"
+          }
+        },
+        {
+          "name": "projectname",
+          "originalName": "ProjectName",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "subid",
+          "originalName": "SubID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "subname",
+          "originalName": "SubName",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "invoiceamount",
+          "originalName": "InvoiceAmount",
+          "type": "decimal(10,2)",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "invoicedocurl",
+          "originalName": "InvoiceDocURL",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "submittinguser",
+          "originalName": "SubmittingUser",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "createdon",
+          "originalName": "CreatedOn",
+          "type": "timestamp with time zone",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        }
+      ]
+    },
+    "estimates": {
+      "tableName": "estimates",
+      "columns": [
+        {
+          "name": "estimateid",
+          "originalName": "EstimateID",
+          "type": "text",
+          "isRequired": true,
+          "isPrimaryKey": true,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "projectid",
+          "originalName": "ProjectID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "references": {
+            "table": "projects",
+            "column": "projectid"
+          }
+        },
+        {
+          "name": "datecreated",
+          "originalName": "DateCreated",
+          "type": "timestamp with time zone",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "customerid",
+          "originalName": "CustomerID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": true,
+          "references": {
+            "table": "customers",
+            "column": "customerid"
+          }
+        },
+        {
+          "name": "estimateamount",
+          "originalName": "EstimateAmount",
+          "type": "decimal(10,2)",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "contingencyamount",
+          "originalName": "ContingencyAmount",
+          "type": "decimal(10,2)",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "createdby",
+          "originalName": "CreatedBy",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "docurl",
+          "originalName": "DocURL",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "docid",
+          "originalName": "DocID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "status",
+          "originalName": "Status",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "sentdate",
+          "originalName": "SentDate",
+          "type": "timestamp with time zone",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "isactive",
+          "originalName": "IsActive",
+          "type": "boolean",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "approveddate",
+          "originalName": "ApprovedDate",
+          "type": "timestamp with time zone",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "sitelocationaddress",
+          "originalName": "SiteLocationAddress",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "sitelocationcity",
+          "originalName": "SiteLocationCity",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "sitelocationstate",
+          "originalName": "SiteLocationState",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "sitelocationzip",
+          "originalName": "SiteLocationZip",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "po#",
+          "originalName": "PO#",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "job description",
+          "originalName": "Job Description",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "customername",
+          "originalName": "CustomerName",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "projectname",
+          "originalName": "ProjectName",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        }
+      ]
+    },
+    "customers": {
+      "tableName": "customers",
+      "columns": [
+        {
+          "name": "customerid",
+          "originalName": "CustomerID",
+          "type": "text",
+          "isRequired": true,
+          "isPrimaryKey": true,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "customername",
+          "originalName": "CustomerName",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "address",
+          "originalName": "Address",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "city",
+          "originalName": "City",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "state",
+          "originalName": "State",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "zip",
+          "originalName": "Zip",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "contactemail",
+          "originalName": "ContactEmail",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "phone",
+          "originalName": "Phone",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "createdon",
+          "originalName": "CreatedOn",
+          "type": "timestamp with time zone",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "createdby",
+          "originalName": "CreatedBy",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "status",
+          "originalName": "Status",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        }
+      ]
+    },
+    "activitylog": {
+      "tableName": "activitylog",
+      "columns": [
+        {
+          "name": "logid",
+          "originalName": "LogID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "timestamp",
+          "originalName": "Timestamp",
+          "type": "timestamp with time zone",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "action",
+          "originalName": "Action",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "useremail",
+          "originalName": "UserEmail",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "moduletype",
+          "originalName": "ModuleType",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "referenceid",
+          "originalName": "ReferenceID",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "detailsjson",
+          "originalName": "DetailsJSON",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "status",
+          "originalName": "Status",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "previousstatus",
+          "originalName": "PreviousStatus",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        }
+      ]
+    },
+    "vendors": {
+      "tableName": "vendors",
+      "columns": [
+        {
+          "name": "vendorid",
+          "originalName": "VendorID",
+          "type": "text",
+          "isRequired": true,
+          "isPrimaryKey": true,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "vendorname",
+          "originalName": "VendorName",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "address",
+          "originalName": "Address",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "city",
+          "originalName": "City",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "state",
+          "originalName": "State",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "zip",
+          "originalName": "Zip",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "email",
+          "originalName": "Email",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "phone",
+          "originalName": "Phone",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "createdon",
+          "originalName": "CreatedOn",
+          "type": "timestamp with time zone",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "createdby",
+          "originalName": "CreatedBy",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "status",
+          "originalName": "Status",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "qbvendortype",
+          "originalName": "QbVendorType",
+          "type": "text",
+          "isRequired": false,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "isRequired": true,
+          "isPrimaryKey": false,
+          "isForeignKey": false,
+          "references": null,
+          "defaultValue": "now()"
+        }
+      ]
+    }
+  },
+  "relationships": [
+    {
+      "fromTable": "projects",
+      "fromColumn": "customerid",
+      "toTable": "customers",
+      "toColumn": "customerid"
+    },
+    {
+      "fromTable": "timelogs",
+      "fromColumn": "projectid",
+      "toTable": "projects",
+      "toColumn": "projectid"
+    },
+    {
+      "fromTable": "materialsreceipts",
+      "fromColumn": "projectid",
+      "toTable": "projects",
+      "toColumn": "projectid"
+    },
+    {
+      "fromTable": "materialsreceipts",
+      "fromColumn": "vendorid",
+      "toTable": "vendors",
+      "toColumn": "vendorid"
+    },
+    {
+      "fromTable": "subinvoices",
+      "fromColumn": "projectid",
+      "toTable": "projects",
+      "toColumn": "projectid"
+    },
+    {
+      "fromTable": "estimates",
+      "fromColumn": "projectid",
+      "toTable": "projects",
+      "toColumn": "projectid"
+    },
+    {
+      "fromTable": "estimates",
+      "fromColumn": "customerid",
+      "toTable": "customers",
+      "toColumn": "customerid"
+    }
+  ],
+  "metadata": {
+    "generatedAt": "2025-03-09T00:30:29.022Z",
+    "source": "Google Sheets",
+    "spreadsheetId": "1eSwZwz5uPGPVyHkXAt8TFQuS4fLAOqeX5b-PvhK2Ghg"
+  }
+}

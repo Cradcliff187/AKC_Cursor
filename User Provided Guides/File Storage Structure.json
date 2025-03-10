@@ -1,0 +1,10 @@
+{
+  "folderStructure": {
+    "projectFolder": "{CustomerID}-{ProjectID}-{ProjectName}",
+    "subfolders": [
+      "Estimates",
+      "Materials",
+      "SubInvoices"
+    ]
+  }
+}

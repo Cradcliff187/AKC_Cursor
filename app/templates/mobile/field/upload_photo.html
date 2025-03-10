@@ -1,0 +1,313 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}Upload Photo - AKC Construction{% endblock %}
+
+{% block extra_styles %}
+.camera-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    background-color: #eee;
+    margin-bottom: 16px;
+}
+
+.camera-container:before {
+    content: "";
+    display: block;
+    padding-top: 75%; /* 4:3 Aspect Ratio */
+}
+
+.camera-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+}
+
+.camera-placeholder i {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+#camera-preview, #preview-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.capture-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid #3498db;
+    z-index: 10;
+}
+
+.preview-controls {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.mobile-file-input {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.mobile-file-input input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="page-title mb-0">Upload Photo</h4>
+    <a href="{{ url_for('field.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-times"></i>
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('field.upload_photo') }}" enctype="multipart/form-data" id="upload-form">
+            <!-- Camera/Image Preview -->
+            <div class="camera-container">
+                <div class="camera-placeholder" id="placeholder">
+                    <i class="fas fa-camera"></i>
+                    <p>Tap to take a photo</p>
+                </div>
+                <video id="camera-preview" autoplay playsinline style="display: none;"></video>
+                <img id="preview-image" src="#" alt="Preview" style="display: none;">
+                <button type="button" class="capture-btn" id="capture-btn" style="display: none;"></button>
+            </div>
+            
+            <!-- Controls -->
+            <div class="preview-controls" id="preview-controls" style="display: none;">
+                <button type="button" class="btn btn-outline-danger" id="retake-btn">
+                    <i class="fas fa-redo me-1"></i> Retake
+                </button>
+                <button type="button" class="btn btn-success" id="use-photo-btn">
+                    <i class="fas fa-check me-1"></i> Use Photo
+                </button>
+            </div>
+            
+            <!-- File Input (Hidden, triggered by camera placeholder) -->
+            <div class="mobile-file-input" id="file-input-container">
+                <input type="file" name="photo" id="photo-input" accept="image/*" capture="environment">
+            </div>
+            
+            <!-- Project Selection -->
+            <div class="form-group mb-4">
+                <label for="project_id" class="form-label">Project <span class="text-danger">*</span></label>
+                <select class="form-select" id="project_id" name="project_id" required>
+                    <option value="" disabled selected>Select a project</option>
+                    {% for project in projects %}
+                        <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Photo Description -->
+            <div class="form-group mb-4">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="2" 
+                          placeholder="Describe this photo (e.g., 'North wall framing complete')"></textarea>
+            </div>
+            
+            <!-- Quick Description Buttons -->
+            <div class="mb-4">
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-secondary quick-desc" data-desc="Work in progress">
+                        Work progress
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary quick-desc" data-desc="Completed work">
+                        Completed work
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary quick-desc" data-desc="Materials delivered">
+                        Materials
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary quick-desc" data-desc="Issue/problem found">
+                        Issue found
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+                    <i class="fas fa-upload me-2"></i> Upload Photo
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cameraContainer = document.querySelector('.camera-container');
+        const placeholder = document.getElementById('placeholder');
+        const cameraPreview = document.getElementById('camera-preview');
+        const previewImage = document.getElementById('preview-image');
+        const captureBtn = document.getElementById('capture-btn');
+        const previewControls = document.getElementById('preview-controls');
+        const retakeBtn = document.getElementById('retake-btn');
+        const usePhotoBtn = document.getElementById('use-photo-btn');
+        const photoInput = document.getElementById('photo-input');
+        const fileInputContainer = document.getElementById('file-input-container');
+        
+        let stream = null;
+        let photoBlob = null;
+        
+        // Check if the browser supports camera access
+        const hasGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+        
+        // Camera access functions
+        function startCamera() {
+            if (hasGetUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                    .then(function(mediaStream) {
+                        stream = mediaStream;
+                        cameraPreview.srcObject = mediaStream;
+                        placeholder.style.display = 'none';
+                        cameraPreview.style.display = 'block';
+                        captureBtn.style.display = 'block';
+                        fileInputContainer.style.display = 'none';
+                    })
+                    .catch(function(error) {
+                        console.error('Camera access error:', error);
+                        // Fall back to file input
+                        photoInput.click();
+                    });
+            } else {
+                // Fall back to file input for unsupported browsers
+                photoInput.click();
+            }
+        }
+        
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+        
+        function capturePhoto() {
+            if (!cameraPreview.srcObject) return;
+            
+            // Create a canvas and draw the video frame
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = cameraPreview.videoWidth;
+            canvas.height = cameraPreview.videoHeight;
+            context.drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to blob and set as preview
+            canvas.toBlob(function(blob) {
+                photoBlob = blob;
+                const imageUrl = URL.createObjectURL(blob);
+                previewImage.src = imageUrl;
+                cameraPreview.style.display = 'none';
+                previewImage.style.display = 'block';
+                captureBtn.style.display = 'none';
+                previewControls.style.display = 'flex';
+                stopCamera();
+                
+                // Create a File object from the blob
+                const imageFile = new File([blob], "camera_photo.jpg", { type: "image/jpeg" });
+                
+                // Create a FileList-like object
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(imageFile);
+                photoInput.files = dataTransfer.files;
+            }, 'image/jpeg', 0.8);
+        }
+        
+        // Initialize camera or file input
+        placeholder.addEventListener('click', startCamera);
+        
+        // Capture button
+        captureBtn.addEventListener('click', capturePhoto);
+        
+        // Retake button
+        retakeBtn.addEventListener('click', function() {
+            previewImage.style.display = 'none';
+            previewControls.style.display = 'none';
+            startCamera();
+        });
+        
+        // Use photo button
+        usePhotoBtn.addEventListener('click', function() {
+            previewControls.style.display = 'none';
+            // Focus on next input
+            document.getElementById('project_id').focus();
+        });
+        
+        // Handle file selection
+        photoInput.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    placeholder.style.display = 'none';
+                    previewImage.style.display = 'block';
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+        
+        // Quick description buttons
+        const quickDescButtons = document.querySelectorAll('.quick-desc');
+        const descriptionTextarea = document.getElementById('description');
+        
+        quickDescButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const descText = this.getAttribute('data-desc');
+                descriptionTextarea.value = descText;
+            });
+        });
+        
+        // Form validation
+        const form = document.getElementById('upload-form');
+        form.addEventListener('submit', function(e) {
+            const projectSelect = document.getElementById('project_id');
+            
+            if (!photoInput.files || photoInput.files.length === 0) {
+                e.preventDefault();
+                alert('Please take or select a photo');
+                return;
+            }
+            
+            if (!projectSelect.value) {
+                e.preventDefault();
+                alert('Please select a project');
+                projectSelect.focus();
+                return;
+            }
+        });
+    });
+</script>
+{% endblock %} 

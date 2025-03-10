@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+
+{% block title %}Task Timeline{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timeline-container {
+        position: relative;
+        padding: 20px 0;
+    }
+    
+    .timeline-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 4px;
+        background-color: #e9ecef;
+        transform: translateX(-50%);
+    }
+    
+    .timeline-week {
+        margin-bottom: 30px;
+        position: relative;
+    }
+    
+    .timeline-week-header {
+        text-align: center;
+        background-color: #f8f9fa;
+        padding: 8px;
+        border-radius: 50px;
+        margin-bottom: 15px;
+        position: relative;
+        z-index: 1;
+        width: 200px;
+        margin-left: auto;
+        margin-right: auto;
+        border: 1px solid #dee2e6;
+    }
+    
+    .timeline-item {
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 5px solid transparent;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .timeline-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .timeline-item-high {
+        border-left-color: #dc3545;
+    }
+    
+    .timeline-item-medium {
+        border-left-color: #ffc107;
+    }
+    
+    .timeline-item-low {
+        border-left-color: #28a745;
+    }
+    
+    .timeline-item-completed {
+        opacity: 0.7;
+    }
+    
+    .timeline-date {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    @media (max-width: 767.98px) {
+        .timeline-line {
+            left: 20px;
+        }
+        
+        .timeline-week-header {
+            margin-left: 35px;
+            width: 180px;
+            text-align: left;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-4 py-3">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 mb-2">
+                Task Timeline
+                {% if current_project %}
+                <span class="text-muted fs-6">for {{ current_project.name }}</span>
+                {% endif %}
+            </h1>
+            <p class="text-muted">Schedule view of upcoming and past tasks</p>
+        </div>
+        
+        <div class="d-flex align-items-center mt-3 mt-md-0">
+            <div class="me-2">
+                <form action="{{ url_for('tasks.task_timeline') }}" method="get" class="d-flex">
+                    <select name="project_id" class="form-select me-2" onchange="this.form.submit()">
+                        <option value="">All Projects</option>
+                        {% for project in projects %}
+                        <option value="{{ project.id }}" {% if current_project and current_project.id == project.id %}selected{% endif %}>
+                            {{ project.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            
+            <a href="{{ url_for('tasks.create_task_route') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> New Task
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-9">
+            {% if timeline %}
+            <div class="timeline-container">
+                <div class="timeline-line"></div>
+                
+                {% for week_key, tasks in timeline.items() %}
+                <div class="timeline-week">
+                    <div class="timeline-week-header">
+                        <strong>{{ week_key }}</strong>
+                    </div>
+                    
+                    <div class="row">
+                        {% for task in tasks %}
+                        <div class="col-md-6 {% if loop.index is odd %}offset-md-0{% else %}offset-md-6{% endif %}">
+                            <div class="timeline-item shadow-sm {% if task.priority == 'HIGH' %}timeline-item-high{% elif task.priority == 'MEDIUM' %}timeline-item-medium{% else %}timeline-item-low{% endif %} {% if task.status == 'COMPLETED' %}timeline-item-completed{% endif %}">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-{{ statuses[task.status].badge }}">{{ statuses[task.status].display }}</span>
+                                    <span class="timeline-date">{{ task.due_date }}</span>
+                                </div>
+                                
+                                <h5 class="mb-1">
+                                    <a href="{{ url_for('tasks.view_task', task_id=task.id) }}" class="text-decoration-none text-dark">
+                                        {{ task.title }}
+                                    </a>
+                                </h5>
+                                
+                                <p class="mb-1 text-muted small">
+                                    {% if task.description %}
+                                        {{ task.description|truncate(100) }}
+                                    {% else %}
+                                        No description provided
+                                    {% endif %}
+                                </p>
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <span class="badge bg-{{ priorities[task.priority].badge }}">{{ priorities[task.priority].display }}</span>
+                                    
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            Actions
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="{{ url_for('tasks.view_task', task_id=task.id) }}">View Details</a></li>
+                                            <li><a class="dropdown-item" href="{{ url_for('tasks.edit_task', task_id=task.id) }}">Edit Task</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            {% for new_status in statuses %}
+                                                {% if new_status != task.status %}
+                                                <li>
+                                                    <button class="dropdown-item update-status-btn" data-task-id="{{ task.id }}" data-status="{{ new_status }}">
+                                                        Mark as {{ statuses[new_status].display }}
+                                                    </button>
+                                                </li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> No tasks found for the selected time period.
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Priority Legend</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="me-2" style="width: 20px; height: 20px; background-color: #dc3545; border-radius: 3px;"></div>
+                        <span>High Priority</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="me-2" style="width: 20px; height: 20px; background-color: #ffc107; border-radius: 3px;"></div>
+                        <span>Medium Priority</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="me-2" style="width: 20px; height: 20px; background-color: #28a745; border-radius: 3px;"></div>
+                        <span>Low Priority</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Task Status</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for status_key, status_info in statuses.items() %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span>{{ status_info.display }}</span>
+                            <span class="badge bg-{{ status_info.badge }} rounded-pill">
+                                {% if current_project %}
+                                    {{ timeline|selectattr('status', 'equalto', status_key)|list|length }}
+                                {% else %}
+                                    <!-- Placeholder for actual count -->
+                                    <i class="fas fa-infinity"></i>
+                                {% endif %}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Task status update
+        const statusButtons = document.querySelectorAll('.update-status-btn');
+        statusButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const taskId = this.dataset.taskId;
+                const newStatus = this.dataset.status;
+                
+                // Send AJAX request to update status
+                fetch('{{ url_for("tasks.update_status") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        task_id: taskId,
+                        status: newStatus
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload the page to show updated timeline
+                        window.location.reload();
+                    } else {
+                        alert('Error updating task status: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error updating task status');
+                });
+            });
+        });
+    });
+</script>
+{% endblock %} 

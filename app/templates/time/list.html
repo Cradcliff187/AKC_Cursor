@@ -1,0 +1,627 @@
+{% extends "base.html" %}
+
+{% block title %}Time Tracking - AKC LLC Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-clock me-2"></i>Time Tracking</h2>
+        <div>
+            <a href="{{ url_for('time.log_time') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Log Time
+            </a>
+            {% if session.get('role') == 'admin' %}
+            <a href="{{ url_for('reports.show_reports') }}" class="btn btn-outline-primary ms-2">
+                <i class="fas fa-chart-bar me-1"></i> Reports
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Time Summary -->
+    <div class="row mb-4">
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Hours</h5>
+                    <p class="card-text display-4">{{ "%.1f"|format(total_hours|default(0)) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-success">
+                <div class="card-body">
+                    <h5 class="card-title">Billable Hours</h5>
+                    <p class="card-text display-4">{{ "%.1f"|format(billable_hours|default(0)) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Actions</h5>
+                    <div class="d-flex flex-wrap">
+                        <a href="{{ url_for('time.log_time') }}" class="btn btn-sm btn-outline-primary m-1">
+                            <i class="fas fa-plus-circle me-1"></i> New Entry
+                        </a>
+                        <a href="{{ url_for('time.user_time') }}" class="btn btn-sm btn-outline-secondary m-1">
+                            <i class="fas fa-user-clock me-1"></i> My Time
+                        </a>
+                        {% if session.get('role') == 'admin' %}
+                        <button class="btn btn-sm btn-outline-success m-1" id="approveSelectedBtn" disabled>
+                            <i class="fas fa-check-circle me-1"></i> Approve Selected
+                        </button>
+                        <a href="{{ url_for('reports.show_reports') }}" class="btn btn-sm btn-outline-info m-1">
+                            <i class="fas fa-chart-bar me-1"></i> Reporting
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters - Mobile View -->
+    <div class="card d-md-none mb-3">
+        <div class="card-header">
+            <a class="text-decoration-none text-dark" data-bs-toggle="collapse" href="#mobileFilters">
+                <i class="fas fa-filter me-1"></i> Filters <i class="fas fa-chevron-down float-end mt-1"></i>
+            </a>
+        </div>
+        <div id="mobileFilters" class="collapse">
+            <div class="card-body">
+                <form id="mobileFilterForm" class="row g-3">
+                    <div class="col-12">
+                        <label for="mobileSearchQuery" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="mobileSearchQuery" placeholder="Search time entries...">
+                    </div>
+                    <div class="col-12">
+                        <label for="mobileProjectFilter" class="form-label">Project</label>
+                        <select class="form-select" id="mobileProjectFilter">
+                            <option value="">All Projects</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label for="mobileStartDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="mobileStartDate">
+                    </div>
+                    <div class="col-6">
+                        <label for="mobileEndDate" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="mobileEndDate" value="{{ today }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Status</label>
+                        <div class="d-flex flex-wrap">
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="checkbox" value="pending" id="mobileStatusPending" checked>
+                                <label class="form-check-label" for="mobileStatusPending">Pending</label>
+                            </div>
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="checkbox" value="approved" id="mobileStatusApproved" checked>
+                                <label class="form-check-label" for="mobileStatusApproved">Approved</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="rejected" id="mobileStatusRejected" checked>
+                                <label class="form-check-label" for="mobileStatusRejected">Rejected</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-primary w-100" id="mobileApplyFilters">Apply Filters</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="row">
+        <!-- Filters - Desktop View -->
+        <div class="col-md-3 d-none d-md-block">
+            <div class="card sticky-top" style="top: 10px;">
+                <div class="card-header">
+                    <i class="fas fa-filter me-1"></i> Filters
+                </div>
+                <div class="card-body">
+                    <form id="desktopFilterForm">
+                        <div class="mb-3">
+                            <label for="desktopSearchQuery" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="desktopSearchQuery" placeholder="Search...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="desktopProjectFilter" class="form-label">Project</label>
+                            <select class="form-select" id="desktopProjectFilter">
+                                <option value="">All Projects</option>
+                                {% for project in projects %}
+                                <option value="{{ project.id }}">{{ project.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="desktopStartDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="desktopStartDate">
+                        </div>
+                        <div class="mb-3">
+                            <label for="desktopEndDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="desktopEndDate" value="{{ today }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="pending" id="desktopStatusPending" checked>
+                                    <label class="form-check-label" for="desktopStatusPending">Pending</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="approved" id="desktopStatusApproved" checked>
+                                    <label class="form-check-label" for="desktopStatusApproved">Approved</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="rejected" id="desktopStatusRejected" checked>
+                                    <label class="form-check-label" for="desktopStatusRejected">Rejected</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Billable</label>
+                            <div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="desktopBillable" id="desktopBillableAll" value="" checked>
+                                    <label class="form-check-label" for="desktopBillableAll">All</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="desktopBillable" id="desktopBillableYes" value="true">
+                                    <label class="form-check-label" for="desktopBillableYes">Billable Only</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="desktopBillable" id="desktopBillableNo" value="false">
+                                    <label class="form-check-label" for="desktopBillableNo">Non-Billable Only</label>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary w-100" id="desktopApplyFilters">Apply Filters</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Entries Table -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-body">
+                    <!-- Selection Controls (Admin Only) -->
+                    {% if session.get('role') == 'admin' %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="selectAll">
+                                <label class="form-check-label" for="selectAll">Select All</label>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="bulkActionDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                Bulk Actions
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="bulkActionDropdown">
+                                <li><a class="dropdown-item bulk-action" data-action="approve" href="#">Approve Selected</a></li>
+                                <li><a class="dropdown-item bulk-action" data-action="reject" href="#">Reject Selected</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item bulk-action" data-action="export" href="#">Export Selected</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Time Entries Table - Desktop View -->
+                    <div class="table-responsive d-none d-md-block">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    {% if session.get('role') == 'admin' %}
+                                    <th scope="col" width="40"><input type="checkbox" class="select-all-checkbox"></th>
+                                    {% endif %}
+                                    <th scope="col">Date</th>
+                                    <th scope="col">Project</th>
+                                    <th scope="col">Hours</th>
+                                    <th scope="col">Description</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col" class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in time_entries %}
+                                <tr class="time-entry" 
+                                    data-project="{{ entry.project_id }}" 
+                                    data-date="{{ entry.date }}" 
+                                    data-status="{{ entry.status }}" 
+                                    data-billable="{{ entry.billable|lower }}">
+                                    {% if session.get('role') == 'admin' %}
+                                    <td>
+                                        <input type="checkbox" class="entry-checkbox" data-entry-id="{{ entry.id }}">
+                                    </td>
+                                    {% endif %}
+                                    <td>{{ entry.date }}</td>
+                                    <td>{{ entry.project_name }}</td>
+                                    <td>
+                                        {{ "%.1f"|format(entry.hours) }}
+                                        {% if entry.billable %}
+                                        <span class="badge bg-success">Billable</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ entry.description|truncate(30) }}</td>
+                                    <td>
+                                        {% if entry.status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                        {% elif entry.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('time.edit_time_entry', entry_id=entry.id) }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% if session.get('role') == 'admin' %}
+                                            <button type="button" class="btn btn-outline-success status-action" data-entry-id="{{ entry.id }}" data-action="approve" {% if entry.status == 'approved' %}disabled{% endif %}>
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger status-action" data-entry-id="{{ entry.id }}" data-action="reject" {% if entry.status == 'rejected' %}disabled{% endif %}>
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            {% endif %}
+                                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-entry-id="{{ entry.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Time Entries - Mobile Cards View -->
+                    <div class="d-md-none">
+                        {% for entry in time_entries %}
+                        <div class="card mb-3 time-entry"
+                             data-project="{{ entry.project_id }}" 
+                             data-date="{{ entry.date }}" 
+                             data-status="{{ entry.status }}" 
+                             data-billable="{{ entry.billable|lower }}">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    {% if session.get('role') == 'admin' %}
+                                    <input type="checkbox" class="entry-checkbox me-2" data-entry-id="{{ entry.id }}">
+                                    {% endif %}
+                                    <span class="fw-bold">{{ entry.date }}</span>
+                                </div>
+                                <div>
+                                    {% if entry.status == 'approved' %}
+                                    <span class="badge bg-success">Approved</span>
+                                    {% elif entry.status == 'rejected' %}
+                                    <span class="badge bg-danger">Rejected</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    {% endif %}
+                                    
+                                    {% if entry.billable %}
+                                    <span class="badge bg-info ms-1">Billable</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">{{ entry.project_name }}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">{{ "%.1f"|format(entry.hours) }} Hours</h6>
+                                <p class="card-text">{{ entry.description }}</p>
+                                <div class="d-flex justify-content-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('time.edit_time_entry', entry_id=entry.id) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        {% if session.get('role') == 'admin' %}
+                                        <button type="button" class="btn btn-outline-success status-action" data-entry-id="{{ entry.id }}" data-action="approve" {% if entry.status == 'approved' %}disabled{% endif %}>
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger status-action" data-entry-id="{{ entry.id }}" data-action="reject" {% if entry.status == 'rejected' %}disabled{% endif %}>
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-entry-id="{{ entry.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- No Entries Message -->
+                    {% if time_entries|length == 0 %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-clock fa-3x mb-3 text-muted"></i>
+                        <h4>No time entries found</h4>
+                        <p class="text-muted">Start tracking your time by clicking the "Log Time" button.</p>
+                        <a href="{{ url_for('time.log_time') }}" class="btn btn-primary mt-2">
+                            <i class="fas fa-plus me-1"></i> Log Your First Entry
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this time entry? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteTimeForm" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle delete modal
+        const deleteModal = document.getElementById('deleteModal');
+        if (deleteModal) {
+            deleteModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const entryId = button.getAttribute('data-entry-id');
+                const form = document.getElementById('deleteTimeForm');
+                form.action = "{{ url_for('time.delete_time', entry_id='') }}" + entryId;
+            });
+        }
+
+        // Handle select all checkbox
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.entry-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                
+                // Enable/disable bulk action buttons
+                const approveSelectedBtn = document.getElementById('approveSelectedBtn');
+                if (approveSelectedBtn) {
+                    approveSelectedBtn.disabled = !this.checked;
+                }
+            });
+        }
+
+        // Handle entry checkboxes
+        const entryCheckboxes = document.querySelectorAll('.entry-checkbox');
+        entryCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // Check if any checkbox is checked
+                const isAnyChecked = Array.from(entryCheckboxes).some(cb => cb.checked);
+                
+                // Enable/disable bulk action buttons
+                const approveSelectedBtn = document.getElementById('approveSelectedBtn');
+                if (approveSelectedBtn) {
+                    approveSelectedBtn.disabled = !isAnyChecked;
+                }
+                
+                // Update select all checkbox
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = Array.from(entryCheckboxes).every(cb => cb.checked);
+                }
+            });
+        });
+
+        // Handle status actions
+        const statusActionBtns = document.querySelectorAll('.status-action');
+        statusActionBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const entryId = this.getAttribute('data-entry-id');
+                const action = this.getAttribute('data-action');
+                
+                // Send AJAX request to update status
+                fetch("{{ url_for('time.update_time_status') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        entry_id: entryId,
+                        status: action === 'approve' ? 'approved' : 'rejected'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Refresh the page to see updated statuses
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
+            });
+        });
+
+        // Handle bulk actions
+        const bulkActionLinks = document.querySelectorAll('.bulk-action');
+        bulkActionLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const action = this.getAttribute('data-action');
+                const selectedEntries = Array.from(document.querySelectorAll('.entry-checkbox:checked'))
+                    .map(checkbox => checkbox.getAttribute('data-entry-id'));
+                
+                if (selectedEntries.length === 0) {
+                    alert('Please select at least one time entry.');
+                    return;
+                }
+                
+                // Handle different bulk actions
+                if (action === 'approve' || action === 'reject') {
+                    if (confirm(`Are you sure you want to ${action} ${selectedEntries.length} time entries?`)) {
+                        // Process each entry sequentially to avoid overwhelming the server
+                        const processEntries = async () => {
+                            for (const entryId of selectedEntries) {
+                                await fetch("{{ url_for('time.update_time_status') }}", {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        entry_id: entryId,
+                                        status: action === 'approve' ? 'approved' : 'rejected'
+                                    })
+                                });
+                            }
+                            // Refresh the page after all entries are processed
+                            window.location.reload();
+                        };
+                        
+                        processEntries().catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred during bulk action. Please try again.');
+                        });
+                    }
+                } else if (action === 'export') {
+                    // This would be implemented to export the selected entries
+                    alert('Export functionality to be implemented.');
+                }
+            });
+        });
+
+        // Handle filter application
+        function applyFilters(isMobile) {
+            const prefix = isMobile ? 'mobile' : 'desktop';
+            const searchQuery = document.getElementById(`${prefix}SearchQuery`).value.toLowerCase();
+            const projectFilter = document.getElementById(`${prefix}ProjectFilter`).value;
+            const startDate = document.getElementById(`${prefix}StartDate`).value;
+            const endDate = document.getElementById(`${prefix}EndDate`).value;
+            
+            // Get status filters
+            const statusFilters = Array.from(document.querySelectorAll(`input[id^='${prefix}Status']:checked`))
+                .map(cb => cb.value);
+            
+            // Get billable filter (desktop only)
+            let billableFilter = '';
+            if (!isMobile) {
+                const billableRadio = document.querySelector(`input[name='${prefix}Billable']:checked`);
+                if (billableRadio) {
+                    billableFilter = billableRadio.value;
+                }
+            }
+            
+            // Apply filters to each time entry
+            const timeEntries = document.querySelectorAll('.time-entry');
+            timeEntries.forEach(entry => {
+                let visible = true;
+                
+                // Project filter
+                if (projectFilter && entry.getAttribute('data-project') !== projectFilter) {
+                    visible = false;
+                }
+                
+                // Date filter
+                if (visible && startDate && endDate) {
+                    const entryDate = entry.getAttribute('data-date');
+                    if (entryDate < startDate || entryDate > endDate) {
+                        visible = false;
+                    }
+                }
+                
+                // Status filter
+                if (visible && statusFilters.length > 0) {
+                    if (!statusFilters.includes(entry.getAttribute('data-status'))) {
+                        visible = false;
+                    }
+                }
+                
+                // Billable filter (desktop only)
+                if (visible && !isMobile && billableFilter) {
+                    if (entry.getAttribute('data-billable') !== billableFilter) {
+                        visible = false;
+                    }
+                }
+                
+                // Search query filter
+                if (visible && searchQuery) {
+                    const textContent = entry.textContent.toLowerCase();
+                    if (!textContent.includes(searchQuery)) {
+                        visible = false;
+                    }
+                }
+                
+                // Set visibility
+                entry.style.display = visible ? '' : 'none';
+            });
+            
+            // Check if any entries are visible
+            const visibleEntries = Array.from(timeEntries).filter(entry => entry.style.display !== 'none');
+            if (visibleEntries.length === 0) {
+                // Show a message when no entries match the filters
+                if (!document.getElementById('noEntriesMessage')) {
+                    const message = document.createElement('div');
+                    message.id = 'noEntriesMessage';
+                    message.className = 'alert alert-info mt-3';
+                    message.innerHTML = 'No time entries match your filters. <a href="#" id="clearFilters">Clear filters</a>';
+                    document.querySelector('.card-body').appendChild(message);
+                    
+                    document.getElementById('clearFilters').addEventListener('click', function(e) {
+                        e.preventDefault();
+                        // Reset form and reapply without filters
+                        if (isMobile) {
+                            document.getElementById('mobileFilterForm').reset();
+                        } else {
+                            document.getElementById('desktopFilterForm').reset();
+                        }
+                        applyFilters(isMobile);
+                    });
+                }
+            } else {
+                // Remove message if entries are visible
+                const message = document.getElementById('noEntriesMessage');
+                if (message) {
+                    message.remove();
+                }
+            }
+        }
+        
+        // Event listeners for filter buttons
+        const mobileApplyFiltersBtn = document.getElementById('mobileApplyFilters');
+        if (mobileApplyFiltersBtn) {
+            mobileApplyFiltersBtn.addEventListener('click', function() {
+                applyFilters(true);
+            });
+        }
+        
+        const desktopApplyFiltersBtn = document.getElementById('desktopApplyFilters');
+        if (desktopApplyFiltersBtn) {
+            desktopApplyFiltersBtn.addEventListener('click', function() {
+                applyFilters(false);
+            });
+        }
+    });
+</script>
+{% endblock %} 

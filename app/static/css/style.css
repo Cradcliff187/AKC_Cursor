@@ -1,0 +1,239 @@
+/* AKC LLC Brand Guidelines */
+
+:root {
+    /* Brand Colors */
+    --primary-color: #0485ea; /* Bright Blue - Primary brand color */
+    --white: #ffffff;
+    --dark-gray: #333333;
+}
+
+/* Import brand fonts */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Open+Sans:wght@400;600&display=swap');
+
+body {
+    background-color: var(--white);
+    color: var(--dark-gray);
+    font-family: 'Open Sans', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+}
+
+p, li, td, th {
+    font-family: 'Open Sans', sans-serif;
+}
+
+/* Navigation styling */
+.navbar {
+    background-color: var(--primary-color) !important;
+}
+
+.navbar-brand {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+}
+
+/* Button styling */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #0372ce; /* Slightly darker shade for hover */
+    border-color: #0372ce;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Link styling */
+a {
+    color: var(--primary-color);
+}
+
+a:hover {
+    color: #0372ce; /* Slightly darker shade for hover */
+}
+
+/* Card styling */
+.card {
+    border-radius: 0.5rem;
+    border: none;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .05);
+}
+
+.card-header {
+    background-color: var(--white);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+}
+
+/* Footer styling */
+.footer {
+    background-color: #f8f9fa !important;
+    border-top: 1px solid #e9ecef;
+    font-family: 'Open Sans', sans-serif;
+}
+
+/* Dashboard styles */
+.stat-card {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.stat-card .icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.stat-card .stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+/* Table styles */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: 600;
+    border-top: none;
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* Badge styles */
+.badge {
+    transition: all 0.3s ease;
+}
+
+.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.badge:hover {
+    transform: scale(1.1);
+}
+
+/* Sidebar styles */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 56px; /* Adjust based on your navbar height */
+    width: 250px;
+    height: calc(100vh - 56px);
+    background-color: #f8f9fa;
+    border-right: 1px solid #e9ecef;
+    z-index: 1000;
+    transition: all 0.3s;
+    overflow-y: auto;
+}
+
+.sidebar-header {
+    padding: 15px;
+    background-color: #f1f1f1;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.sidebar-toggle {
+    cursor: pointer;
+    padding: 5px;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-item {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: var(--dark-gray);
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.sidebar-link i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-link:hover {
+    background-color: #e9ecef;
+    color: var(--primary-color);
+}
+
+.sidebar-item.active .sidebar-link {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Main content adjustment for sidebar */
+.main-content {
+    margin-left: 250px;
+    transition: all 0.3s;
+    padding: 15px;
+}
+
+/* Responsive sidebar */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+}
+
+/* Collapsed sidebar */
+.sidebar-collapsed .sidebar {
+    width: 60px;
+}
+
+.sidebar-collapsed .sidebar-header h3,
+.sidebar-collapsed .sidebar-link span {
+    display: none;
+}
+
+.sidebar-collapsed .main-content {
+    margin-left: 60px;
+} 

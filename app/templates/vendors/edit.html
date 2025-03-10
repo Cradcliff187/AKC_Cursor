@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ vendor.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('vendors.list_vendors') }}">Vendors</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit {{ vendor.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header">
+            <h1 class="h3 mb-0"><i class="fas fa-edit me-2"></i>Edit Vendor</h1>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('vendors.edit_vendor', vendor_id=vendor.id) }}" method="post">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label">Vendor Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ vendor.name }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="contact_name" class="form-label">Contact Person</label>
+                        <input type="text" class="form-control" id="contact_name" name="contact_name" value="{{ vendor.contact_name }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ vendor.email }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" value="{{ vendor.phone }}">
+                    </div>
+                    <div class="col-12">
+                        <label for="address" class="form-label">Address</label>
+                        <input type="text" class="form-control" id="address" name="address" value="{{ vendor.address }}">
+                    </div>
+                    <div class="col-12">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3">{{ vendor.notes }}</textarea>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <h5><i class="fas fa-info-circle me-2"></i> Tips</h5>
+                    <ul class="mb-0">
+                        <li>Only the vendor name is required.</li>
+                        <li>Update contact details whenever they change to keep your records current.</li>
+                        <li>Use the notes section for important vendor information like payment terms or account numbers.</li>
+                    </ul>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-between">
+                    <a href="{{ url_for('vendors.view_vendor', vendor_id=vendor.id) }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

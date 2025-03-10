@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Vendors{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-truck me-2"></i> Vendors</h1>
+        <a href="{{ url_for('vendors.create_vendor') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Vendor
+        </a>
+    </div>
+
+    {% if vendors %}
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Contact</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vendor in vendors %}
+                        <tr>
+                            <td>{{ vendor.name }}</td>
+                            <td>{{ vendor.contact_name }}</td>
+                            <td>{% if vendor.email %}<a href="mailto:{{ vendor.email }}">{{ vendor.email }}</a>{% endif %}</td>
+                            <td>{{ vendor.phone }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('vendors.view_vendor', vendor_id=vendor.id) }}" class="btn btn-sm btn-outline-primary" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('vendors.edit_vendor', vendor_id=vendor.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" title="Delete" 
+                                            onclick="confirmDelete('{{ vendor.id }}', '{{ vendor.name }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i> No vendors found. Click the "Add Vendor" button to create your first vendor.
+    </div>
+    {% endif %}
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete the vendor <span id="vendorName" class="fw-bold"></span>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form id="deleteForm" method="POST" action="">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function confirmDelete(id, name) {
+        document.getElementById('vendorName').textContent = name;
+        document.getElementById('deleteForm').action = "{{ url_for('vendors.delete_vendor', vendor_id='__id__') }}".replace('__id__', id);
+        
+        // Show the modal
+        var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
+</script>
+{% endblock %} 

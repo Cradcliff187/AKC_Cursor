@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - AKC LLC Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <h1 class="h3 mb-4">Reports & Analytics</h1>
+    
+    <div class="row mb-4">
+        <!-- Client Statistics Card -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Client Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="text-start">
+                            <h6 class="text-muted">Total Clients</h6>
+                            <h2>{{ report_data.client_stats.total_clients }}</h2>
+                        </div>
+                        <div class="text-end">
+                            <h6 class="text-muted">With Projects</h6>
+                            <h2>{{ report_data.client_stats.clients_with_projects }}</h2>
+                        </div>
+                    </div>
+                    <div class="progress mb-2" style="height: 10px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ (report_data.client_stats.clients_with_projects / report_data.client_stats.total_clients * 100) if report_data.client_stats.total_clients > 0 else 0 }}%"></div>
+                    </div>
+                    <p class="text-muted small">{{ (report_data.client_stats.clients_with_projects / report_data.client_stats.total_clients * 100) | round(1) if report_data.client_stats.total_clients > 0 else 0 }}% of clients have active projects</p>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <h6 class="text-muted">Average Projects Per Client</h6>
+                        <h2>{{ report_data.client_stats.avg_projects_per_client | round(1) }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Budget Statistics Card -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Budget Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="text-start">
+                            <h6 class="text-muted">Total Budget</h6>
+                            <h2>${{ '{:,.0f}'.format(report_data.budget_stats.total_budget) }}</h2>
+                        </div>
+                        <div class="text-end">
+                            <h6 class="text-muted">Total Spent</h6>
+                            <h2>${{ '{:,.0f}'.format(report_data.budget_stats.total_spent) }}</h2>
+                        </div>
+                    </div>
+                    
+                    <div class="progress mb-2" style="height: 10px;">
+                        <div class="progress-bar bg-info" role="progressbar" 
+                             style="width: {{ (report_data.budget_stats.total_spent / report_data.budget_stats.total_budget * 100) if report_data.budget_stats.total_budget > 0 else 0 }}%"></div>
+                    </div>
+                    <p class="text-muted small">{{ (report_data.budget_stats.total_spent / report_data.budget_stats.total_budget * 100) | round(1) if report_data.budget_stats.total_budget > 0 else 0 }}% of total budget spent</p>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h6 class="text-muted">Avg. Project Budget</h6>
+                            <h3>${{ '{:,.0f}'.format(report_data.budget_stats.avg_project_budget) }}</h3>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="text-muted">Avg. Project Spent</h6>
+                            <h3>${{ '{:,.0f}'.format(report_data.budget_stats.avg_project_spent) }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Project Status Card -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Project Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart" width="100%" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Monthly Data Charts -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Monthly Performance</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyChart" width="100%" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Projects Table -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Projects Overview</h5>
+                    <div>
+                        <input type="text" id="projectSearch" class="form-control form-control-sm" placeholder="Search projects...">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="projectTable">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Client</th>
+                                    <th>Status</th>
+                                    <th>Budget</th>
+                                    <th>Spent</th>
+                                    <th>Utilization</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for project in report_data.projects %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('projects.view_project', project_id=project.id) }}">
+                                            {{ project.name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ project.client }}</td>
+                                    <td>
+                                        <span class="badge {{ 'bg-success' if project.status == 'Completed' else 'bg-warning' if project.status == 'In Progress' else 'bg-info' if project.status == 'Planning' else 'bg-secondary' }}">
+                                            {{ project.status }}
+                                        </span>
+                                    </td>
+                                    <td>${{ '{:,.0f}'.format(project.budget|float) if project.budget else '0' }}</td>
+                                    <td>${{ '{:,.0f}'.format(project.budget_spent|float) if project.budget_spent else '0' }}</td>
+                                    <td>
+                                        {% set utilization = (project.budget_spent|float / project.budget|float * 100) if project.budget and project.budget_spent else 0 %}
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar {{ 'bg-danger' if utilization > 90 else 'bg-warning' if utilization > 75 else 'bg-success' }}" 
+                                                 role="progressbar" style="width: {{ utilization }}%"></div>
+                                        </div>
+                                        <small class="text-muted">{{ utilization|round(1) }}%</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Clients -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Top Clients</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Projects</th>
+                                    <th>Total Budget</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for client in report_data.clients[:5] %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('clients.view_client', id=client.id) }}">
+                                            {{ client.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% set client_projects = [] %}
+                                        {% for p in report_data.projects %}
+                                            {% if p.client_id == client.id %}
+                                                {% set client_projects = client_projects + [p] %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {{ client_projects|length }}
+                                    </td>
+                                    <td>
+                                        {% set total_budget = 0 %}
+                                        {% for p in report_data.projects %}
+                                            {% if p.client_id == client.id %}
+                                                {% set total_budget = total_budget + (p.budget|float if p.budget else 0) %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        ${{ '{:,.0f}'.format(total_budget) }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Export Reports</h5>
+                </div>
+                <div class="card-body">
+                    <p>Download reports and analytics data in various formats.</p>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-primary w-100">
+                                <i class="fas fa-file-pdf me-2"></i>PDF Report
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-success w-100">
+                                <i class="fas fa-file-excel me-2"></i>Excel Data
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-file-csv me-2"></i>CSV Export
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6>Schedule Reports</h6>
+                    <p class="small text-muted">Set up regular email reports with key metrics.</p>
+                    <form>
+                        <div class="mb-3">
+                            <select class="form-select">
+                                <option>Weekly Summary</option>
+                                <option>Monthly Budget Report</option>
+                                <option>Quarterly Performance</option>
+                                <option>Custom Report</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary">
+                            Schedule Report
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+// Status Distribution Chart
+const statusChart = new Chart(
+    document.getElementById('statusChart').getContext('2d'),
+    {
+        type: 'pie',
+        data: {
+            labels: Object.keys({{ report_data.status_counts|tojson }}),
+            datasets: [{
+                data: Object.values({{ report_data.status_counts|tojson }}),
+                backgroundColor: [
+                    '#28a745', // Completed (green)
+                    '#ffc107', // In Progress (yellow)
+                    '#17a2b8', // Planning (blue)
+                    '#6c757d'  // Other (gray)
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    }
+);
+
+// Monthly Chart
+const monthlyChart = new Chart(
+    document.getElementById('monthlyChart').getContext('2d'),
+    {
+        type: 'bar',
+        data: {
+            labels: {{ report_data.monthly_data.labels|tojson }},
+            datasets: [
+                {
+                    label: 'New Projects',
+                    data: {{ report_data.monthly_data.new_projects|tojson }},
+                    backgroundColor: 'rgba(23, 162, 184, 0.5)',
+                    borderColor: 'rgb(23, 162, 184)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Completed Projects',
+                    data: {{ report_data.monthly_data.completed_projects|tojson }},
+                    backgroundColor: 'rgba(40, 167, 69, 0.5)',
+                    borderColor: 'rgb(40, 167, 69)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Revenue ($)',
+                    type: 'line',
+                    yAxisID: 'y1',
+                    data: {{ report_data.monthly_data.revenue|tojson }},
+                    borderColor: 'rgb(220, 53, 69)',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Projects'
+                    }
+                },
+                y1: {
+                    beginAtZero: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Revenue ($)'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                }
+            }
+        }
+    }
+);
+
+// Projects Table Search
+document.getElementById('projectSearch').addEventListener('keyup', function() {
+    const searchTerm = this.value.toLowerCase();
+    const table = document.getElementById('projectTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    
+    for (let i = 0; i < rows.length; i++) {
+        const projectName = rows[i].getElementsByTagName('td')[0].textContent.toLowerCase();
+        const clientName = rows[i].getElementsByTagName('td')[1].textContent.toLowerCase();
+        
+        if (projectName.includes(searchTerm) || clientName.includes(searchTerm)) {
+            rows[i].style.display = '';
+        } else {
+            rows[i].style.display = 'none';
+        }
+    }
+});
+</script>
+{% endblock %} 

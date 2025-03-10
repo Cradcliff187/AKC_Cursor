@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Documents for {{ client.name }} - AKC LLC Construction CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-4 py-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">Client Documents</h1>
+            <p class="text-muted">
+                <a href="{{ url_for('client_detail', client_id=client.id) }}" class="text-decoration-none">
+                    <i class="fas fa-user me-1"></i> {{ client.name }}
+                    {% if client.company_name %} ({{ client.company_name }}){% endif %}
+                </a>
+            </p>
+        </div>
+        <div class="mt-3 mt-md-0">
+            <a href="{{ url_for('upload_document') }}?client_id={{ client.id }}" class="btn btn-primary">
+                <i class="fas fa-upload me-1"></i> Upload Document
+            </a>
+        </div>
+    </div>
+    
+    <!-- Document List -->
+    <div class="row">
+        <div class="col-md-12">
+            {% if documents %}
+            <!-- Mobile Quick Filter -->
+            <div class="d-md-none mb-3">
+                <div class="input-group">
+                    <input type="text" id="mobileDocSearch" class="form-control" placeholder="Search documents...">
+                    <button class="btn btn-primary" type="button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Categorized Documents -->
+            <ul class="nav nav-tabs mb-3" id="documentTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">All ({{ documents|length }})</button>
+                </li>
+                {% if documents|selectattr('category', 'equalto', 'Contract')|list|length > 0 %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="contracts-tab" data-bs-toggle="tab" data-bs-target="#contracts" type="button" role="tab" aria-controls="contracts" aria-selected="false">Contracts</button>
+                </li>
+                {% endif %}
+                {% if documents|selectattr('category', 'equalto', 'Invoice')|list|length > 0 %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices" type="button" role="tab" aria-controls="invoices" aria-selected="false">Invoices</button>
+                </li>
+                {% endif %}
+                {% if documents|selectattr('file_type', 'in', ['jpg', 'jpeg', 'png', 'gif'])|list|length > 0 %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images" type="button" role="tab" aria-controls="images" aria-selected="false">Images</button>
+                </li>
+                {% endif %}
+            </ul>
+            
+            <div class="tab-content" id="documentTabsContent">
+                <!-- All Documents Tab -->
+                <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
+                    <div class="card">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">All Documents</h5>
+                            <div class="d-none d-md-block">
+                                <input type="text" id="docSearch" class="form-control form-control-sm" placeholder="Search documents...">
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="documentsTable">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 40%">Document</th>
+                                            <th style="width: 15%" class="d-none d-md-table-cell">Type</th>
+                                            <th style="width: 15%" class="d-none d-md-table-cell">Category</th>
+                                            <th style="width: 15%">Date</th>
+                                            <th style="width: 15%">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for document in documents %}
+                                        <tr class="document-row">
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="document-icon me-2">
+                                                        {% if document.file_type in ['pdf'] %}
+                                                        <i class="fas fa-file-pdf text-danger"></i>
+                                                        {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                                        <i class="fas fa-file-image text-primary"></i>
+                                                        {% elif document.file_type in ['doc', 'docx'] %}
+                                                        <i class="fas fa-file-word text-info"></i>
+                                                        {% elif document.file_type in ['xls', 'xlsx', 'csv'] %}
+                                                        <i class="fas fa-file-excel text-success"></i>
+                                                        {% else %}
+                                                        <i class="fas fa-file-alt text-secondary"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div>
+                                                        <a href="{{ url_for('document_detail', document_id=document.id) }}" class="text-decoration-none text-reset fw-medium document-name">
+                                                            {{ document.original_filename }}
+                                                        </a>
+                                                        <div class="small text-muted d-md-none">
+                                                            {{ document.file_type|upper }} {% if document.category %} • {{ document.category }}{% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="d-none d-md-table-cell">{{ document.file_type|upper }}</td>
+                                            <td class="d-none d-md-table-cell">{{ document.category if document.category else 'N/A' }}</td>
+                                            <td>{{ document.upload_date.strftime('%b %d, %Y') if document.upload_date else 'Unknown' }}</td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-download"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('document_detail', document_id=document.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contracts Tab -->
+                {% if documents|selectattr('category', 'equalto', 'Contract')|list|length > 0 %}
+                <div class="tab-pane fade" id="contracts" role="tabpanel" aria-labelledby="contracts-tab">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Contract Documents</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                                {% for document in documents %}
+                                {% if document.category == 'Contract' %}
+                                <div class="col">
+                                    <div class="card h-100">
+                                        <div class="card-header d-flex justify-content-between align-items-center py-2">
+                                            <div class="document-icon">
+                                                <i class="fas fa-file-contract text-primary fa-lg"></i>
+                                            </div>
+                                            <div class="small text-muted">{{ document.upload_date.strftime('%b %d, %Y') if document.upload_date else 'Unknown' }}</div>
+                                        </div>
+                                        <div class="card-body">
+                                            <h6 class="card-title text-truncate mb-1">{{ document.original_filename }}</h6>
+                                            {% if document.description %}
+                                            <p class="card-text small text-truncate">{{ document.description }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="card-footer bg-white">
+                                            <div class="d-flex justify-content-between">
+                                                <a href="{{ url_for('document_detail', document_id=document.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-eye me-1"></i> View
+                                                </a>
+                                                <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-download me-1"></i> Download
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Invoices Tab -->
+                {% if documents|selectattr('category', 'equalto', 'Invoice')|list|length > 0 %}
+                <div class="tab-pane fade" id="invoices" role="tabpanel" aria-labelledby="invoices-tab">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Invoice Documents</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                                {% for document in documents %}
+                                {% if document.category == 'Invoice' %}
+                                <div class="col">
+                                    <div class="card h-100">
+                                        <div class="card-header d-flex justify-content-between align-items-center py-2">
+                                            <div class="document-icon">
+                                                <i class="fas fa-file-invoice text-success fa-lg"></i>
+                                            </div>
+                                            <div class="small text-muted">{{ document.upload_date.strftime('%b %d, %Y') if document.upload_date else 'Unknown' }}</div>
+                                        </div>
+                                        <div class="card-body">
+                                            <h6 class="card-title text-truncate mb-1">{{ document.original_filename }}</h6>
+                                            {% if document.description %}
+                                            <p class="card-text small text-truncate">{{ document.description }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="card-footer bg-white">
+                                            <div class="d-flex justify-content-between">
+                                                <a href="{{ url_for('document_detail', document_id=document.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-eye me-1"></i> View
+                                                </a>
+                                                <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-download me-1"></i> Download
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Images Tab -->
+                {% if documents|selectattr('file_type', 'in', ['jpg', 'jpeg', 'png', 'gif'])|list|length > 0 %}
+                <div class="tab-pane fade" id="images" role="tabpanel" aria-labelledby="images-tab">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Image Gallery</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                {% for document in documents %}
+                                {% if document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <div class="card h-100">
+                                        <a href="{{ url_for('document_detail', document_id=document.id) }}" class="text-decoration-none">
+                                            <img src="{{ url_for('static', filename=document.file_path) }}" alt="{{ document.original_filename }}" class="card-img-top" style="height: 160px; object-fit: cover;">
+                                        </a>
+                                        <div class="card-body p-2">
+                                            <p class="card-text small text-truncate mb-0">{{ document.original_filename }}</p>
+                                            <p class="card-text small text-muted">{{ document.upload_date.strftime('%b %d, %Y') if document.upload_date else 'Unknown' }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-file-alt fa-4x mb-3 text-muted"></i>
+                    <h4>No Documents Found</h4>
+                    <p class="text-muted">This client doesn't have any documents yet.</p>
+                    <a href="{{ url_for('upload_document') }}?client_id={{ client.id }}" class="btn btn-primary mt-2">
+                        <i class="fas fa-upload me-1"></i> Upload First Document
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if documents %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Document search functionality
+    const searchFn = function(searchTerm) {
+        const rows = document.querySelectorAll('.document-row');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const documentName = row.querySelector('.document-name').textContent.toLowerCase();
+            
+            if (documentName.includes(searchTerm)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        return visibleCount;
+    };
+    
+    // Desktop search
+    const docSearch = document.getElementById('docSearch');
+    if (docSearch) {
+        docSearch.addEventListener('keyup', function() {
+            searchFn(this.value.toLowerCase());
+        });
+    }
+    
+    // Mobile search
+    const mobileDocSearch = document.getElementById('mobileDocSearch');
+    if (mobileDocSearch) {
+        mobileDocSearch.addEventListener('keyup', function() {
+            searchFn(this.value.toLowerCase());
+        });
+    }
+});
+</script>
+{% endif %}
+{% endblock %} 
