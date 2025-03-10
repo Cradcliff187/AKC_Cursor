@@ -1,6 +1,8 @@
 from supabase import create_client
 import os
 from dotenv import load_dotenv
+from werkzeug.security import check_password_hash, generate_password_hash
+from app.db import get_db
 
 # Load environment variables
 load_dotenv()
@@ -113,24 +115,12 @@ def execute_query(query, params=None):
 
 # User functions
 def get_user_by_email(email):
-    """Get a user by email"""
-    try:
-        if supabase is None:
-            print("Warning: Using mock data as Supabase is not available")
-            # Return mock user for development
-            for user in MOCK_USERS.values():
-                if user['email'] == email:
-                    return user
-            return None
-            
-        response = supabase.from_("users").select("*").eq("email", email).execute()
-        users = response.data
-        if users and len(users) > 0:
-            return users[0]
-        return None
-    except Exception as e:
-        print(f"Error getting user by email: {e}")
-        return None
+    """Get user by email from database."""
+    db = get_db()
+    user = db.execute(
+        'SELECT * FROM users WHERE email = ?', (email,)
+    ).fetchone()
+    return user
 
 def get_user_by_id(user_id):
     """Get a user by ID"""
@@ -184,21 +174,16 @@ def update_user(user_id, user_data):
 
 # Basic auth functions
 def authenticate_user(email, password):
-    """Authenticate a user"""
-    try:
-        if supabase is None:
-            print("Warning: Using mock data as Supabase is not available")
-            # In development mode, allow any login
-            for user in MOCK_USERS.values():
-                if user['email'] == email:
-                    return {'user': user}
-            return None
-            
-        response = supabase.auth.sign_in_with_password({"email": email, "password": password})
-        return response
-    except Exception as e:
-        print(f"Error authenticating user: {e}")
+    """Authenticate a user with email and password."""
+    user = get_user_by_email(email)
+    
+    if user is None:
         return None
+        
+    if not check_password_hash(user['password'], password):
+        return None
+        
+    return user
 
 # Project functions with mock data fallback
 def get_projects_by_user(user_id):

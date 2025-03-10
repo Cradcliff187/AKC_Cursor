@@ -13,7 +13,7 @@
 body {
     background-color: var(--white);
     color: var(--dark-gray);
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -31,8 +31,7 @@ p, li, td, th {
 }
 
 .navbar-brand {
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 700;
+    font-weight: bold;
 }
 
 /* Button styling */
@@ -68,15 +67,12 @@ a:hover {
 /* Card styling */
 .card {
     border-radius: 0.5rem;
-    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     margin-bottom: 1.5rem;
-    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .05);
 }
 
 .card-header {
-    background-color: var(--white);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    font-family: 'Montserrat', sans-serif;
+    background-color: rgba(0, 0, 0, 0.03);
     font-weight: 500;
 }
 
@@ -236,4 +232,42 @@ a:hover {
 
 .sidebar-collapsed .main-content {
     margin-left: 60px;
+}
+
+/* Main Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* Navbar */
+.navbar-brand {
+    font-weight: bold;
+}
+
+/* Cards */
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background-color: rgba(0, 0, 0, 0.03);
+    font-weight: 500;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 0.25rem;
+}
+
+/* Forms */
+.form-control {
+    border-radius: 0.25rem;
+}
+
+/* Footer */
+footer {
+    margin-top: 3rem;
 } 

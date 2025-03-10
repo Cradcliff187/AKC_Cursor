@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from flask import current_app
 import werkzeug
 from app.services.utils import generate_document_id, generate_folder_name
+from app.db import get_db
 
 # File Storage Structure as defined in the JSON guide
 FOLDER_STRUCTURE = {
@@ -133,219 +134,183 @@ MOCK_DOCUMENTS = [
     }
 ]
 
-def get_all_documents():
-    """Get all documents"""
-    try:
-        if supabase is not None:
-            response = supabase.from_("documents").select("*").execute()
-            return response.data
-        else:
-            return MOCK_DOCUMENTS
-    except Exception as e:
-        print(f"Error fetching documents: {str(e)}")
-        return MOCK_DOCUMENTS
+def get_all_documents(limit=50, offset=0, search=None):
+    """Get all documents with optional filtering"""
+    db = get_db()
+    query = """
+        SELECT d.*, c.name as client_name, p.name as project_name
+        FROM documents d
+        LEFT JOIN clients c ON d.client_id = c.id
+        LEFT JOIN projects p ON d.project_id = p.id
+    """
+    params = []
+    
+    if search:
+        query += " WHERE d.name LIKE ? OR d.description LIKE ?"
+        search_term = f"%{search}%"
+        params.extend([search_term, search_term])
+    
+    query += " ORDER BY d.created_at DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
+    
+    return db.execute(query, params).fetchall()
 
 def get_document(document_id):
-    """Get a single document by ID"""
-    try:
-        if supabase is not None:
-            response = supabase.from_("documents").select("*").eq("id", document_id).execute()
-            if response.data:
-                return response.data[0]
-        else:
-            for doc in MOCK_DOCUMENTS:
-                if doc['id'] == document_id:
-                    return doc
-        return None
-    except Exception as e:
-        print(f"Error fetching document {document_id}: {str(e)}")
-        # Still attempt to return from mock data on error
-        for doc in MOCK_DOCUMENTS:
-            if doc['id'] == document_id:
-                return doc
-        return None
+    """Get a document by ID"""
+    db = get_db()
+    return db.execute(
+        """SELECT d.*, u.username as created_by_name 
+           FROM documents d
+           LEFT JOIN users u ON d.created_by_id = u.id
+           WHERE d.id = ?""", 
+        (document_id,)
+    ).fetchone()
 
 def get_entity_documents(entity_type, entity_id):
-    """Get all documents for a specific entity (project, client, vendor, etc.)"""
-    try:
-        if supabase is not None:
-            response = supabase.from_("documents").select("*").eq("entity_type", entity_type).eq("entity_id", entity_id).execute()
-            return response.data
-        else:
-            return [doc for doc in MOCK_DOCUMENTS if doc['entity_type'] == entity_type and doc['entity_id'] == str(entity_id)]
-    except Exception as e:
-        print(f"Error fetching documents for {entity_type} {entity_id}: {str(e)}")
-        return [doc for doc in MOCK_DOCUMENTS if doc['entity_type'] == entity_type and doc['entity_id'] == str(entity_id)]
+    """Get documents for a specific entity (client or project)"""
+    db = get_db()
+    query = f"SELECT * FROM documents WHERE {entity_type}_id = ? ORDER BY created_at DESC"
+    return db.execute(query, (entity_id,)).fetchall()
 
-def save_uploaded_file(file, entity_type, entity_id, description=''):
-    """Save an uploaded file and return the document record"""
-    try:
-        if not file:
-            return None
-            
-        # Generate a unique document ID
-        doc_id = generate_document_id()
-        
-        # Get file information
-        filename = secure_filename(file.filename)
-        file_type = file.content_type
-        file_size = 0  # Will be populated after saving the file
-        
-        # Create documents directory if it doesn't exist
-        upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], entity_type, str(entity_id))
-        os.makedirs(upload_dir, exist_ok=True)
-        
-        # If entity_type is 'project', use the folder structure from the guide
-        if entity_type == 'project':
-            # Get project details to construct folder name
-            from app.services.projects import get_project_by_id
-            from app.services.clients import get_client_by_id
-            
-            project = get_project_by_id(entity_id)
-            if project and project.get('client_id'):
-                client = get_client_by_id(project['client_id'])
-                customer_id = client.get('id', 'CUST-UNKNOWN')
-                project_id = project.get('id', 'PROJ-UNKNOWN')
-                project_name = project.get('name', 'Unnamed Project')
-                
-                folder_name = generate_folder_name(customer_id, project_id, project_name)
-                upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'projects', folder_name)
-                
-                # Create appropriate subfolder based on document type
-                # This would need to be determined by additional metadata in a real implementation
-                if 'invoice' in filename.lower() or 'invoice' in description.lower():
-                    upload_dir = os.path.join(upload_dir, 'SubInvoices')
-                elif 'estimate' in filename.lower() or 'estimate' in description.lower():
-                    upload_dir = os.path.join(upload_dir, 'Estimates')
-                elif 'material' in filename.lower() or 'material' in description.lower():
-                    upload_dir = os.path.join(upload_dir, 'Materials')
-                
-                os.makedirs(upload_dir, exist_ok=True)
-        
-        # Save the file
-        file_path = os.path.join(upload_dir, filename)
-        file.save(file_path)
-        
-        # Get actual file size
-        file_size = os.path.getsize(file_path)
-        
-        # Determine relative path for storage
-        if current_app.config['UPLOAD_FOLDER'] in file_path:
-            relative_path = file_path.replace(current_app.config['UPLOAD_FOLDER'], 'uploads')
-        else:
-            relative_path = os.path.join('uploads', entity_type, str(entity_id), filename)
-        
-        # Create document record
-        document = {
-            'id': doc_id,
-            'name': filename,
-            'description': description,
-            'file_path': relative_path,
-            'file_type': file_type,
-            'file_size': file_size,
-            'entity_type': entity_type,
-            'entity_id': entity_id,
-            'uploaded_by': 'admin',  # In a real app, this would be the current user
-            'uploaded_at': datetime.now().isoformat(),
-            'updated_at': datetime.now().isoformat()
-        }
-        
-        if supabase is None:
-            # Add to mock data
-            MOCK_DOCUMENTS.append(document)
-        else:
-            # Add to database
-            response = supabase.from_("documents").insert(document).execute()
-            if not response.data:
-                return None
-            document = response.data[0]
-        
-        return document
-    except Exception as e:
-        print(f"Error saving file: {str(e)}")
-        # Clean up file if it was created
-        if 'file_path' in locals() and os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except:
-                pass
-        return None
+def save_uploaded_file(file, directory):
+    """Save an uploaded file to disk"""
+    # Create a unique filename
+    filename = secure_filename(file.filename)
+    unique_filename = f"{uuid.uuid4()}_{filename}"
+    
+    # Save the file
+    file_path = os.path.join(directory, unique_filename)
+    file.save(file_path)
+    
+    return {
+        'original_name': filename,
+        'saved_name': unique_filename,
+        'path': file_path,
+        'size': os.path.getsize(file_path),
+        'type': file.content_type if hasattr(file, 'content_type') else None
+    }
+    
+def create_document(document_data):
+    """Create a new document record"""
+    db = get_db()
+    cursor = db.execute(
+        """
+        INSERT INTO documents 
+        (name, file_path, file_type, file_size, project_id, client_id, 
+         description, version, created_by_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            document_data['name'],
+            document_data['file_path'],
+            document_data['file_type'],
+            document_data['file_size'],
+            document_data.get('project_id'),
+            document_data.get('client_id'),
+            document_data.get('description'),
+            document_data.get('version', '1.0'),
+            document_data.get('created_by_id')
+        )
+    )
+    db.commit()
+    return cursor.lastrowid
+
+def update_document(document_id, update_data):
+    """Update document information"""
+    db = get_db()
+    
+    # Build the update query dynamically
+    fields = []
+    params = []
+    
+    for key, value in update_data.items():
+        if key not in ('id', 'created_at', 'file_path'):  # Don't allow updating these fields
+            fields.append(f"{key} = ?")
+            params.append(value)
+    
+    if not fields:
+        return False
+    
+    params.append(document_id)
+    
+    db.execute(
+        f"UPDATE documents SET {', '.join(fields)}, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        params
+    )
+    db.commit()
+    return True
 
 def delete_document(document_id):
-    """Delete a document"""
-    try:
-        # Get the document first to know the file path
-        document = get_document(document_id)
-        if not document:
-            return False
-            
-        # Delete from database
-        if supabase is not None:
-            supabase.from_("documents").delete().eq("id", document_id).execute()
-        else:
-            global MOCK_DOCUMENTS
-            MOCK_DOCUMENTS = [doc for doc in MOCK_DOCUMENTS if doc['id'] != document_id]
-            
-        # Delete file if it exists
-        if document.get('file_path'):
-            # Convert relative path to full path
-            if document['file_path'].startswith('uploads/'):
-                full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], document['file_path'][8:])
-            else:
-                full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], document['file_path'])
-                
-            if os.path.exists(full_path):
-                os.remove(full_path)
-                
-        return True
-    except Exception as e:
-        print(f"Error deleting document {document_id}: {str(e)}")
+    """Delete a document record (and optionally file)"""
+    # Get the document to find the file path
+    document = get_document(document_id)
+    if not document:
         return False
-
-def update_document(document_id, data):
-    """Update document metadata"""
-    try:
-        # Get existing document
-        document = get_document(document_id)
-        if not document:
-            return False
-            
-        # Update with new data
-        updated_doc = {**document, **data, 'updated_at': datetime.now().isoformat()}
-        
-        # Save to database
-        if supabase is not None:
-            response = supabase.from_("documents").update(updated_doc).eq("id", document_id).execute()
-            return bool(response.data)
-        else:
-            # Update in mock data
-            global MOCK_DOCUMENTS
-            for i, doc in enumerate(MOCK_DOCUMENTS):
-                if doc['id'] == document_id:
-                    MOCK_DOCUMENTS[i] = updated_doc
-                    return True
-            return False
-    except Exception as e:
-        print(f"Error updating document {document_id}: {str(e)}")
-        return False
+    
+    # Delete from database
+    db = get_db()
+    db.execute("DELETE FROM documents WHERE id = ?", (document_id,))
+    db.commit()
+    
+    # Delete the file if it exists
+    file_path = document['file_path']
+    if file_path and os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            print(f"Error deleting file: {e}")
+    
+    return True
 
 def get_file_type_icon(file_type):
-    """Get appropriate icon class for file type"""
+    """Returns an icon class based on file type"""
     if not file_type:
-        return 'fas fa-file'
+        return "fas fa-file"
         
-    # Try to determine extension from mime type
-    if '/' in file_type:
-        extension = mimetypes.guess_extension(file_type)
-        if extension and extension.startswith('.'):
-            extension = extension[1:]  # Remove the dot
-    else:
-        # Assume file_type is the extension itself
-        extension = file_type.lower()
+    file_type = file_type.lower()
     
-    # Look up icon class
-    icon_class = FILE_TYPE_ICONS.get(extension, FILE_TYPE_ICONS['default'])
-    return f'fas {icon_class}'
+    # Images
+    if file_type.startswith('image/'):
+        return "fas fa-file-image"
+    
+    # PDFs
+    if file_type == 'application/pdf':
+        return "fas fa-file-pdf"
+    
+    # Word documents
+    if file_type in ('application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'):
+        return "fas fa-file-word"
+    
+    # Excel documents
+    if file_type in ('application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'):
+        return "fas fa-file-excel"
+    
+    # PowerPoint
+    if file_type in ('application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'):
+        return "fas fa-file-powerpoint"
+    
+    # Text files
+    if file_type in ('text/plain', 'text/csv', 'text/html'):
+        return "fas fa-file-alt"
+    
+    # Compressed files
+    if file_type in ('application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed'):
+        return "fas fa-file-archive"
+    
+    # Audio files
+    if file_type.startswith('audio/'):
+        return "fas fa-file-audio"
+    
+    # Video files
+    if file_type.startswith('video/'):
+        return "fas fa-file-video"
+    
+    # CAD/construction files
+    if file_type in ('application/dxf', 'application/dwg', 'application/acad', 'application/step'):
+        return "fas fa-drafting-compass"
+    
+    # Default
+    return "fas fa-file"
 
 def count_documents_by_entity(entity_type, entity_id=None):
     """Count documents for a specific entity type or entity"""

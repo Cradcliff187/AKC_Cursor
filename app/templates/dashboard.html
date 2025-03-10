@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Dashboard - AKC Construction{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.css">
@@ -24,166 +24,95 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row mb-4">
-        <div class="col">
-            <h1><i class="fas fa-tachometer-alt me-2"></i> Dashboard</h1>
-            <p class="text-muted">Welcome back, {{ session.user_name }}</p>
-        </div>
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card bg-primary text-white h-100">
+<div class="container mt-4">
+    <h1 class="mb-4">Dashboard</h1>
+    
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card bg-primary text-white">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase">Total Projects</h6>
-                            <h2 class="mb-0">{{ stats.total_projects }}</h2>
-                        </div>
-                        <i class="fas fa-building fa-3x opacity-50"></i>
-                    </div>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="{{ url_for('projects.list_projects') }}" class="text-white text-decoration-none">View Details</a>
-                    <i class="fas fa-angle-right text-white"></i>
+                    <h5 class="card-title">Projects</h5>
+                    <p class="card-text display-4">5</p>
+                    <a href="{{ url_for('projects.index') }}" class="btn btn-light btn-sm">View All</a>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-3 mb-3">
-            <div class="card bg-success text-white h-100">
+        
+        <div class="col-md-3 mb-4">
+            <div class="card bg-success text-white">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase">Active Projects</h6>
-                            <h2 class="mb-0">{{ stats.active_projects }}</h2>
-                        </div>
-                        <i class="fas fa-hammer fa-3x opacity-50"></i>
-                    </div>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="{{ url_for('projects.list_projects') }}" class="text-white text-decoration-none">View Details</a>
-                    <i class="fas fa-angle-right text-white"></i>
+                    <h5 class="card-title">Clients</h5>
+                    <p class="card-text display-4">12</p>
+                    <a href="{{ url_for('clients.index') }}" class="btn btn-light btn-sm">View All</a>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-3 mb-3">
-            <div class="card bg-warning text-white h-100">
+        
+        <div class="col-md-3 mb-4">
+            <div class="card bg-info text-white">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase">Completed Projects</h6>
-                            <h2 class="mb-0">{{ stats.completed_projects }}</h2>
-                        </div>
-                        <i class="fas fa-check-circle fa-3x opacity-50"></i>
-                    </div>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="{{ url_for('projects.list_projects') }}" class="text-white text-decoration-none">View Details</a>
-                    <i class="fas fa-angle-right text-white"></i>
+                    <h5 class="card-title">Invoices</h5>
+                    <p class="card-text display-4">8</p>
+                    <a href="{{ url_for('invoices.index') }}" class="btn btn-light btn-sm">View All</a>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-3 mb-3">
-            <div class="card bg-danger text-white h-100">
+        
+        <div class="col-md-3 mb-4">
+            <div class="card bg-warning text-dark">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase">Overdue Tasks</h6>
-                            <h2 class="mb-0">{{ stats.overdue_tasks }}</h2>
-                        </div>
-                        <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
-                    </div>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="{{ url_for('tasks.list_tasks') }}" class="text-white text-decoration-none">View Details</a>
-                    <i class="fas fa-angle-right text-white"></i>
+                    <h5 class="card-title">Documents</h5>
+                    <p class="card-text display-4">24</p>
+                    <a href="{{ url_for('documents.index') }}" class="btn btn-light btn-sm">View All</a>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Recent Projects -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> Recent Projects</h5>
-                    <a href="{{ url_for('projects.list_projects') }}" class="btn btn-sm btn-primary">View All</a>
-                </div>
-                <div class="card-body">
-                    {% if projects %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Project</th>
-                                    <th>Client</th>
-                                    <th>Status</th>
-                                    <th>Progress</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for project in projects[:5] %}
-                                <tr>
-                                    <td>
-                                        <a href="{{ url_for('projects.detail', id=project.id) }}" class="text-decoration-none">
-                                            {{ project.name }}
-                                        </a>
-                                    </td>
-                                    <td>{{ project.client }}</td>
-                                    <td>
-                                        <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% elif project.status == 'Planning' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                            {{ project.status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="progress" style="height: 10px;">
-                                            <div class="progress-bar" role="progressbar" style="width: {{ project.progress }}%;" aria-valuenow="{{ project.progress }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info mb-0">
-                        <i class="fas fa-info-circle me-2"></i> No projects found. <a href="{{ url_for('projects.create') }}" class="alert-link">Create your first project</a>.
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
+    
+    <div class="row mt-4">
+        <div class="col-md-6 mb-4">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i> Upcoming Deadlines</h5>
+                    <h5 class="mb-0">Recent Projects</h5>
                 </div>
                 <div class="card-body">
                     <ul class="list-group list-group-flush">
-                        {% if projects %}
-                            {% for project in projects[:3] %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-0">{{ project.name }}</h6>
-                                        <small class="text-muted">Due: {{ project.end_date }}</small>
-                                    </div>
-                                    <span class="badge {% if project.status == 'Completed' %}bg-success{% elif project.status == 'In Progress' %}bg-primary{% elif project.status == 'Planning' %}bg-warning{% else %}bg-secondary{% endif %} rounded-pill">
-                                        {{ project.status }}
-                                    </span>
-                                </li>
-                            {% endfor %}
-                        {% else %}
-                            <li class="list-group-item text-center">
-                                <p class="mb-0">No upcoming deadlines</p>
-                            </li>
-                        {% endif %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Project 1
+                            <span class="badge bg-primary rounded-pill">Active</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Project 2
+                            <span class="badge bg-success rounded-pill">Completed</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Project 3
+                            <span class="badge bg-warning rounded-pill">On Hold</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Invoices</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Invoice #001
+                            <span class="badge bg-success rounded-pill">Paid</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Invoice #002
+                            <span class="badge bg-warning rounded-pill">Pending</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Invoice #003
+                            <span class="badge bg-danger rounded-pill">Overdue</span>
+                        </li>
                     </ul>
                 </div>
             </div>

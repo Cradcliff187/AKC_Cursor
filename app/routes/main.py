@@ -10,6 +10,7 @@ bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
+    """Main index page"""
     if 'user_id' in session:
         return redirect(url_for('main.dashboard'))
     return render_template('index.html')
@@ -17,6 +18,7 @@ def index():
 @bp.route('/dashboard')
 @login_required
 def dashboard():
+    """Dashboard page"""
     # Get user information
     user_id = session.get('user_id')
     user = get_user_by_id(user_id)

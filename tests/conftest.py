@@ -7,11 +7,81 @@ import json
 from datetime import datetime, timedelta
 from flask import Flask, session
 from app import create_app
-from app.db import get_db, close_db, init_db_command
+from app.db import get_db, close_db, init_db, init_db_command
 from werkzeug.security import generate_password_hash
 
 # Add the application to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+def init_test_data():
+    """Initialize test data for the database."""
+    db = get_db()
+    
+    # Create test users
+    db.execute(
+        "INSERT INTO users (username, email, password, role, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?)",
+        ('testadmin', 'admin@test.com', generate_password_hash('password'), 'admin', 'Test', 'Admin')
+    )
+    db.execute(
+        "INSERT INTO users (username, email, password, role, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?)",
+        ('testuser', 'user@test.com', generate_password_hash('password'), 'employee', 'Test', 'User')
+    )
+    
+    # Create test clients
+    db.execute(
+        "INSERT INTO clients (name, contact_name, email, phone, address, city, state, zip_code, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ('Test Client 1', 'John Doe', 'john@test.com', '555-1234', '123 Main St', 'Anytown', 'CA', '12345', 'Test client notes')
+    )
+    db.execute(
+        "INSERT INTO clients (name, contact_name, email, phone, address, city, state, zip_code, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ('Test Client 2', 'Jane Smith', 'jane@test.com', '555-5678', '456 Oak Ave', 'Somewhere', 'NY', '67890', 'Another test client')
+    )
+    
+    # Create test projects
+    db.execute(
+        "INSERT INTO projects (name, client_id, description, status, start_date, end_date, estimated_budget, created_by_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        ('Test Project 1', 1, 'Test project description', 'active', '2023-01-01', '2023-12-31', 10000.00, 1)
+    )
+    db.execute(
+        "INSERT INTO projects (name, client_id, description, status, start_date, end_date, estimated_budget, created_by_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        ('Test Project 2', 2, 'Another test project', 'planning', '2023-02-01', '2023-11-30', 15000.00, 1)
+    )
+    
+    # Create test invoices
+    db.execute(
+        """
+        INSERT INTO invoices 
+        (invoice_number, client_id, project_id, status, issue_date, due_date, 
+         subtotal, tax_rate, tax_amount, total_amount, amount_paid, balance_due, 
+         notes, terms, created_by_id) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        ('INV-001', 1, 1, 'draft', '2023-03-01', '2023-03-31', 
+         1000.00, 8.5, 85.00, 1085.00, 0.00, 1085.00, 
+         'Test invoice notes', 'Net 30', 1)
+    )
+    
+    # Create test invoice items
+    db.execute(
+        """
+        INSERT INTO invoice_items
+        (invoice_id, description, quantity, unit_price, amount, type, taxable)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (1, 'Labor hours', 10, 100.00, 1000.00, 'labor', True)
+    )
+    
+    # Create test documents
+    db.execute(
+        """
+        INSERT INTO documents
+        (name, file_path, file_type, file_size, project_id, description, created_by_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        ('Test Document', 'test/path/document.pdf', 'application/pdf', 1024, 1, 'Test document description', 1)
+    )
+    
+    db.commit()
 
 @pytest.fixture
 def app():
@@ -29,7 +99,7 @@ def app():
 
     # Create the database and load test data
     with app.app_context():
-        init_db_command()
+        init_db()  # Call init_db directly instead of the Click command
         init_test_data()
 
     yield app
@@ -241,151 +311,4 @@ def test_document_data(app):
         'uploaded_by': 1,
         'client_id': 1,
         'project_id': 1
-    }
-
-
-def init_test_data():
-    """Initialize the database with test data."""
-    db = get_db()
-    
-    # Create test users
-    db.execute(
-        "INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)",
-        ('admin@example.com', generate_password_hash('password'), 'Admin User', 'admin')
-    )
-    db.execute(
-        "INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)",
-        ('user@example.com', generate_password_hash('password'), 'Regular User', 'user')
-    )
-    
-    # Create test clients
-    db.execute(
-        "INSERT INTO clients (name, contact_name, email, phone, address, city, state, zip, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        ('Test Client 1', 'John Doe', 'john@example.com', '555-123-4567', '123 Main St', 'Anytown', 'NY', '12345', 1)
-    )
-    db.execute(
-        "INSERT INTO clients (name, contact_name, email, phone, address, city, state, zip, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        ('Test Client 2', 'Jane Smith', 'jane@example.com', '555-987-6543', '456 Oak Ave', 'Somewhere', 'CA', '67890', 1)
-    )
-    
-    # Create test projects
-    db.execute(
-        "INSERT INTO projects (name, client_id, description, status, start_date, end_date, budget) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        ('Test Project 1', 1, 'This is a test project', 'In Progress', '2023-01-01', '2023-12-31', 50000.00)
-    )
-    db.execute(
-        "INSERT INTO projects (name, client_id, description, status, start_date, end_date, budget) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        ('Test Project 2', 2, 'Another test project', 'Planning', '2023-02-01', '2023-11-30', 75000.00)
-    )
-
-    # Create test tasks
-    db.execute(
-        "INSERT INTO tasks (project_id, title, description, status, priority, assigned_to, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (1, 'Task 1', 'Complete foundation work', 'In Progress', 'High', 2, '2023-04-15')
-    )
-    db.execute(
-        "INSERT INTO tasks (project_id, title, description, status, priority, assigned_to, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (1, 'Task 2', 'Finish framing', 'To Do', 'Medium', 2, '2023-05-01')
-    )
-    
-    # Create test invoices
-    db.execute(
-        """INSERT INTO invoices 
-           (invoice_number, client_id, project_id, status, issue_date, due_date, 
-            subtotal, tax_rate, tax_amount, total_amount, balance_due)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        ('INV-001', 1, 1, 'Draft', '2023-03-01', '2023-04-01', 1000.00, 8.0, 80.00, 1080.00, 1080.00)
-    )
-    db.execute(
-        """INSERT INTO invoices 
-           (invoice_number, client_id, project_id, status, issue_date, due_date, 
-            subtotal, tax_rate, tax_amount, total_amount, amount_paid, balance_due)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        ('INV-002', 2, 2, 'Sent', '2023-03-15', '2023-04-15', 2000.00, 8.0, 160.00, 2160.00, 1000.00, 1160.00)
-    )
-    
-    # Create test invoice items
-    db.execute(
-        """INSERT INTO invoice_items 
-           (invoice_id, description, quantity, unit_price, amount, type, taxable)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (1, 'Design Services', 10, 50.00, 500.00, 'Service', 1)
-    )
-    db.execute(
-        """INSERT INTO invoice_items 
-           (invoice_id, description, quantity, unit_price, amount, type, taxable)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (1, 'Construction Materials', 1, 500.00, 500.00, 'Material', 1)
-    )
-    db.execute(
-        """INSERT INTO invoice_items 
-           (invoice_id, description, quantity, unit_price, amount, type, taxable)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (2, 'Labor Hours', 40, 50.00, 2000.00, 'Labor', 1)
-    )
-    
-    # Create test payments
-    db.execute(
-        """INSERT INTO payments
-           (invoice_id, amount, payment_date, payment_method, reference_number)
-           VALUES (?, ?, ?, ?, ?)""",
-        (2, 1000.00, '2023-03-20', 'Credit Card', 'REF12345')
-    )
-    
-    # Create test documents
-    db.execute(
-        """INSERT INTO documents
-           (name, description, type, size, path, uploaded_by, client_id, project_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        ('Contract.pdf', 'Project contract', 'PDF', 1024000, 'path/to/contract.pdf', 1, 1, 1)
-    )
-    db.execute(
-        """INSERT INTO documents
-           (name, description, type, size, path, uploaded_by, client_id, project_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        ('Blueprint.jpg', 'Building blueprint', 'Image', 2048000, 'path/to/blueprint.jpg', 1, 2, 2)
-    )
-
-    # Create test bids
-    db.execute(
-        """INSERT INTO bids
-           (client_id, project_name, status, created_by, subtotal, tax_rate, tax_amount, total)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (1, 'Home Renovation', 'Draft', 1, 15000.00, 8.0, 1200.00, 16200.00)
-    )
-    db.execute(
-        """INSERT INTO bids
-           (client_id, project_name, status, created_by, subtotal, tax_rate, tax_amount, total)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (2, 'Commercial Building', 'Sent', 1, 50000.00, 8.0, 4000.00, 54000.00)
-    )
-
-    # Create test bid items
-    db.execute(
-        """INSERT INTO bid_items
-           (bid_id, description, quantity, unit_price, amount)
-           VALUES (?, ?, ?, ?, ?)""",
-        (1, 'Demolition', 1, 3000.00, 3000.00)
-    )
-    db.execute(
-        """INSERT INTO bid_items
-           (bid_id, description, quantity, unit_price, amount)
-           VALUES (?, ?, ?, ?, ?)""",
-        (1, 'New Flooring', 1000, 12.00, 12000.00)
-    )
-    
-    # Create test notifications
-    db.execute(
-        """INSERT INTO notifications
-           (user_id, type, title, message, related_id, related_type, is_read)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (2, 'task_assigned', 'New Task Assigned', 'You have been assigned a new task', 1, 'task', 0)
-    )
-    db.execute(
-        """INSERT INTO notifications
-           (user_id, type, title, message, related_id, related_type, is_read)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (1, 'payment_received', 'Payment Received', 'A payment has been received for invoice #INV-002', 2, 'invoice', 0)
-    )
-    
-    db.commit() 
+    } 

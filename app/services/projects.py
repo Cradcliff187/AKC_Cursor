@@ -5,6 +5,7 @@ from app.models.project import Project
 from app.services.utils import generate_project_id, generate_id
 from datetime import datetime, timedelta
 import json
+from app.db import get_db
 
 # Project status constants
 PROJECT_STATUSES = ['Planning', 'In Progress', 'On Hold', 'Completed', 'Cancelled']
@@ -25,21 +26,45 @@ def is_valid_status_transition(current_status, new_status):
     """Check if a status transition is valid"""
     return new_status in PROJECT_STATUS_TRANSITIONS.get(current_status, [])
 
-def get_all_projects():
-    """Get all projects from the database"""
-    project_data = get_table_data('projects')
+def get_all_projects(limit=50, offset=0, status=None, client_id=None):
+    """Get all projects with optional filtering"""
+    db = get_db()
+    query = """
+        SELECT p.*, c.name as client_name
+        FROM projects p
+        LEFT JOIN clients c ON p.client_id = c.id
+    """
+    params = []
     
-    # Convert to Project objects
-    projects = [Project.from_dict(p) for p in project_data]
-    return projects
+    where_clauses = []
+    if status:
+        where_clauses.append("p.status = ?")
+        params.append(status)
+    
+    if client_id:
+        where_clauses.append("p.client_id = ?")
+        params.append(client_id)
+    
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
+    
+    query += " ORDER BY p.start_date DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
+    
+    return db.execute(query, params).fetchall()
 
 def get_project_by_id(project_id):
     """Get a project by ID"""
-    project_data = get_table_data('projects', filters={'id': project_id})
-    
-    if project_data and len(project_data) > 0:
-        return Project.from_dict(project_data[0])
-    return None
+    db = get_db()
+    return db.execute(
+        """
+        SELECT p.*, c.name as client_name
+        FROM projects p
+        LEFT JOIN clients c ON p.client_id = c.id
+        WHERE p.id = ?
+        """, 
+        (project_id,)
+    ).fetchone()
 
 def get_projects_by_user(user_id):
     """Get all projects for a user"""
@@ -51,43 +76,98 @@ def get_projects_by_user(user_id):
 
 def create_project(project_data):
     """Create a new project"""
-    # Create a Project object to validate the data
-    project = Project.from_dict(project_data)
-    
-    # Insert the project into the database
-    result = insert_record('projects', project.to_dict())
-    
-    if result:
-        return Project.from_dict(result)
-    return None
+    db = get_db()
+    cursor = db.execute(
+        """
+        INSERT INTO projects 
+        (name, client_id, description, address, city, state, zip_code, 
+         status, start_date, end_date, estimated_budget, created_by_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            project_data['name'],
+            project_data.get('client_id'),
+            project_data.get('description'),
+            project_data.get('address'),
+            project_data.get('city'),
+            project_data.get('state'),
+            project_data.get('zip_code'),
+            project_data.get('status', 'active'),
+            project_data.get('start_date'),
+            project_data.get('end_date'),
+            project_data.get('estimated_budget'),
+            project_data.get('created_by_id')
+        )
+    )
+    db.commit()
+    return cursor.lastrowid
 
 def update_project(project_id, project_data):
     """Update a project"""
-    # First get the existing project
-    existing_project = get_project_by_id(project_id)
-    if not existing_project:
-        return None
-        
-    # Check if status change is valid
-    if 'status' in project_data and project_data['status'] != existing_project.status:
-        if not is_valid_status_transition(existing_project.status, project_data['status']):
-            raise ValueError(f"Invalid status transition from {existing_project.status} to {project_data['status']}")
-    
-    # Update the project
-    result = update_record('projects', project_id, project_data)
-    
-    if result:
-        return Project.from_dict(result)
-    return None
+    db = get_db()
+    db.execute(
+        """
+        UPDATE projects 
+        SET name = ?, client_id = ?, description = ?, address = ?, 
+            city = ?, state = ?, zip_code = ?, status = ?, 
+            start_date = ?, end_date = ?, estimated_budget = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """,
+        (
+            project_data['name'],
+            project_data.get('client_id'),
+            project_data.get('description'),
+            project_data.get('address'),
+            project_data.get('city'),
+            project_data.get('state'),
+            project_data.get('zip_code'),
+            project_data.get('status'),
+            project_data.get('start_date'),
+            project_data.get('end_date'),
+            project_data.get('estimated_budget'),
+            project_id
+        )
+    )
+    db.commit()
+    return True
 
 def delete_project(project_id):
     """Delete a project"""
-    return delete_record('projects', project_id)
+    db = get_db()
+    db.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+    db.commit()
+    return True
 
 def get_project_tasks(project_id):
     """Get all tasks for a project"""
-    from app.services.tasks import get_tasks_by_project
-    return get_tasks_by_project(project_id)
+    db = get_db()
+    return db.execute(
+        """
+        SELECT t.*, u.username as assigned_to_name
+        FROM tasks t
+        LEFT JOIN users u ON t.assigned_to_id = u.id
+        WHERE t.project_id = ?
+        ORDER BY t.due_date
+        """,
+        (project_id,)
+    ).fetchall()
+
+def get_project_documents(project_id):
+    """Get all documents for a project"""
+    db = get_db()
+    return db.execute(
+        "SELECT * FROM documents WHERE project_id = ? ORDER BY created_at DESC",
+        (project_id,)
+    ).fetchall()
+
+def get_project_invoices(project_id):
+    """Get all invoices for a project"""
+    db = get_db()
+    return db.execute(
+        "SELECT * FROM invoices WHERE project_id = ? ORDER BY issue_date DESC",
+        (project_id,)
+    ).fetchall()
 
 def get_project_financial_summary(project_id):
     """Get financial summary for a project"""

@@ -2,7 +2,7 @@ from flask import Flask, g, request, session
 from dotenv import load_dotenv
 import os
 import re
-from flask_bootstrap import Bootstrap5
+from flask_bootstrap5 import Bootstrap
 
 def nl2br(value):
     """Convert newlines to <br> tags for Jinja templates"""
@@ -47,7 +47,7 @@ def create_app(test_config=None):
         pass
     
     # Initialize Bootstrap
-    bootstrap = Bootstrap5(app)
+    bootstrap = Bootstrap(app)
     
     # Add custom template filters
     app.jinja_env.filters['nl2br'] = nl2br
