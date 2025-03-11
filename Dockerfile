@@ -9,11 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file
-COPY requirements.txt .
+# Copy requirements and constraints files
+COPY requirements.txt constraints.txt ./
 
-# Install dependencies with specific versions
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies with specific versions and constraints
+RUN pip install --no-cache-dir -r requirements.txt -c constraints.txt
 
 # Copy application code
 COPY . .
