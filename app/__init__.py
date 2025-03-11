@@ -22,9 +22,14 @@ def create_app(test_config=None):
     
     # Load default configuration
     app.config.from_mapping(
-        SECRET_KEY='dev',
+        SECRET_KEY=os.getenv('FLASK_SECRET_KEY', 'dev'),
         DATABASE=os.path.join(app.instance_path, 'app.sqlite'),
         UPLOAD_FOLDER=os.path.join(app.instance_path, 'uploads'),
+        SUPABASE_URL=os.getenv('SUPABASE_URL'),
+        SUPABASE_KEY=os.getenv('SUPABASE_KEY'),
+        SUPABASE_SERVICE_KEY=os.getenv('SUPABASE_SERVICE_KEY'),
+        SUPABASE_DB_PASSWORD=os.getenv('SUPABASE_DB_PASSWORD'),
+        ENV=os.getenv('FLASK_ENV', 'production')
     )
 
     if test_config is None:
