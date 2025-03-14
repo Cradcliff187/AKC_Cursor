@@ -1,0 +1,48 @@
+{
+  "timestamp": "2025-03-13 20:56:34.735822",
+  "tables": {
+    "required": [
+      "user_profiles",
+      "user_notifications",
+      "clients",
+      "projects",
+      "project_tasks",
+      "invoices",
+      "invoice_items",
+      "payments",
+      "bids",
+      "bid_items",
+      "expenses",
+      "time_entries",
+      "documents"
+    ],
+    "existing": [
+      "user_profiles",
+      "user_notifications",
+      "clients",
+      "projects",
+      "project_tasks",
+      "invoices",
+      "invoice_items",
+      "payments",
+      "bids",
+      "bid_items",
+      "expenses",
+      "time_entries",
+      "documents"
+    ],
+    "missing": []
+  },
+  "functions": {
+    "required": [
+      "exec_sql",
+      "update_updated_at_column"
+    ],
+    "existing": [
+      "exec_sql",
+      "update_updated_at_column"
+    ],
+    "missing": []
+  },
+  "all_components_exist": true
+}

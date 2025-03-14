@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Reports</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Time Reports</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">View and analyze time tracking data across projects, users, and tasks.</p>
+                            <div class="list-group">
+                                <a href="{{ url_for('time_summary_report') }}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Time Summary Report</h6>
+                                        <i class="fas fa-chart-bar text-primary"></i>
+                                    </div>
+                                    <p class="mb-1">Summarize time entries by project, user, or task.</p>
+                                </a>
+                                <a href="{{ url_for('time_summary_report', group_by='user') }}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">User Productivity Report</h6>
+                                        <i class="fas fa-user-clock text-primary"></i>
+                                    </div>
+                                    <p class="mb-1">Analyze time spent by each team member.</p>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Financial Reports</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Track expenses, revenue, and profitability for your projects.</p>
+                            <div class="list-group">
+                                <a href="{{ url_for('expense_summary_report') }}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Expense Summary Report</h6>
+                                        <i class="fas fa-file-invoice-dollar text-primary"></i>
+                                    </div>
+                                    <p class="mb-1">Summarize expenses by project or category.</p>
+                                </a>
+                                <a href="{{ url_for('project_profitability_report') }}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Project Profitability Report</h6>
+                                        <i class="fas fa-chart-line text-primary"></i>
+                                    </div>
+                                    <p class="mb-1">Analyze revenue, expenses, and profit margins by project.</p>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Project Reports</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Monitor project status, progress, and performance metrics.</p>
+                            <div class="list-group">
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Project Status Report</h6>
+                                        <i class="fas fa-tasks text-primary"></i>
+                                    </div>
+                                    <p class="mb-1">Overview of all projects and their current status.</p>
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Task Completion Report</h6>
+                                        <i class="fas fa-check-circle text-primary"></i>
+                                    </div>
+                                    <p class="mb-1">Track task completion rates and timelines.</p>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Export Options</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Export data for use in other applications or for record-keeping.</p>
+                            <div class="list-group">
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Export Time Logs</h6>
+                                        <i class="fas fa-file-export text-primary"></i>
+                                    </div>
+                                    <p class="mb-1">Export time tracking data to CSV or Excel format.</p>
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Export Expense Data</h6>
+                                        <i class="fas fa-file-export text-primary"></i>
+                                    </div>
+                                    <p class="mb-1">Export expense data to CSV or Excel format.</p>
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Export Project Data</h6>
+                                        <i class="fas fa-file-export text-primary"></i>
+                                    </div>
+                                    <p class="mb-1">Export project details and tasks to CSV or Excel format.</p>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Custom Reports</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Create and save custom reports tailored to your specific needs.</p>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Custom report builder coming soon! This feature will allow you to:
+                                <ul class="mb-0 mt-2">
+                                    <li>Select specific data fields to include</li>
+                                    <li>Apply custom filters and sorting</li>
+                                    <li>Save report templates for future use</li>
+                                    <li>Schedule automated report generation</li>
+                                </ul>
+                            </div>
+                            <div class="d-grid gap-2 mt-3">
+                                <button class="btn btn-outline-primary" disabled>
+                                    <i class="fas fa-plus-circle"></i> Create Custom Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

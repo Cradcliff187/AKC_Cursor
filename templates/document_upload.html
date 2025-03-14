@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Document - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="/projects/{{ project.id }}" class="btn btn-outline-secondary mb-2">
+                <i class="fas fa-arrow-left"></i> Back to Project
+            </a>
+            <h1 class="mb-0">Upload Document</h1>
+            <p class="text-muted">Project: {{ project.name }}</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Document Information</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" action="/projects/{{ project.id }}/documents/upload" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="document_name" class="form-label">Document Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="document_name" name="document_name" required>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="document_type" class="form-label">Document Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="document_type" name="document_type" required>
+                            <option value="">Select document type</option>
+                            <option value="contract">Contract</option>
+                            <option value="plans">Plans & Blueprints</option>
+                            <option value="permit">Permit</option>
+                            <option value="photos">Site Photos</option>
+                            <option value="report">Inspection Report</option>
+                            <option value="financial">Financial Document</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="document_date" class="form-label">Document Date</label>
+                        <input type="date" class="form-control" id="document_date" name="document_date">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="document_description" class="form-label">Description</label>
+                    <textarea class="form-control" id="document_description" name="document_description" rows="3"></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label for="document_file" class="form-label">File <span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" id="document_file" name="document_file" required>
+                    <div class="form-text">
+                        Accepted file types: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, DWG, DXF (Max size: 10MB)
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">Document Tags</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">Select tags to categorize this document:</p>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="tag_important" name="tags[]" value="important">
+                                    <label class="form-check-label" for="tag_important">
+                                        <span class="badge bg-danger">Important</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="tag_approved" name="tags[]" value="approved">
+                                    <label class="form-check-label" for="tag_approved">
+                                        <span class="badge bg-success">Approved</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="tag_pending" name="tags[]" value="pending">
+                                    <label class="form-check-label" for="tag_pending">
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="tag_final" name="tags[]" value="final">
+                                    <label class="form-check-label" for="tag_final">
+                                        <span class="badge bg-primary">Final</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="tag_draft" name="tags[]" value="draft">
+                                    <label class="form-check-label" for="tag_draft">
+                                        <span class="badge bg-secondary">Draft</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="tag_revision" name="tags[]" value="revision">
+                                    <label class="form-check-label" for="tag_revision">
+                                        <span class="badge bg-info text-dark">Revision</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="document_visibility" class="form-label">Visibility</label>
+                    <select class="form-select" id="document_visibility" name="document_visibility">
+                        <option value="team">Project Team Only</option>
+                        <option value="client">Team and Client</option>
+                        <option value="public">Public (Anyone with project access)</option>
+                    </select>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a href="/projects/{{ project.id }}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Upload Document</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+        });
+        
+        // File validation
+        const fileInput = document.getElementById('document_file');
+        fileInput.addEventListener('change', function() {
+            const file = fileInput.files[0];
+            if (file) {
+                // Check file size (10MB max)
+                const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+                if (file.size > maxSize) {
+                    fileInput.setCustomValidity('File size exceeds 10MB limit');
+                    return;
+                }
+                
+                // Check file type
+                const acceptedTypes = [
+                    'application/pdf', 
+                    'application/msword', 
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'image/jpeg',
+                    'image/png',
+                    'image/vnd.dwg',
+                    'image/vnd.dxf',
+                    'application/dxf',
+                    'application/dwg'
+                ];
+                
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                const acceptedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'dwg', 'dxf'];
+                
+                if (!acceptedTypes.includes(file.type) && !acceptedExtensions.includes(fileExtension)) {
+                    fileInput.setCustomValidity('File type not supported');
+                    return;
+                }
+                
+                // Clear any previous validation messages if file is valid
+                fileInput.setCustomValidity('');
+            }
+        });
+        
+        // Auto-generate document name from filename
+        fileInput.addEventListener('change', function() {
+            const file = fileInput.files[0];
+            const documentNameInput = document.getElementById('document_name');
+            
+            if (file && !documentNameInput.value) {
+                // Extract filename without extension
+                let fileName = file.name.split('.').slice(0, -1).join('.');
+                
+                // Convert to title case and replace underscores/hyphens with spaces
+                fileName = fileName.replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                documentNameInput.value = fileName;
+            }
+        });
+        
+        // Document type icon preview
+        const documentTypeSelect = document.getElementById('document_type');
+        documentTypeSelect.addEventListener('change', function() {
+            const documentType = documentTypeSelect.value;
+            const iconPreview = document.getElementById('icon-preview');
+            
+            if (!iconPreview) {
+                const newIconPreview = document.createElement('div');
+                newIconPreview.id = 'icon-preview';
+                newIconPreview.className = 'mt-2';
+                documentTypeSelect.parentNode.appendChild(newIconPreview);
+                
+                updateIconPreview(documentType, newIconPreview);
+            } else {
+                updateIconPreview(documentType, iconPreview);
+            }
+        });
+        
+        function updateIconPreview(type, element) {
+            let iconClass = '';
+            let colorClass = '';
+            
+            switch(type) {
+                case 'contract':
+                    iconClass = 'fa-file-contract';
+                    colorClass = 'text-primary';
+                    break;
+                case 'plans':
+                    iconClass = 'fa-drafting-compass';
+                    colorClass = 'text-success';
+                    break;
+                case 'permit':
+                    iconClass = 'fa-clipboard-check';
+                    colorClass = 'text-warning';
+                    break;
+                case 'photos':
+                    iconClass = 'fa-images';
+                    colorClass = 'text-info';
+                    break;
+                case 'report':
+                    iconClass = 'fa-file-alt';
+                    colorClass = 'text-secondary';
+                    break;
+                case 'financial':
+                    iconClass = 'fa-file-invoice-dollar';
+                    colorClass = 'text-danger';
+                    break;
+                default:
+                    iconClass = 'fa-file';
+                    colorClass = 'text-muted';
+            }
+            
+            if (type) {
+                element.innerHTML = `<i class="fas ${iconClass} ${colorClass} me-2"></i> Selected: <span class="fw-bold">${type.charAt(0).toUpperCase() + type.slice(1)}</span>`;
+            } else {
+                element.innerHTML = '';
+            }
+        }
+    });
+</script>
+{% endblock %} 

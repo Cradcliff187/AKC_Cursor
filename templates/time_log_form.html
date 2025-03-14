@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if time_log %}Edit Time Log{% else %}New Time Log{% endif %} - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{% if time_log %}Edit Time Log{% else %}New Time Log{% endif %}</h5>
+            <a href="{% if selected_project %}{{ url_for('project_time_logs', project_id=selected_project.id) }}{% else %}{{ url_for('time_logs') }}{% endif %}" class="btn btn-light btn-sm">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+        <div class="card-body">
+            <form method="post" id="timeLogForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="project_id" class="form-label">Project <span class="text-danger">*</span></label>
+                            <select class="form-select" id="project_id" name="project_id" required onchange="loadProjectTasks()">
+                                <option value="">Select Project</option>
+                                {% for project_id, project_name in projects %}
+                                <option value="{{ project_id }}" {% if selected_project and selected_project.id == project_id %}selected{% elif time_log and time_log.project_id == project_id %}selected{% endif %}>
+                                    {{ project_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="task_id" class="form-label">Task <span class="text-danger">*</span></label>
+                            <select class="form-select" id="task_id" name="task_id" required>
+                                <option value="">Select Task</option>
+                                {% for task_id, task_name in project_tasks %}
+                                <option value="{{ task_id }}" {% if time_log and time_log.task_id == task_id %}selected{% endif %}>
+                                    {{ task_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date" name="date" value="{{ time_log.date if time_log else '' }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="hours" class="form-label">Hours <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="hours" name="hours" step="0.25" min="0.25" max="24" value="{{ time_log.hours if time_log else '' }}" required>
+                            <small class="text-muted">Enter time in hours (e.g., 1.5 for 1 hour and 30 minutes)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="description" name="description" rows="3" required>{{ time_log.description if time_log else '' }}</textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="billable" name="billable" {% if time_log and time_log.billable %}checked{% endif %}>
+                            <label class="form-check-label" for="billable">Billable</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="Pending" {% if time_log and time_log.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="Approved" {% if time_log and time_log.status == 'Approved' %}selected{% endif %}>Approved</option>
+                                <option value="Rejected" {% if time_log and time_log.status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% if selected_project %}{{ url_for('project_time_logs', project_id=selected_project.id) }}{% else %}{{ url_for('time_logs') }}{% endif %}" class="btn btn-secondary me-md-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function loadProjectTasks() {
+        const projectId = document.getElementById('project_id').value;
+        if (!projectId) {
+            return;
+        }
+
+        // In a real app, this would make an AJAX call to get tasks for the selected project
+        // For this demo, we'll reload the page with the project_id parameter
+        window.location.href = "{{ url_for('new_time_log' if not time_log else 'edit_time_log', log_id=time_log.id if time_log else 0) }}?project_id=" + projectId;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default date to today for new time logs
+        if (!document.getElementById('date').value) {
+            const today = new Date();
+            const formattedDate = today.toISOString().substr(0, 10);
+            document.getElementById('date').value = formattedDate;
+        }
+    });
+</script>
+{% endblock %} 

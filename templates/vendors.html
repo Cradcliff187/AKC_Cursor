@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Vendors & Subcontractors - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0">Vendors & Subcontractors</h1>
+            <p class="text-muted">Manage your suppliers, subcontractors, and service providers</p>
+        </div>
+        <div>
+            <a href="/vendors/new" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Vendor
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <form method="get" action="/vendors" class="d-flex">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="search" placeholder="Search vendors..." value="{{ search_query }}">
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6 d-flex justify-content-md-end mt-3 mt-md-0">
+                    <div class="btn-group">
+                        <a href="/vendors" class="btn btn-outline-secondary {% if not vendor_type %}active{% endif %}">All</a>
+                        <a href="/vendors?type=Supplier" class="btn btn-outline-secondary {% if vendor_type == 'Supplier' %}active{% endif %}">Suppliers</a>
+                        <a href="/vendors?type=Subcontractor" class="btn btn-outline-secondary {% if vendor_type == 'Subcontractor' %}active{% endif %}">Subcontractors</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Vendor</th>
+                            <th>Type</th>
+                            <th>Contact</th>
+                            <th>Categories</th>
+                            <th>Rating</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vendor in vendors %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-initials bg-primary text-white me-3">
+                                        {{ vendor.name[:2].upper() }}
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">{{ vendor.name }}</h6>
+                                        <small class="text-muted">{{ vendor.address.city }}, {{ vendor.address.state }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge {% if vendor.vendor_type == 'Supplier' %}bg-info{% else %}bg-primary{% endif %}">
+                                    {{ vendor.vendor_type }}
+                                </span>
+                            </td>
+                            <td>
+                                <div>{{ vendor.contact_name }}</div>
+                                <small><a href="mailto:{{ vendor.email }}">{{ vendor.email }}</a></small>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for category in vendor.categories[:2] %}
+                                    <span class="badge bg-light text-dark">{{ category }}</span>
+                                    {% endfor %}
+                                    {% if vendor.categories|length > 2 %}
+                                    <span class="badge bg-light text-dark">+{{ vendor.categories|length - 2 }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-warning">
+                                    {% for i in range(5) %}
+                                        {% if i < vendor.rating|int %}
+                                            <i class="fas fa-star"></i>
+                                        {% elif i < vendor.rating and i >= vendor.rating|int %}
+                                            <i class="fas fa-star-half-alt"></i>
+                                        {% else %}
+                                            <i class="far fa-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="/vendors/{{ vendor.id }}"><i class="fas fa-eye me-2"></i> View Details</a></li>
+                                        <li><a class="dropdown-item" href="/vendors/{{ vendor.id }}/edit"><i class="fas fa-edit me-2"></i> Edit</a></li>
+                                        <li><a class="dropdown-item" href="/vendors/{{ vendor.id }}/contracts"><i class="fas fa-file-contract me-2"></i> Contracts</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        
+                        {% if not vendors %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="empty-state">
+                                    <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                                    <h5>No vendors found</h5>
+                                    <p class="text-muted">Add your first vendor or adjust your search criteria</p>
+                                    <a href="/vendors/new" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> Add Vendor
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Style for avatar initials
+        document.querySelectorAll('.avatar-initials').forEach(avatar => {
+            const text = avatar.textContent.trim();
+            const colors = [
+                'bg-primary', 'bg-success', 'bg-info', 'bg-warning', 'bg-danger', 
+                'bg-secondary', 'bg-dark'
+            ];
+            
+            // Generate a consistent color based on the text
+            const colorIndex = text.charCodeAt(0) % colors.length;
+            
+            // Remove existing bg class and add the new one
+            avatar.classList.remove('bg-primary');
+            avatar.classList.add(colors[colorIndex]);
+            
+            // Add styling if not already present
+            if (!avatar.style.width) {
+                avatar.style.width = '40px';
+                avatar.style.height = '40px';
+                avatar.style.borderRadius = '50%';
+                avatar.style.display = 'flex';
+                avatar.style.alignItems = 'center';
+                avatar.style.justifyContent = 'center';
+                avatar.style.fontWeight = 'bold';
+            }
+        });
+    });
+</script>
+{% endblock %} 

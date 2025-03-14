@@ -1,0 +1,40 @@
+{
+  "timestamp": "2025-03-13 20:47:12.509560",
+  "environment_variables": {
+    "SUPABASE_URL": {
+      "present": true,
+      "length": 40
+    },
+    "SUPABASE_KEY": {
+      "present": true,
+      "length": 208
+    },
+    "SUPABASE_SERVICE_ROLE_KEY": {
+      "present": true,
+      "length": 219
+    }
+  },
+  "connection_test": {
+    "status": "success",
+    "key_type": "anon",
+    "elapsed_ms": 967.595
+  },
+  "auth_test": {
+    "status": "success",
+    "elapsed_ms": 0.0
+  },
+  "query_test": {
+    "status": "success",
+    "has_data": true,
+    "elapsed_ms": 1119.525
+  },
+  "service_role_test": {
+    "status": "success",
+    "elapsed_ms": 578.699
+  },
+  "service_query_test": {
+    "status": "success",
+    "has_data": true,
+    "elapsed_ms": 997.5939999999999
+  }
+}

@@ -9,10 +9,12 @@ steps:
       'gcr.io/$PROJECT_ID/akc-crm:latest',
       '.'
     ]
+    timeout: '600s'
 
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/akc-crm']
+    timeout: '600s'
 
   # Deploy container image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -33,13 +35,22 @@ steps:
     - '--set-secrets'
     - 'SUPABASE_KEY=SUPABASE_KEY:latest'
     - '--set-secrets'
-    - 'SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_KEY:latest'
+    - 'SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest'
     - '--set-secrets'
     - 'SUPABASE_DB_PASSWORD=SUPABASE_DB_PASSWORD:latest'
     - '--set-secrets'
     - 'FLASK_SECRET_KEY=FLASK_SECRET_KEY:latest'
     - '--memory'
-    - '512Mi'
+    - '1Gi'
+    - '--cpu'
+    - '1'
+    - '--timeout'
+    - '300s'
+    - '--concurrency'
+    - '80'
+    - '--min-instances'
+    - '1'
+    timeout: '900s'
 
   # Create a latest tag for future cache optimization
   - name: 'gcr.io/cloud-builders/docker'

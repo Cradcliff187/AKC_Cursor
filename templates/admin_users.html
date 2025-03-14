@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>User Management</h1>
+    <a href="/register" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add New User
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="row">
+            <div class="col-md-6">
+                <form action="/admin/users" method="get" class="d-flex">
+                    <input type="text" name="search" class="form-control me-2" placeholder="Search users..." value="{{ search_query }}">
+                    <button type="submit" class="btn btn-outline-primary">Search</button>
+                </form>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                        Filter by Role
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/admin/users">All Roles</a></li>
+                        <li><a class="dropdown-item" href="/admin/users?role=admin">Administrators</a></li>
+                        <li><a class="dropdown-item" href="/admin/users?role=manager">Managers</a></li>
+                        <li><a class="dropdown-item" href="/admin/users?role=staff">Staff</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.first_name }} {{ user.last_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="badge bg-{{ user.role_color }}">{{ user.role }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if user.active else 'danger' }}">
+                                {{ 'Active' if user.active else 'Inactive' }}
+                            </span>
+                        </td>
+                        <td>{{ user.last_login }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="/admin/users/{{ user.id }}/edit" class="btn btn-sm btn-outline-primary">Edit</a>
+                                {% if user.active %}
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        onclick="deactivateUser('{{ user.id }}', '{{ user.first_name }} {{ user.last_name }}')">Deactivate</button>
+                                {% else %}
+                                <button type="button" class="btn btn-sm btn-outline-success" 
+                                        onclick="activateUser('{{ user.id }}', '{{ user.first_name }} {{ user.last_name }}')">Activate</button>
+                                {% endif %}
+                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        onclick="resetPassword('{{ user.id }}', '{{ user.first_name }} {{ user.last_name }}')">Reset Password</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">No users found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer">
+        <nav aria-label="Users pagination">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="?page={{ page - 1 }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role %}&role={{ role }}{% endif %}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="?page={{ p }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role %}&role={{ role }}{% endif %}">{{ p }}</a>
+                </li>
+                {% endfor %}
+                <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                    <a class="page-link" href="?page={{ page + 1 }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role %}&role={{ role }}{% endif %}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function deactivateUser(id, name) {
+        if (confirm(`Are you sure you want to deactivate ${name}?`)) {
+            fetch(`/admin/users/${id}/deactivate`, {
+                method: 'POST',
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to deactivate user');
+                }
+            });
+        }
+    }
+    
+    function activateUser(id, name) {
+        if (confirm(`Are you sure you want to activate ${name}?`)) {
+            fetch(`/admin/users/${id}/activate`, {
+                method: 'POST',
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to activate user');
+                }
+            });
+        }
+    }
+    
+    function resetPassword(id, name) {
+        if (confirm(`Are you sure you want to reset the password for ${name}?`)) {
+            fetch(`/admin/users/${id}/reset-password`, {
+                method: 'POST',
+            }).then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Failed to reset password');
+                }
+            }).then(data => {
+                alert(`Password has been reset. Temporary password: ${data.temp_password}`);
+            }).catch(error => {
+                alert(error.message);
+            });
+        }
+    }
+</script>
+{% endblock %} 

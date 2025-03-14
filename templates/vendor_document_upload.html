@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Vendor Document - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="/vendors/{{ vendor.id }}" class="btn btn-outline-secondary mb-2">
+                <i class="fas fa-arrow-left"></i> Back to Vendor
+            </a>
+            <h1 class="mb-0">Upload Document</h1>
+            <p class="text-muted">Vendor: {{ vendor.name }}</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Document Information</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" action="/vendors/{{ vendor.id }}/documents/upload" enctype="multipart/form-data">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="document_name" class="form-label">Document Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="document_name" name="document_name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="document_type" class="form-label">Document Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="document_type" name="document_type" required>
+                                <option value="">Select document type</option>
+                                <option value="invoice">Invoice</option>
+                                <option value="receipt">Receipt</option>
+                                <option value="contract">Contract</option>
+                                <option value="quote">Quote/Estimate</option>
+                                <option value="insurance">Insurance Certificate</option>
+                                <option value="license">License/Certification</option>
+                                <option value="tax">Tax Document</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="document_date" class="form-label">Document Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="document_date" name="document_date" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="project_id" class="form-label">Related Project</label>
+                            <select class="form-select" id="project_id" name="project_id">
+                                <option value="">Select Project (Optional)</option>
+                                {% for project in projects %}
+                                <option value="{{ project.id }}">{{ project.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="document_file" class="form-label">File <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="document_file" name="document_file" required>
+                            <div class="form-text">
+                                Accepted file types: PDF, JPG, PNG (Max size: 10MB)
+                            </div>
+                        </div>
+                        
+                        <div id="preview-container" class="mb-3 d-none">
+                            <label class="form-label">Preview</label>
+                            <div class="border rounded p-2 text-center">
+                                <img id="image-preview" class="img-fluid mb-2 d-none" style="max-height: 200px;" alt="Document preview">
+                                <div id="pdf-preview" class="d-none">
+                                    <i class="fas fa-file-pdf fa-3x text-danger mb-2"></i>
+                                    <p class="mb-0" id="pdf-filename"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0">
+                            </div>
+                            <div class="form-text">Required for invoices and receipts</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="reference_number" class="form-label">Reference Number</label>
+                            <input type="text" class="form-control" id="reference_number" name="reference_number">
+                            <div class="form-text">Invoice number, receipt number, etc.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="document_description" class="form-label">Description</label>
+                            <textarea class="form-control" id="document_description" name="document_description" rows="4"></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Approval Workflow</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="approval_status" class="form-label">Initial Status</label>
+                                    <select class="form-select" id="approval_status" name="approval_status">
+                                        <option value="draft">Draft</option>
+                                        <option value="pending" selected>Pending Approval</option>
+                                        <option value="approved">Approved</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="approval_level" class="form-label">Approval Level</label>
+                                    <select class="form-select" id="approval_level" name="approval_level">
+                                        <option value="low">Low (Project Manager)</option>
+                                        <option value="medium" selected>Medium (Department Head)</option>
+                                        <option value="high">High (Executive)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="approver_id" class="form-label">Assigned Approver</label>
+                                    <select class="form-select" id="approver_id" name="approver_id">
+                                        <option value="">Auto-assign based on level</option>
+                                        {% for user in users %}
+                                        <option value="{{ user.id }}">{{ user.first_name }} {{ user.last_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="due_date" class="form-label">Approval Due Date</label>
+                                    <input type="date" class="form-control" id="due_date" name="due_date">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="notify_approvers" name="notify_approvers" checked>
+                            <label class="form-check-label" for="notify_approvers">
+                                Send email notification to approvers
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end">
+                    <a href="/vendors/{{ vendor.id }}" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Upload Document</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default date to today
+        const today = new Date();
+        const formattedDate = today.toISOString().substr(0, 10);
+        document.getElementById('document_date').value = formattedDate;
+        
+        // Document type dependent fields
+        const documentTypeSelect = document.getElementById('document_type');
+        const amountGroup = document.getElementById('amount').closest('.mb-3');
+        const referenceNumberGroup = document.getElementById('reference_number').closest('.mb-3');
+        
+        documentTypeSelect.addEventListener('change', function() {
+            const documentType = this.value;
+            
+            // Show/hide amount field based on document type
+            if (documentType === 'invoice' || documentType === 'receipt' || documentType === 'quote') {
+                amountGroup.classList.remove('d-none');
+                document.getElementById('amount').setAttribute('required', 'required');
+            } else {
+                amountGroup.classList.add('d-none');
+                document.getElementById('amount').removeAttribute('required');
+            }
+            
+            // Show/hide reference number field based on document type
+            if (documentType === 'invoice' || documentType === 'receipt' || documentType === 'contract') {
+                referenceNumberGroup.classList.remove('d-none');
+            } else {
+                referenceNumberGroup.classList.add('d-none');
+            }
+        });
+        
+        // File preview
+        const fileInput = document.getElementById('document_file');
+        const previewContainer = document.getElementById('preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const pdfPreview = document.getElementById('pdf-preview');
+        const pdfFilename = document.getElementById('pdf-filename');
+        
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            
+            if (file) {
+                const fileType = file.type;
+                previewContainer.classList.remove('d-none');
+                
+                if (fileType.startsWith('image/')) {
+                    // Image preview
+                    imagePreview.classList.remove('d-none');
+                    pdfPreview.classList.add('d-none');
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                } else if (fileType === 'application/pdf') {
+                    // PDF preview
+                    imagePreview.classList.add('d-none');
+                    pdfPreview.classList.remove('d-none');
+                    pdfFilename.textContent = file.name;
+                } else {
+                    // Unsupported file type
+                    previewContainer.classList.add('d-none');
+                }
+                
+                // Auto-fill document name if empty
+                const documentNameInput = document.getElementById('document_name');
+                if (!documentNameInput.value) {
+                    let fileName = file.name.split('.').slice(0, -1).join('.');
+                    fileName = fileName.replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    documentNameInput.value = fileName;
+                }
+            } else {
+                previewContainer.classList.add('d-none');
+            }
+        });
+        
+        // Form validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+            
+            // Validate file size
+            const file = fileInput.files[0];
+            if (file && file.size > 10 * 1024 * 1024) { // 10MB
+                event.preventDefault();
+                alert('File size exceeds the 10MB limit.');
+            }
+        });
+    });
+</script>
+{% endblock %} 

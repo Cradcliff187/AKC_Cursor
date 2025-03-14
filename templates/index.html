@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome to AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row align-items-center">
+        <div class="col-lg-6">
+            <h1 class="display-4 fw-bold mb-4">Welcome to AKC CRM</h1>
+            <p class="lead mb-4">A comprehensive customer relationship management system for animal healthcare providers.</p>
+            <p class="mb-4">Manage your clients, track appointments, and streamline your workflow with our easy-to-use platform.</p>
+            <div class="d-grid gap-2 d-md-flex">
+                <a href="/login" class="btn btn-primary btn-lg px-4 me-md-2">Log In</a>
+                <a href="#features" class="btn btn-outline-secondary btn-lg px-4">Learn More</a>
+            </div>
+        </div>
+        <div class="col-lg-6 d-none d-lg-block">
+            <img src="{{ url_for('static', filename='img/dashboard-preview.png') }}" alt="Dashboard Preview" class="img-fluid rounded shadow-lg" onerror="this.src='https://via.placeholder.com/600x400?text=AKC+CRM+Dashboard'">
+        </div>
+    </div>
+</div>
+
+<div id="features" class="bg-light py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Key Features</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="feature-icon bg-primary text-white rounded-circle mb-3">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h5 class="card-title">Contact Management</h5>
+                        <p class="card-text">Store and manage client information, including contact details and pet profiles.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="feature-icon bg-primary text-white rounded-circle mb-3">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <h5 class="card-title">Appointment Scheduling</h5>
+                        <p class="card-text">Schedule and manage appointments with an intuitive calendar interface.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="feature-icon bg-primary text-white rounded-circle mb-3">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h5 class="card-title">Dashboard & Analytics</h5>
+                        <p class="card-text">Get insights into your business with customizable dashboards and reports.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <h2 class="mb-4">Ready to get started?</h2>
+            <p class="lead mb-5">Contact your administrator to create an account and start using AKC CRM today.</p>
+            <a href="/login" class="btn btn-primary btn-lg px-5">Log In Now</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+</style>
+{% endblock %} 

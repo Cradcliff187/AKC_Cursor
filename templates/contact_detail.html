@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}{{ contact.name }} - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="/contacts" class="btn btn-outline-secondary mb-2">
+            <i class="fas fa-arrow-left"></i> Back to Contacts
+        </a>
+        <h1 class="mb-0">{{ contact.name }}</h1>
+    </div>
+    <div>
+        <a href="/contacts/{{ contact.id }}/edit" class="btn btn-primary me-2">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        <button type="button" class="btn btn-danger btn-delete" data-contact-id="{{ contact.id }}">
+            <i class="fas fa-trash"></i> Delete
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Contact Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-envelope me-2"></i> Email</span>
+                        <span>
+                            {% if contact.email %}
+                            <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                            {% else %}
+                            <span class="text-muted">Not provided</span>
+                            {% endif %}
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-phone me-2"></i> Phone</span>
+                        <span>
+                            {% if contact.phone %}
+                            <a href="tel:{{ contact.phone }}">{{ contact.phone }}</a>
+                            {% else %}
+                            <span class="text-muted">Not provided</span>
+                            {% endif %}
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-calendar me-2"></i> Last Contact</span>
+                        <span>{{ contact.last_contact or 'Not recorded' }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Address</h5>
+            </div>
+            <div class="card-body">
+                {% if contact.address or contact.city or contact.state %}
+                <address class="mb-0">
+                    {% if contact.address %}{{ contact.address }}<br>{% endif %}
+                    {% if contact.city or contact.state or contact.zip %}
+                        {% if contact.city %}{{ contact.city }}{% endif %}{% if contact.city and contact.state %}, {% endif %}
+                        {% if contact.state %}{{ contact.state }}{% endif %} {% if contact.zip %}{{ contact.zip }}{% endif %}
+                    {% endif %}
+                </address>
+                {% if contact.address and contact.city and contact.state %}
+                <div class="mt-3">
+                    <a href="https://maps.google.com/?q={{ contact.address }}, {{ contact.city }}, {{ contact.state }} {{ contact.zip }}" 
+                       target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-map-marker-alt me-1"></i> View on Map
+                    </a>
+                </div>
+                {% endif %}
+                {% else %}
+                <p class="text-muted mb-0">No address information provided</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Notes</h5>
+            </div>
+            <div class="card-body">
+                {% if contact.notes %}
+                <p class="mb-0">{{ contact.notes }}</p>
+                {% else %}
+                <p class="text-muted mb-0">No notes available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Pets</h5>
+                <a href="/contacts/{{ contact.id }}/edit" class="btn btn-sm btn-light">
+                    <i class="fas fa-plus"></i> Add Pet
+                </a>
+            </div>
+            <div class="card-body">
+                {% if contact.pets %}
+                <div class="row">
+                    {% for pet in contact.pets %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ pet.name }}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">{{ pet.type }}</h6>
+                                <div class="mt-3">
+                                    <a href="#" class="btn btn-sm btn-outline-primary me-2">View Records</a>
+                                    <a href="#" class="btn btn-sm btn-outline-secondary">Schedule</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No pets registered for this contact</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Appointments</h5>
+                <a href="#" class="btn btn-sm btn-light">
+                    <i class="fas fa-plus"></i> Schedule Appointment
+                </a>
+            </div>
+            <div class="card-body">
+                {% if appointments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Purpose</th>
+                                <th>Pet</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appointment in appointments %}
+                            <tr>
+                                <td>{{ appointment.date }}</td>
+                                <td>{{ appointment.time }}</td>
+                                <td>{{ appointment.purpose }}</td>
+                                <td>{{ appointment.pet_name }}</td>
+                                <td><span class="badge bg-{{ appointment.status_color }}">{{ appointment.status }}</span></td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="#" class="btn btn-outline-primary">View</a>
+                                        <a href="#" class="btn btn-outline-secondary">Edit</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No appointments scheduled for this contact</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Activity History</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Contact Created</h6>
+                            <small class="text-muted">2025-03-10</small>
+                        </div>
+                        <p class="mb-1">Contact was added to the system</p>
+                        <small class="text-muted">By Admin User</small>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Appointment Scheduled</h6>
+                            <small class="text-muted">2025-03-12</small>
+                        </div>
+                        <p class="mb-1">Scheduled checkup for {{ contact.pets[0].name if contact.pets else 'pet' }}</p>
+                        <small class="text-muted">By Staff User</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteButton = document.querySelector('.btn-delete');
+        
+        deleteButton.addEventListener('click', function() {
+            const contactId = this.getAttribute('data-contact-id');
+            const contactName = '{{ contact.name }}';
+            
+            if (confirm(`Are you sure you want to delete ${contactName}? This action cannot be undone.`)) {
+                // In a real app, we would send an AJAX request to delete the contact
+                window.location.href = '/contacts';
+            }
+        });
+    });
+</script>
+{% endblock %} 

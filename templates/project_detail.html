@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="/projects" class="btn btn-outline-secondary mb-2">
+            <i class="fas fa-arrow-left"></i> Back to Projects
+        </a>
+        <h1 class="mb-0">{{ project.name }}</h1>
+    </div>
+    <div>
+        <a href="/projects/{{ project.id }}/edit" class="btn btn-primary me-2">
+            <i class="fas fa-edit"></i> Edit Project
+        </a>
+        <button type="button" class="btn btn-danger btn-delete" data-project-id="{{ project.id }}">
+            <i class="fas fa-trash"></i> Delete
+        </button>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Project Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Status</h6>
+                        <span class="badge bg-{{ project.status_color }} fs-6">{{ project.status }}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Budget</h6>
+                        <h5>${{ "{:,.0f}".format(project.budget) }}</h5>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Start Date</h6>
+                        <p>{{ project.start_date }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">End Date</h6>
+                        <p>{{ project.end_date }}</p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-muted">Description</h6>
+                    <p>{{ project.description }}</p>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-muted">Location</h6>
+                    <p>{{ project.address }}</p>
+                    <a href="https://maps.google.com/?q={{ project.address }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-map-marker-alt me-1"></i> View on Map
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Tasks</h5>
+                <a href="/projects/{{ project.id }}/tasks/new" class="btn btn-sm btn-light">
+                    <i class="fas fa-plus"></i> Add Task
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if project.tasks %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Task</th>
+                                <th>Status</th>
+                                <th>Due Date</th>
+                                <th>Assigned To</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in project.tasks %}
+                            <tr>
+                                <td>
+                                    <strong>{{ task.name }}</strong>
+                                    {% if task.notes %}
+                                    <div class="small text-muted">{{ task.notes|truncate(60) }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if task.status == 'Completed' %}
+                                    <span class="badge bg-success">{{ task.status }}</span>
+                                    {% elif task.status == 'In Progress' %}
+                                    <span class="badge bg-primary">{{ task.status }}</span>
+                                    {% elif task.status == 'Pending' %}
+                                    <span class="badge bg-warning text-dark">{{ task.status }}</span>
+                                    {% elif task.status == 'On Hold' %}
+                                    <span class="badge bg-secondary">{{ task.status }}</span>
+                                    {% else %}
+                                    <span class="badge bg-info text-dark">{{ task.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ task.due_date }}</td>
+                                <td>
+                                    {% for user in team_members %}
+                                    {% if user.id == task.assigned_to %}
+                                    {{ user.first_name }} {{ user.last_name }}
+                                    {% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="/projects/{{ project.id }}/tasks/{{ task.id }}/edit" class="btn btn-outline-secondary">Edit</a>
+                                        <button type="button" class="btn btn-outline-success task-complete-btn" data-task-id="{{ task.id }}" {% if task.status == 'Completed' %}disabled{% endif %}>
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="mb-0">No tasks have been added to this project yet</p>
+                    <a href="/projects/{{ project.id }}/tasks/new" class="btn btn-primary mt-2">Add First Task</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Documents</h5>
+                <a href="/projects/{{ project.id }}/documents/upload" class="btn btn-sm btn-light">
+                    <i class="fas fa-upload"></i> Upload Document
+                </a>
+            </div>
+            <div class="card-body">
+                {% if project.documents %}
+                <div class="row">
+                    {% for document in project.documents %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-2">
+                                    {% if document.type == 'contract' %}
+                                    <i class="fas fa-file-contract text-primary fs-4 me-2"></i>
+                                    {% elif document.type == 'photos' %}
+                                    <i class="fas fa-images text-info fs-4 me-2"></i>
+                                    {% elif document.type == 'plans' %}
+                                    <i class="fas fa-drafting-compass text-success fs-4 me-2"></i>
+                                    {% elif document.type == 'report' %}
+                                    <i class="fas fa-file-alt text-warning fs-4 me-2"></i>
+                                    {% elif document.type == 'financial' %}
+                                    <i class="fas fa-file-invoice-dollar text-danger fs-4 me-2"></i>
+                                    {% else %}
+                                    <i class="fas fa-file text-secondary fs-4 me-2"></i>
+                                    {% endif %}
+                                    <h5 class="card-title mb-0">{{ document.name }}</h5>
+                                </div>
+                                <p class="card-text small text-muted">
+                                    Uploaded on {{ document.upload_date }} by 
+                                    {% for user in team_members %}
+                                    {% if user.id == document.uploaded_by %}
+                                    {{ user.first_name }} {{ user.last_name }}
+                                    {% endif %}
+                                    {% endfor %}
+                                </p>
+                                <div class="mt-2">
+                                    <a href="#" class="btn btn-sm btn-outline-primary me-1">View</a>
+                                    <a href="#" class="btn btn-sm btn-outline-secondary me-1">Download</a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="mb-0">No documents have been uploaded for this project</p>
+                    <a href="/projects/{{ project.id }}/documents/upload" class="btn btn-primary mt-2">Upload First Document</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Client Information</h5>
+            </div>
+            <div class="card-body">
+                {% if client %}
+                <h5>{{ client.name }}</h5>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-envelope me-2"></i> Email</span>
+                        <span>
+                            <a href="mailto:{{ client.email }}">{{ client.email }}</a>
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-phone me-2"></i> Phone</span>
+                        <span>
+                            <a href="tel:{{ client.phone }}">{{ client.phone }}</a>
+                        </span>
+                    </li>
+                </ul>
+                <div class="mt-3">
+                    <a href="/contacts/{{ client.id }}" class="btn btn-outline-primary btn-sm">View Client Profile</a>
+                </div>
+                {% else %}
+                <p class="text-muted">Client information not available</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Project Team</h5>
+            </div>
+            <div class="card-body">
+                {% if team_members %}
+                <ul class="list-group list-group-flush">
+                    {% for member in team_members %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle-sm me-2">
+                                    <span class="avatar-initials-sm">{{ member.first_name[0] }}{{ member.last_name[0] }}</span>
+                                </div>
+                                <span>{{ member.first_name }} {{ member.last_name }}</span>
+                            </div>
+                            <small class="text-muted">{{ member.role|title }}</small>
+                        </div>
+                        <a href="mailto:{{ member.email }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted">No team members assigned</p>
+                {% endif %}
+                <div class="mt-3">
+                    <a href="/projects/{{ project.id }}/edit" class="btn btn-outline-primary btn-sm">Manage Team</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Project Progress</h5>
+            </div>
+            <div class="card-body">
+                {% set completed_tasks = project.tasks|selectattr('status', 'equalto', 'Completed')|list|length %}
+                {% set total_tasks = project.tasks|length %}
+                {% set progress = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0 %}
+                
+                <div class="text-center mb-3">
+                    <h2 class="display-4">{{ "%.0f"|format(progress) }}%</h2>
+                    <p class="text-muted">{{ completed_tasks }} of {{ total_tasks }} tasks completed</p>
+                </div>
+                
+                <div class="progress mb-3" style="height: 20px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ progress }}%;" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100">{{ "%.0f"|format(progress) }}%</div>
+                </div>
+                
+                <div class="d-grid">
+                    <a href="/projects/{{ project.id }}/tasks/new" class="btn btn-outline-primary">Add New Task</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .avatar-circle-sm {
+        width: 30px;
+        height: 30px;
+        background-color: var(--bs-primary);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .avatar-initials-sm {
+        color: white;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle delete project button
+        const deleteButton = document.querySelector('.btn-delete');
+        if (deleteButton) {
+            deleteButton.addEventListener('click', function() {
+                const projectId = this.getAttribute('data-project-id');
+                const projectName = '{{ project.name }}';
+                
+                if (confirm(`Are you sure you want to delete "${projectName}"? This action cannot be undone.`)) {
+                    // In a real app, we would send an AJAX request to delete the project
+                    window.location.href = '/projects';
+                }
+            });
+        }
+        
+        // Handle task complete buttons
+        const taskCompleteButtons = document.querySelectorAll('.task-complete-btn');
+        taskCompleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                
+                if (confirm('Mark this task as completed?')) {
+                    // In a real app, we would send an AJAX request to update the task status
+                    this.disabled = true;
+                    this.closest('tr').querySelector('td:nth-child(2) span').className = 'badge bg-success';
+                    this.closest('tr').querySelector('td:nth-child(2) span').textContent = 'Completed';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

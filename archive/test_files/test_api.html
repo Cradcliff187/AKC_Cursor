@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Supabase API</h1>
+    
+    <div>
+        <button onclick="testEndpoint('/api/tables')">Get Tables</button>
+        <button onclick="testEndpoint('/api/users')">Get Users</button>
+        <input type="text" id="tableNameInput" placeholder="Enter table name">
+        <button onclick="testTableSchema()">Get Table Schema</button>
+        <button onclick="testTableData()">Get Table Data</button>
+    </div>
+    
+    <h2>Response:</h2>
+    <pre id="response">Click a button to test an endpoint</pre>
+    
+    <script>
+        async function testEndpoint(endpoint) {
+            try {
+                document.getElementById('response').textContent = 'Loading...';
+                
+                const response = await fetch(`http://localhost:8001${endpoint}`);
+                const data = await response.json();
+                
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('response').textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function testTableSchema() {
+            const tableName = document.getElementById('tableNameInput').value;
+            if (!tableName) {
+                document.getElementById('response').textContent = 'Please enter a table name';
+                return;
+            }
+            
+            testEndpoint(`/api/tables/${tableName}/schema`);
+        }
+        
+        async function testTableData() {
+            const tableName = document.getElementById('tableNameInput').value;
+            if (!tableName) {
+                document.getElementById('response').textContent = 'Please enter a table name';
+                return;
+            }
+            
+            testEndpoint(`/api/tables/${tableName}/data`);
+        }
+    </script>
+</body>
+</html> 

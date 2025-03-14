@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Contacts - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Contacts</h1>
+    <a href="/contacts/new" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add New Contact
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <div class="row g-2">
+            <div class="col-md-6">
+                <form action="/contacts" method="get" class="d-flex">
+                    <input type="search" name="search" class="form-control me-2" placeholder="Search contacts..." value="{{ search_query }}">
+                    <button type="submit" class="btn btn-outline-primary">Search</button>
+                </form>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-filter me-1"></i> Filter
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/contacts">All Contacts</a></li>
+                        <li><a class="dropdown-item" href="/contacts?filter=recent">Recently Added</a></li>
+                        <li><a class="dropdown-item" href="/contacts?filter=recent_contact">Recently Contacted</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/contacts?filter=has_pets">Has Pets</a></li>
+                        <li><a class="dropdown-item" href="/contacts?filter=no_pets">No Pets</a></li>
+                    </ul>
+                </div>
+                <div class="btn-group ms-2">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-sort me-1"></i> Sort
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/contacts?sort=name_asc">Name (A-Z)</a></li>
+                        <li><a class="dropdown-item" href="/contacts?sort=name_desc">Name (Z-A)</a></li>
+                        <li><a class="dropdown-item" href="/contacts?sort=recent">Most Recent</a></li>
+                        <li><a class="dropdown-item" href="/contacts?sort=last_contact">Last Contacted</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Pets</th>
+                        <th>Last Contact</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contact in contacts %}
+                    <tr class="contact-row" data-href="/contacts/{{ contact.id }}">
+                        <td>{{ contact.name }}</td>
+                        <td>{{ contact.email }}</td>
+                        <td>{{ contact.phone }}</td>
+                        <td>
+                            {% if contact.pets %}
+                            <span class="badge bg-info text-dark">{{ contact.pets|length }}</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark">0</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ contact.last_contact or 'N/A' }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="/contacts/{{ contact.id }}" class="btn btn-outline-primary">View</a>
+                                <a href="/contacts/{{ contact.id }}/edit" class="btn btn-outline-secondary">Edit</a>
+                                <button type="button" class="btn btn-outline-danger btn-delete" data-contact-id="{{ contact.id }}" data-contact-name="{{ contact.name }}">
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            {% if search_query %}
+                            <p class="mb-0">No contacts found matching "{{ search_query }}"</p>
+                            <a href="/contacts" class="btn btn-outline-primary mt-2">Clear Search</a>
+                            {% else %}
+                            <p class="mb-0">No contacts found</p>
+                            <a href="/contacts/new" class="btn btn-primary mt-2">Add Your First Contact</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if total_pages > 1 %}
+    <div class="card-footer">
+        <nav aria-label="Contacts pagination">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="?page={{ page - 1 }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="?page={{ p }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ p }}</a>
+                </li>
+                {% endfor %}
+                <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                    <a class="page-link" href="?page={{ page + 1 }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Make rows clickable
+        const contactRows = document.querySelectorAll('.contact-row');
+        contactRows.forEach(row => {
+            row.addEventListener('click', function(e) {
+                // Don't trigger when clicking on buttons or links
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || 
+                    e.target.closest('button') || e.target.closest('a')) {
+                    return;
+                }
+                
+                const href = this.getAttribute('data-href');
+                if (href) {
+                    window.location.href = href;
+                }
+            });
+        });
+        
+        // Handle delete buttons
+        const deleteButtons = document.querySelectorAll('.btn-delete');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent row click
+                
+                const contactId = this.getAttribute('data-contact-id');
+                const contactName = this.getAttribute('data-contact-name');
+                
+                if (confirm(`Are you sure you want to delete ${contactName}? This action cannot be undone.`)) {
+                    // In a real app, we would send an AJAX request to delete the contact
+                    window.location.href = '/contacts';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

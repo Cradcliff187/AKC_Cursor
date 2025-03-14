@@ -1,0 +1,6 @@
+{
+  "timestamp": "2025-03-13 21:25:18.825540",
+  "exec_sql_exists": true,
+  "update_updated_at_column_exists": true,
+  "all_functions_exist": true
+}

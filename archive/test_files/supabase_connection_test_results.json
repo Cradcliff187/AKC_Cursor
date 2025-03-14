@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-03-13 21:04:15.128400",
+  "anonymous_query": {
+    "success": true,
+    "count": 0
+  },
+  "service_role_query": {
+    "success": true,
+    "count": 5
+  }
+}

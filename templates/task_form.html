@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}{% if task %}Edit Task{% else %}New Task{% endif %} - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="/projects/{{ project.id }}" class="btn btn-outline-secondary mb-2">
+                <i class="fas fa-arrow-left"></i> Back to Project
+            </a>
+            <h1 class="mb-0">{% if task %}Edit Task{% else %}Add New Task{% endif %}</h1>
+            <p class="text-muted">Project: {{ project.name }}</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Task Information</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% if task %}/projects/{{ project.id }}/tasks/{{ task.id }}/edit{% else %}/projects/{{ project.id }}/tasks/new{% endif %}">
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <label for="task_name" class="form-label">Task Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="task_name" name="task_name" value="{% if task %}{{ task.name }}{% endif %}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="Pending" {% if task and task.status == 'Pending' %}selected{% endif %}>Pending</option>
+                            <option value="In Progress" {% if task and task.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                            <option value="On Hold" {% if task and task.status == 'On Hold' %}selected{% endif %}>On Hold</option>
+                            <option value="Completed" {% if task and task.status == 'Completed' %}selected{% endif %}>Completed</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="due_date" class="form-label">Due Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="due_date" name="due_date" value="{% if task %}{{ task.due_date }}{% endif %}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="assigned_to" class="form-label">Assigned To <span class="text-danger">*</span></label>
+                        <select class="form-select" id="assigned_to" name="assigned_to" required>
+                            <option value="">Select team member</option>
+                            {% for member in team_members %}
+                            <option value="{{ member.id }}" {% if task and task.assigned_to == member.id %}selected{% endif %}>{{ member.first_name }} {{ member.last_name }} ({{ member.role|title }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="priority" class="form-label">Priority <span class="text-danger">*</span></label>
+                        <select class="form-select" id="priority" name="priority" required>
+                            <option value="Low" {% if task and task.priority == 'Low' %}selected{% endif %}>Low</option>
+                            <option value="Medium" {% if task and task.priority == 'Medium' %}selected{% endif %}>Medium</option>
+                            <option value="High" {% if task and task.priority == 'High' %}selected{% endif %}>High</option>
+                            <option value="Urgent" {% if task and task.priority == 'Urgent' %}selected{% endif %}>Urgent</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="estimated_hours" class="form-label">Estimated Hours</label>
+                        <input type="number" class="form-control" id="estimated_hours" name="estimated_hours" min="0" step="0.5" value="{% if task %}{{ task.estimated_hours }}{% endif %}">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Notes</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="4">{% if task %}{{ task.notes }}{% endif %}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Dependencies</label>
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="text-muted mb-3">Select tasks that must be completed before this task can start:</p>
+                            {% if other_tasks %}
+                            <div class="row">
+                                {% for other_task in other_tasks %}
+                                {% if not task or other_task.id != task.id %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="dependency_{{ other_task.id }}" name="dependencies[]" value="{{ other_task.id }}" 
+                                            {% if task and task.dependencies and other_task.id in task.dependencies %}checked{% endif %}>
+                                        <label class="form-check-label" for="dependency_{{ other_task.id }}">
+                                            {{ other_task.name }}
+                                            <span class="badge {% if other_task.status == 'Completed' %}bg-success{% elif other_task.status == 'In Progress' %}bg-primary{% elif other_task.status == 'Pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                                {{ other_task.status }}
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted">No other tasks available in this project.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a href="/projects/{{ project.id }}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+        });
+        
+        // Due date validation
+        const dueDateInput = document.getElementById('due_date');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        dueDateInput.addEventListener('change', function() {
+            const selectedDate = new Date(dueDateInput.value);
+            const projectEndDate = new Date('{{ project.end_date }}');
+            
+            if (selectedDate > projectEndDate) {
+                dueDateInput.setCustomValidity('Due date cannot be after project end date');
+            } else {
+                dueDateInput.setCustomValidity('');
+            }
+        });
+        
+        // Priority color indicator
+        const prioritySelect = document.getElementById('priority');
+        updatePriorityColor();
+        
+        prioritySelect.addEventListener('change', updatePriorityColor);
+        
+        function updatePriorityColor() {
+            const priority = prioritySelect.value;
+            prioritySelect.classList.remove('border-danger', 'border-warning', 'border-info', 'border-success');
+            
+            switch(priority) {
+                case 'Urgent':
+                    prioritySelect.classList.add('border-danger');
+                    break;
+                case 'High':
+                    prioritySelect.classList.add('border-warning');
+                    break;
+                case 'Medium':
+                    prioritySelect.classList.add('border-info');
+                    break;
+                case 'Low':
+                    prioritySelect.classList.add('border-success');
+                    break;
+            }
+        }
+    });
+</script>
+{% endblock %} 

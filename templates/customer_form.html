@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if customer.id %}Edit Customer{% else %}New Customer{% endif %} - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{% if customer.id %}Edit Customer{% else %}New Customer{% endif %}</h5>
+            <a href="{% if customer.id %}{{ url_for('customer_detail', customer_id=customer.id) }}{% else %}{{ url_for('customers') }}{% endif %}" class="btn btn-light btn-sm">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+        <div class="card-body">
+            <form method="post" id="customerForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Company/Organization Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ customer.name }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="contact_name" class="form-label">Primary Contact Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="contact_name" name="contact_name" value="{{ customer.contact_name }}" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ customer.email }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="phone" name="phone" value="{{ customer.phone }}" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="address" class="form-label">Address</label>
+                    <input type="text" class="form-control" id="address" name="address" value="{{ customer.address }}">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" name="city" value="{{ customer.city }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="state" name="state" value="{{ customer.state }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="zip" class="form-label">ZIP Code</label>
+                            <input type="text" class="form-control" id="zip" name="zip" value="{{ customer.zip }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                {% for status in statuses %}
+                                <option value="{{ status }}" {% if customer.status == status %}selected{% endif %}>{{ status }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="customer_since" class="form-label">Customer Since</label>
+                            <input type="date" class="form-control" id="customer_since" name="customer_since" value="{{ customer.customer_since }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="payment_terms" class="form-label">Payment Terms</label>
+                            <select class="form-select" id="payment_terms" name="payment_terms">
+                                {% for term in payment_terms %}
+                                <option value="{{ term }}" {% if customer.payment_terms == term %}selected{% endif %}>{{ term }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="credit_limit" class="form-label">Credit Limit</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" id="credit_limit" name="credit_limit" step="0.01" min="0" value="{{ customer.credit_limit }}">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Notes</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3">{{ customer.notes }}</textarea>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% if customer.id %}{{ url_for('customer_detail', customer_id=customer.id) }}{% else %}{{ url_for('customers') }}{% endif %}" class="btn btn-secondary me-md-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default date to today for new customers
+        if (!document.getElementById('customer_since').value) {
+            const today = new Date();
+            const formattedDate = today.toISOString().substr(0, 10);
+            document.getElementById('customer_since').value = formattedDate;
+        }
+    });
+</script>
+{% endblock %} 

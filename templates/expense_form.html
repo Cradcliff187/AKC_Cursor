@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if expense %}Edit Expense{% else %}New Expense{% endif %} - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{% if expense %}Edit Expense{% else %}New Expense{% endif %}</h5>
+            <a href="{% if selected_project %}{{ url_for('project_expenses', project_id=selected_project.id) }}{% else %}{{ url_for('expenses') }}{% endif %}" class="btn btn-light btn-sm">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+        <div class="card-body">
+            <form method="post" id="expenseForm" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="project_id" class="form-label">Project <span class="text-danger">*</span></label>
+                            <select class="form-select" id="project_id" name="project_id" required>
+                                <option value="">Select Project</option>
+                                {% for project_id, project_name in projects %}
+                                <option value="{{ project_id }}" {% if selected_project and selected_project.id == project_id %}selected{% elif expense and expense.project_id == project_id %}selected{% endif %}>
+                                    {{ project_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date" name="date" value="{{ expense.date if expense else '' }}" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="">Select Category</option>
+                                {% for category in categories %}
+                                <option value="{{ category }}" {% if expense and expense.category == category %}selected{% endif %}>
+                                    {{ category }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" value="{{ expense.amount if expense else '' }}" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="description" name="description" rows="3" required>{{ expense.description if expense else '' }}</textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="receipt" class="form-label">Receipt</label>
+                            <input type="file" class="form-control" id="receipt" name="receipt" accept="image/*,.pdf">
+                            {% if expense and expense.receipt_uploaded %}
+                            <small class="text-muted">A receipt has already been uploaded. Upload a new one to replace it.</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="Pending" {% if expense and expense.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="Approved" {% if expense and expense.status == 'Approved' %}selected{% endif %}>Approved</option>
+                                <option value="Rejected" {% if expense and expense.status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% if selected_project %}{{ url_for('project_expenses', project_id=selected_project.id) }}{% else %}{{ url_for('expenses') }}{% endif %}" class="btn btn-secondary me-md-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default date to today for new expenses
+        if (!document.getElementById('date').value) {
+            const today = new Date();
+            const formattedDate = today.toISOString().substr(0, 10);
+            document.getElementById('date').value = formattedDate;
+        }
+    });
+</script>
+{% endblock %} 

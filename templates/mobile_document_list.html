@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}{{ vendor.name }} Documents - Mobile View - AKC CRM{% endblock %}
+
+{% block extra_css %}
+<style>
+    .document-card {
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .document-card .card-header {
+        padding: 10px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .document-card .card-body {
+        padding: 15px;
+    }
+    
+    .document-type-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+    
+    .document-info {
+        flex-grow: 1;
+        min-width: 0;
+    }
+    
+    .document-name {
+        font-weight: 500;
+        margin-bottom: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .document-meta {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .filter-bar {
+        position: sticky;
+        top: 0;
+        background-color: #f8f9fa;
+        padding: 10px 0;
+        margin-bottom: 15px;
+        z-index: 100;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .search-box {
+        position: relative;
+    }
+    
+    .search-box .form-control {
+        padding-left: 40px;
+        border-radius: 20px;
+    }
+    
+    .search-box .search-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+    
+    .filter-chips {
+        display: flex;
+        overflow-x: auto;
+        padding: 10px 0;
+        gap: 8px;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .filter-chip {
+        padding: 5px 12px;
+        border-radius: 20px;
+        background-color: #e9ecef;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    
+    .filter-chip.active {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    .floating-action-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 28px;
+        background-color: #0d6efd;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        z-index: 1000;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+    }
+    
+    .empty-state-icon {
+        font-size: 3rem;
+        color: #dee2e6;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="mb-3">
+        <a href="/vendors/{{ vendor.id }}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Vendor
+        </a>
+    </div>
+    
+    <h5 class="mb-3">{{ vendor.name }} Documents</h5>
+    
+    <div class="filter-bar">
+        <div class="search-box mb-2">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="form-control" id="documentSearch" placeholder="Search documents...">
+        </div>
+        
+        <div class="filter-chips">
+            <div class="filter-chip active" data-filter="all">All</div>
+            <div class="filter-chip" data-filter="invoice">Invoices</div>
+            <div class="filter-chip" data-filter="receipt">Receipts</div>
+            <div class="filter-chip" data-filter="contract">Contracts</div>
+            <div class="filter-chip" data-filter="insurance">Insurance</div>
+            <div class="filter-chip" data-filter="license">Licenses</div>
+            <div class="filter-chip" data-filter="quote">Quotes</div>
+        </div>
+    </div>
+    
+    <div id="documentsList">
+        {% if documents %}
+            {% for document in documents %}
+            <div class="document-card card" data-document-type="{{ document.document_type }}">
+                <div class="card-header bg-white">
+                    <div class="d-flex align-items-center">
+                        <div class="document-type-icon 
+                            {% if document.document_type == 'invoice' %}bg-primary text-white
+                            {% elif document.document_type == 'receipt' %}bg-success text-white
+                            {% elif document.document_type == 'contract' %}bg-info text-white
+                            {% elif document.document_type == 'insurance' %}bg-warning text-dark
+                            {% elif document.document_type == 'license' %}bg-secondary text-white
+                            {% elif document.document_type == 'quote' %}bg-danger text-white
+                            {% else %}bg-light text-dark{% endif %}">
+                            {% if document.document_type == 'invoice' %}<i class="fas fa-file-invoice-dollar"></i>
+                            {% elif document.document_type == 'receipt' %}<i class="fas fa-receipt"></i>
+                            {% elif document.document_type == 'contract' %}<i class="fas fa-file-contract"></i>
+                            {% elif document.document_type == 'insurance' %}<i class="fas fa-shield-alt"></i>
+                            {% elif document.document_type == 'license' %}<i class="fas fa-id-card"></i>
+                            {% elif document.document_type == 'quote' %}<i class="fas fa-quote-right"></i>
+                            {% else %}<i class="fas fa-file"></i>{% endif %}
+                        </div>
+                        <div class="document-info">
+                            <div class="document-name">{{ document.document_name }}</div>
+                            <div class="document-meta">
+                                {{ document.document_date }} 
+                                {% if document.amount %}• ${{ document.amount }}{% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if document.approval_status == 'approved' %}
+                        <span class="badge bg-success ms-2">Approved</span>
+                        {% elif document.approval_status == 'rejected' %}
+                        <span class="badge bg-danger ms-2">Rejected</span>
+                        {% elif document.approval_status == 'pending' %}
+                        <span class="badge bg-warning text-dark ms-2">Pending</span>
+                        {% else %}
+                        <span class="badge bg-secondary ms-2">Draft</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        {% if document.reference_number %}
+                        <div class="col-6">
+                            <small class="text-muted">Reference #:</small>
+                            <div>{{ document.reference_number }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if document.project %}
+                        <div class="col-6">
+                            <small class="text-muted">Project:</small>
+                            <div>{{ document.project.name }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="/vendors/{{ vendor.id }}/documents/{{ document.id }}/mobile" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i> View
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h6>No Documents Found</h6>
+                <p class="text-muted">Upload your first document to get started</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <a href="/vendors/{{ vendor.id }}/documents/mobile/upload" class="floating-action-button">
+        <i class="fas fa-plus"></i>
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Search functionality
+        const searchInput = document.getElementById('documentSearch');
+        const documentCards = document.querySelectorAll('.document-card');
+        
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            documentCards.forEach(card => {
+                const documentName = card.querySelector('.document-name').textContent.toLowerCase();
+                const documentMeta = card.querySelector('.document-meta').textContent.toLowerCase();
+                
+                if (documentName.includes(searchTerm) || documentMeta.includes(searchTerm)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+        
+        // Filter functionality
+        const filterChips = document.querySelectorAll('.filter-chip');
+        
+        filterChips.forEach(chip => {
+            chip.addEventListener('click', function() {
+                // Update active state
+                filterChips.forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filter = this.getAttribute('data-filter');
+                
+                documentCards.forEach(card => {
+                    if (filter === 'all') {
+                        card.style.display = '';
+                    } else {
+                        const documentType = card.getAttribute('data-document-type');
+                        card.style.display = documentType === filter ? '' : 'none';
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %} 

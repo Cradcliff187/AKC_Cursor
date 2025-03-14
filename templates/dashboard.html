@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AKC CRM{% endblock %}
+
+{% block extra_css %}
+<style>
+.stat-card .stat-icon {
+    font-size: 3rem;
+    opacity: 0.3;
+}
+
+.chart-container {
+    min-height: 200px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Dashboard</h1>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Active Projects</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_projects }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-project-diagram fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <a href="{{ url_for('projects') }}" class="btn btn-sm btn-primary">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Contacts</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_contacts }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-address-book fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <a href="{{ url_for('contacts') }}" class="btn btn-sm btn-success">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Pending Tasks</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_tasks }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <a href="#" class="btn btn-sm btn-info">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Overdue Tasks</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ overdue_tasks }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <a href="#" class="btn btn-sm btn-warning">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Time Tracking & Expenses Metrics -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold">Time Tracking Summary</h6>
+                <a href="{{ url_for('time_logs') }}" class="btn btn-light btn-sm">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">This Week</h6>
+                                <h3 class="mb-0">{{ weekly_hours|default(0)|round(1) }} hrs</h3>
+                                <small class="text-muted">{{ weekly_billable_hours|default(0)|round(1) }} billable</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">This Month</h6>
+                                <h3 class="mb-0">{{ monthly_hours|default(0)|round(1) }} hrs</h3>
+                                <small class="text-muted">{{ monthly_billable_hours|default(0)|round(1) }} billable</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Pending Approval</h6>
+                                <h3 class="mb-0">{{ pending_hours|default(0)|round(1) }} hrs</h3>
+                                <small class="text-muted">{{ pending_entries|default(0) }} entries</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-3">
+                    <a href="{{ url_for('new_time_log') }}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Log Time
+                    </a>
+                    <a href="{{ url_for('time_summary_report') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-bar"></i> Time Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold">Expense Summary</h6>
+                <a href="{{ url_for('expenses') }}" class="btn btn-light btn-sm">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">This Month</h6>
+                                <h3 class="mb-0">${{ monthly_expenses|default(0)|round(2) }}</h3>
+                                <small class="text-muted">{{ monthly_expense_count|default(0) }} expenses</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Pending Approval</h6>
+                                <h3 class="mb-0">${{ pending_expenses|default(0)|round(2) }}</h3>
+                                <small class="text-muted">{{ pending_expense_count|default(0) }} expenses</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Top Category</h6>
+                                <h3 class="mb-0">{{ top_expense_category|default('N/A') }}</h3>
+                                <small class="text-muted">${{ top_category_amount|default(0)|round(2) }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-3">
+                    <a href="{{ url_for('new_expense') }}" class="btn btn-success">
+                        <i class="fas fa-plus-circle"></i> Add Expense
+                    </a>
+                    <a href="{{ url_for('expense_summary_report') }}" class="btn btn-outline-success">
+                        <i class="fas fa-chart-bar"></i> Expense Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Project Status Overview</h5>
+                <a href="/projects/new" class="btn btn-sm btn-light">
+                    <i class="fas fa-plus"></i> New Project
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Projects by Status</h6>
+                                <div class="chart-container" style="position: relative; height:200px;">
+                                    <!-- In a real app, we would integrate a chart here -->
+                                    <div class="text-center py-2">
+                                        <p class="mb-0">Chart would be displayed here</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span><i class="fas fa-circle text-primary me-1"></i> Planning</span>
+                                        <span>{{ planning_projects }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span><i class="fas fa-circle text-success me-1"></i> In Progress</span>
+                                        <span>{{ in_progress_projects }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span><i class="fas fa-circle text-warning me-1"></i> On Hold</span>
+                                        <span>{{ on_hold_projects }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span><i class="fas fa-circle text-success me-1"></i> Completed</span>
+                                        <span>{{ completed_projects }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">Recent Projects</h6>
+                                <div class="list-group list-group-flush">
+                                    {% for project in recent_projects %}
+                                    <a href="/projects/{{ project.id }}" class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ project.name }}</h6>
+                                            <span class="badge bg-{{ project.status_color }}">{{ project.status }}</span>
+                                        </div>
+                                        <p class="mb-1 text-muted small">Client: {{ project.client_name }}</p>
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="card-footer text-end">
+                                <a href="/projects" class="btn btn-outline-primary btn-sm">View All Projects</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4" id="tasks">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Upcoming Tasks</h5>
+                <div>
+                    <a href="#" class="btn btn-sm btn-light">
+                        <i class="fas fa-plus"></i> New Task
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if tasks %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Task</th>
+                                <th>Project</th>
+                                <th>Due Date</th>
+                                <th>Assigned To</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                            <tr>
+                                <td>{{ task.name }}</td>
+                                <td>
+                                    <a href="/projects/{{ task.project_id }}">{{ task.project_name }}</a>
+                                </td>
+                                <td>{{ task.due_date }}</td>
+                                <td>{{ task.assigned_to_name }}</td>
+                                <td>
+                                    <span class="badge bg-{{ task.status_color }}">{{ task.status }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ task.priority_color }}">{{ task.priority }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="mb-0">No upcoming tasks</p>
+                    <a href="#" class="btn btn-primary mt-2">Create a Task</a>
+                </div>
+                {% endif %}
+            </div>
+            {% if tasks %}
+            <div class="card-footer text-end">
+                <a href="#" class="btn btn-outline-primary btn-sm">View All Tasks</a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="/projects/new" class="btn btn-outline-primary">
+                                <i class="fas fa-plus me-2"></i> New Project
+                            </a>
+                            <a href="/contacts/new" class="btn btn-outline-primary">
+                                <i class="fas fa-user-plus me-2"></i> Add New Client
+                            </a>
+                            <a href="#" class="btn btn-outline-primary">
+                                <i class="fas fa-tasks me-2"></i> Create Task
+                            </a>
+                            <a href="#" class="btn btn-outline-primary">
+                                <i class="fas fa-file-export me-2"></i> Export Reports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Project Timeline</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline-mini">
+                            <!-- In a real app, we would integrate a timeline widget here -->
+                            <div class="text-center py-4">
+                                <p class="mb-0">Project timeline would be displayed here</p>
+                                <a href="/projects" class="btn btn-sm btn-outline-primary mt-2">View All Projects</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Recent Activity</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for activity in recent_activities %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ activity.title }}</h6>
+                            <small class="text-muted">{{ activity.time }}</small>
+                        </div>
+                        <p class="mb-1">{{ activity.description }}</p>
+                        <small class="text-muted">By {{ activity.user }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer text-end">
+                <a href="#" class="btn btn-outline-primary btn-sm">View All Activity</a>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Upcoming Deadlines</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for deadline in upcoming_deadlines %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">{{ deadline.name }}</h6>
+                            <small class="text-muted">Project: <a href="/projects/{{ deadline.project_id }}">{{ deadline.project_name }}</a></small>
+                            <div class="text-muted">Due: {{ deadline.due_date }}</div>
+                        </div>
+                        <span class="badge bg-{{ deadline.priority_color }} rounded-pill">{{ deadline.days_left }} days</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="card-footer text-end">
+                <a href="#" class="btn btn-outline-primary btn-sm">View All Deadlines</a>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Team Workload</h5>
+            </div>
+            <div class="card-body">
+                {% for member in team_workload %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span>{{ member.name }}</span>
+                        <span class="text-muted small">{{ member.task_count }} tasks</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-{{ member.workload_color }}" role="progressbar" style="width: {{ member.workload_percentage }}%;" aria-valuenow="{{ member.workload_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="card-footer text-end">
+                <a href="#" class="btn btn-outline-primary btn-sm">Manage Team</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

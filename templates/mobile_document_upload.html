@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Document - {{ vendor.name }} - Mobile View - AKC CRM{% endblock %}
+
+{% block extra_css %}
+<style>
+    .mobile-form-container {
+        padding: 0 15px;
+    }
+    
+    .form-section {
+        margin-bottom: 20px;
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .form-section-title {
+        font-size: 1rem;
+        font-weight: 500;
+        margin-bottom: 15px;
+        color: #495057;
+    }
+    
+    .form-floating {
+        margin-bottom: 15px;
+    }
+    
+    .form-floating > label {
+        padding-left: 15px;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 12px 15px;
+        height: auto;
+        font-size: 16px; /* Prevents iOS zoom */
+    }
+    
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+        color: #6c757d;
+    }
+    
+    .file-upload-container {
+        border: 2px dashed #dee2e6;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 15px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .file-upload-container.has-file {
+        border-style: solid;
+        border-color: #0d6efd;
+    }
+    
+    .file-upload-icon {
+        font-size: 2rem;
+        color: #6c757d;
+        margin-bottom: 10px;
+    }
+    
+    .file-upload-text {
+        margin-bottom: 10px;
+    }
+    
+    .file-upload-input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+    
+    .file-preview {
+        display: none;
+        margin-top: 15px;
+    }
+    
+    .file-preview.show {
+        display: block;
+    }
+    
+    .file-preview-image {
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: 8px;
+    }
+    
+    .file-preview-info {
+        display: flex;
+        align-items: center;
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .file-preview-icon {
+        font-size: 1.5rem;
+        margin-right: 10px;
+    }
+    
+    .file-preview-name {
+        flex-grow: 1;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .file-preview-remove {
+        color: #dc3545;
+        cursor: pointer;
+        padding: 5px;
+    }
+    
+    .approval-section {
+        padding-top: 10px;
+        border-top: 1px solid #dee2e6;
+        margin-top: 15px;
+    }
+    
+    .approval-toggle {
+        margin-bottom: 15px;
+    }
+    
+    .form-check-input {
+        width: 1.2em;
+        height: 1.2em;
+    }
+    
+    .form-check-label {
+        padding-left: 5px;
+    }
+    
+    .sticky-footer {
+        position: sticky;
+        bottom: 0;
+        background-color: #fff;
+        padding: 15px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        margin: 0 -15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mobile-form-container">
+    <div class="mb-3">
+        <a href="/vendors/{{ vendor.id }}/documents/mobile" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Documents
+        </a>
+    </div>
+    
+    <h5 class="mb-3">Upload Document</h5>
+    <p class="text-muted mb-4">{{ vendor.name }}</p>
+    
+    <form method="post" enctype="multipart/form-data" id="documentUploadForm">
+        <div class="form-section">
+            <div class="form-section-title">Document Information</div>
+            
+            <div class="form-floating mb-3">
+                <input type="text" class="form-control" id="document_name" name="document_name" placeholder="Document Name" required>
+                <label for="document_name">Document Name</label>
+            </div>
+            
+            <div class="form-floating mb-3">
+                <select class="form-select" id="document_type" name="document_type" required>
+                    <option value="" selected disabled>Select document type</option>
+                    <option value="invoice">Invoice</option>
+                    <option value="receipt">Receipt</option>
+                    <option value="contract">Contract</option>
+                    <option value="insurance">Insurance Certificate</option>
+                    <option value="license">License</option>
+                    <option value="quote">Quote</option>
+                    <option value="other">Other</option>
+                </select>
+                <label for="document_type">Document Type</label>
+            </div>
+            
+            <div class="form-floating mb-3">
+                <input type="date" class="form-control" id="document_date" name="document_date" required>
+                <label for="document_date">Document Date</label>
+            </div>
+            
+            <div class="form-floating mb-3">
+                <input type="text" class="form-control" id="reference_number" name="reference_number" placeholder="Reference Number">
+                <label for="reference_number">Reference Number (Optional)</label>
+            </div>
+            
+            <div class="form-floating mb-3">
+                <input type="number" class="form-control" id="amount" name="amount" placeholder="Amount" step="0.01">
+                <label for="amount">Amount (Optional)</label>
+            </div>
+            
+            <div class="form-floating mb-3">
+                <select class="form-select" id="project_id" name="project_id">
+                    <option value="">Not associated with a project</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+                <label for="project_id">Associated Project (Optional)</label>
+            </div>
+            
+            <div class="form-floating">
+                <textarea class="form-control" id="document_description" name="document_description" placeholder="Description" style="height: 100px"></textarea>
+                <label for="document_description">Description (Optional)</label>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <div class="form-section-title">Upload File</div>
+            
+            <div class="file-upload-container" id="fileUploadContainer">
+                <div class="file-upload-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div class="file-upload-text">
+                    <strong>Click to upload</strong> or drag and drop
+                </div>
+                <p class="text-muted small">Supported formats: PDF, JPG, PNG, DOC, DOCX</p>
+                <input type="file" class="file-upload-input" id="document_file" name="document_file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
+            </div>
+            
+            <div class="file-preview" id="filePreview">
+                <div id="filePreviewContent"></div>
+                <div class="file-preview-info">
+                    <div class="file-preview-icon" id="fileTypeIcon">
+                        <i class="fas fa-file"></i>
+                    </div>
+                    <div class="file-preview-name" id="fileName"></div>
+                    <div class="file-preview-remove" id="removeFile">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <div class="form-section-title">Approval Workflow</div>
+            
+            <div class="form-check form-switch approval-toggle">
+                <input class="form-check-input" type="checkbox" id="needsApproval" checked>
+                <label class="form-check-label" for="needsApproval">This document needs approval</label>
+            </div>
+            
+            <div id="approvalFields">
+                <div class="form-floating mb-3">
+                    <select class="form-select" id="approval_status" name="approval_status">
+                        <option value="draft" selected>Draft - Save without submitting</option>
+                        <option value="pending">Pending - Submit for approval now</option>
+                    </select>
+                    <label for="approval_status">Approval Status</label>
+                </div>
+                
+                <div id="pendingApprovalFields" style="display: none;">
+                    <div class="form-floating mb-3">
+                        <select class="form-select" id="approval_level" name="approval_level">
+                            <option value="low">Low - Basic review</option>
+                            <option value="medium" selected>Medium - Standard review</option>
+                            <option value="high">High - Detailed review</option>
+                        </select>
+                        <label for="approval_level">Approval Level</label>
+                    </div>
+                    
+                    <div class="form-floating mb-3">
+                        <select class="form-select" id="approver_id" name="approver_id">
+                            <option value="">Auto-assign approver</option>
+                            {% for user in users %}
+                            {% if user.is_approver %}
+                            <option value="{{ user.id }}">{{ user.first_name }} {{ user.last_name }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                        <label for="approver_id">Assign Approver (Optional)</label>
+                    </div>
+                    
+                    <div class="form-floating">
+                        <input type="date" class="form-control" id="due_date" name="due_date">
+                        <label for="due_date">Due Date (Optional)</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="noApprovalMessage" style="display: none;">
+                <p class="text-muted">This document will be saved without an approval workflow.</p>
+            </div>
+        </div>
+        
+        <div class="sticky-footer">
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">Upload Document</button>
+                <a href="/vendors/{{ vendor.id }}/documents/mobile" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // File upload preview
+        const fileInput = document.getElementById('document_file');
+        const fileUploadContainer = document.getElementById('fileUploadContainer');
+        const filePreview = document.getElementById('filePreview');
+        const filePreviewContent = document.getElementById('filePreviewContent');
+        const fileName = document.getElementById('fileName');
+        const fileTypeIcon = document.getElementById('fileTypeIcon');
+        const removeFile = document.getElementById('removeFile');
+        
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            
+            if (file) {
+                fileUploadContainer.classList.add('has-file');
+                filePreview.classList.add('show');
+                fileName.textContent = file.name;
+                
+                // Set appropriate icon based on file type
+                if (file.type.startsWith('image/')) {
+                    fileTypeIcon.innerHTML = '<i class="fas fa-file-image text-primary"></i>';
+                    
+                    // Show image preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        filePreviewContent.innerHTML = `<img src="${e.target.result}" class="file-preview-image" alt="Preview">`;
+                    }
+                    reader.readAsDataURL(file);
+                } else if (file.type === 'application/pdf') {
+                    fileTypeIcon.innerHTML = '<i class="fas fa-file-pdf text-danger"></i>';
+                    filePreviewContent.innerHTML = '';
+                } else if (file.type.includes('word')) {
+                    fileTypeIcon.innerHTML = '<i class="fas fa-file-word text-primary"></i>';
+                    filePreviewContent.innerHTML = '';
+                } else {
+                    fileTypeIcon.innerHTML = '<i class="fas fa-file text-secondary"></i>';
+                    filePreviewContent.innerHTML = '';
+                }
+            }
+        });
+        
+        removeFile.addEventListener('click', function() {
+            fileInput.value = '';
+            fileUploadContainer.classList.remove('has-file');
+            filePreview.classList.remove('show');
+            filePreviewContent.innerHTML = '';
+        });
+        
+        // Approval workflow toggle
+        const needsApproval = document.getElementById('needsApproval');
+        const approvalFields = document.getElementById('approvalFields');
+        const noApprovalMessage = document.getElementById('noApprovalMessage');
+        const approvalStatus = document.getElementById('approval_status');
+        const pendingApprovalFields = document.getElementById('pendingApprovalFields');
+        
+        needsApproval.addEventListener('change', function() {
+            if (this.checked) {
+                approvalFields.style.display = 'block';
+                noApprovalMessage.style.display = 'none';
+            } else {
+                approvalFields.style.display = 'none';
+                noApprovalMessage.style.display = 'block';
+            }
+        });
+        
+        approvalStatus.addEventListener('change', function() {
+            if (this.value === 'pending') {
+                pendingApprovalFields.style.display = 'block';
+            } else {
+                pendingApprovalFields.style.display = 'none';
+            }
+        });
+        
+        // Set today's date as default
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0];
+        document.getElementById('document_date').value = formattedDate;
+        
+        // Form validation
+        const form = document.getElementById('documentUploadForm');
+        form.addEventListener('submit', function(e) {
+            if (!fileInput.files[0]) {
+                e.preventDefault();
+                alert('Please select a file to upload');
+            }
+        });
+    });
+</script>
+{% endblock %} 
