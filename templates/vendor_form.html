@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{% if vendor %}Edit {{ vendor.name }}{% else %}Add New Vendor{% endif %} - AKC CRM{% endblock %}
+{% block title %}{% if vendor %}Edit {{ vendor.name }}{% else %}Add New Material Supplier{% endif %} - AKC Construction CRM{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -9,31 +9,33 @@
             <a href="{% if vendor %}/vendors/{{ vendor.id }}{% else %}/vendors{% endif %}" class="btn btn-outline-secondary mb-2">
                 <i class="fas fa-arrow-left"></i> Back
             </a>
-            <h1 class="mb-0">{% if vendor %}Edit {{ vendor.name }}{% else %}Add New Vendor{% endif %}</h1>
+            <h1 class="mb-0">{% if vendor %}Edit {{ vendor.name }}{% else %}Add New Material Supplier{% endif %}</h1>
         </div>
     </div>
 
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-white">
-            <h5 class="mb-0">Vendor Information</h5>
+            <h5 class="mb-0">Supplier Information</h5>
         </div>
         <div class="card-body">
-            <form method="post" action="{% if vendor %}/vendors/{{ vendor.id }}/edit{% else %}/vendors/new{% endif %}">
+            <form method="post" action="{% if vendor %}/vendors/{{ vendor.id }}/edit{% else %}/vendors/new{% endif %}" enctype="multipart/form-data">
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <h6 class="text-muted mb-3">Basic Information</h6>
                         
                         <div class="mb-3">
-                            <label for="name" class="form-label">Vendor Name <span class="text-danger">*</span></label>
+                            <label for="name" class="form-label">Company Name <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="name" name="name" value="{{ vendor.name if vendor else '' }}" required>
                         </div>
                         
                         <div class="mb-3">
-                            <label for="vendor_type" class="form-label">Vendor Type <span class="text-danger">*</span></label>
+                            <label for="vendor_type" class="form-label">Supplier Type <span class="text-danger">*</span></label>
                             <select class="form-select" id="vendor_type" name="vendor_type" required>
                                 <option value="">Select Type</option>
-                                <option value="Supplier" {% if vendor and vendor.vendor_type == 'Supplier' %}selected{% endif %}>Supplier</option>
-                                <option value="Subcontractor" {% if vendor and vendor.vendor_type == 'Subcontractor' %}selected{% endif %}>Subcontractor</option>
+                                <option value="Manufacturer" {% if vendor and vendor.vendor_type == 'Manufacturer' %}selected{% endif %}>Manufacturer</option>
+                                <option value="Distributor" {% if vendor and vendor.vendor_type == 'Distributor' %}selected{% endif %}>Distributor</option>
+                                <option value="Wholesaler" {% if vendor and vendor.vendor_type == 'Wholesaler' %}selected{% endif %}>Wholesaler</option>
+                                <option value="Specialty Supplier" {% if vendor and vendor.vendor_type == 'Specialty Supplier' %}selected{% endif %}>Specialty Supplier</option>
                             </select>
                         </div>
                         
@@ -59,70 +61,89 @@
                     </div>
                     
                     <div class="col-md-6">
-                        <h6 class="text-muted mb-3">Business Information</h6>
+                        <h6 class="text-muted mb-3">Business Terms</h6>
                         
                         <div class="mb-3">
-                            <label for="tax_id" class="form-label">Tax ID / EIN</label>
-                            <input type="text" class="form-control" id="tax_id" name="tax_id" value="{{ vendor.tax_id if vendor else '' }}">
+                            <label for="tax_id" class="form-label">Tax ID / EIN <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="tax_id" name="tax_id" value="{{ vendor.tax_id if vendor else '' }}" required>
                         </div>
                         
                         <div class="mb-3">
-                            <label for="payment_terms" class="form-label">Payment Terms</label>
-                            <select class="form-select" id="payment_terms" name="payment_terms">
+                            <label for="payment_terms" class="form-label">Payment Terms <span class="text-danger">*</span></label>
+                            <select class="form-select" id="payment_terms" name="payment_terms" required>
                                 <option value="">Select Terms</option>
                                 <option value="Net 15" {% if vendor and vendor.payment_terms == 'Net 15' %}selected{% endif %}>Net 15</option>
                                 <option value="Net 30" {% if vendor and vendor.payment_terms == 'Net 30' %}selected{% endif %}>Net 30</option>
                                 <option value="Net 45" {% if vendor and vendor.payment_terms == 'Net 45' %}selected{% endif %}>Net 45</option>
                                 <option value="Net 60" {% if vendor and vendor.payment_terms == 'Net 60' %}selected{% endif %}>Net 60</option>
                                 <option value="Due on Receipt" {% if vendor and vendor.payment_terms == 'Due on Receipt' %}selected{% endif %}>Due on Receipt</option>
-                                <option value="Due on Return" {% if vendor and vendor.payment_terms == 'Due on Return' %}selected{% endif %}>Due on Return</option>
                             </select>
                         </div>
-                        
+
                         <div class="mb-3">
-                            <label for="insurance" class="form-label">Insurance Information</label>
-                            <textarea class="form-control" id="insurance" name="insurance" rows="2">{{ vendor.insurance if vendor else '' }}</textarea>
-                            <div class="form-text">Enter details about liability insurance, workers comp, etc.</div>
+                            <label for="credit_limit" class="form-label">Credit Limit</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="credit_limit" name="credit_limit" value="{{ vendor.credit_limit if vendor else '' }}" min="0" step="1000">
+                            </div>
                         </div>
-                        
+
                         <div class="mb-3">
-                            <label for="licenses" class="form-label">Licenses & Certifications</label>
-                            <textarea class="form-control" id="licenses" name="licenses" rows="2">{{ vendor.licenses if vendor else '' }}</textarea>
-                            <div class="form-text">Enter details about professional licenses, certifications, etc.</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="rating" class="form-label">Rating (1-5)</label>
-                            <input type="number" class="form-control" id="rating" name="rating" min="0" max="5" step="0.1" value="{{ vendor.rating if vendor else '0' }}">
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Categories</label>
-                            <select class="form-select" id="categories" name="categories" multiple>
-                                <option value="Building Materials" {% if vendor and 'Building Materials' in vendor.categories %}selected{% endif %}>Building Materials</option>
-                                <option value="Lumber" {% if vendor and 'Lumber' in vendor.categories %}selected{% endif %}>Lumber</option>
-                                <option value="Hardware" {% if vendor and 'Hardware' in vendor.categories %}selected{% endif %}>Hardware</option>
-                                <option value="Electrical" {% if vendor and 'Electrical' in vendor.categories %}selected{% endif %}>Electrical</option>
-                                <option value="Plumbing" {% if vendor and 'Plumbing' in vendor.categories %}selected{% endif %}>Plumbing</option>
-                                <option value="HVAC" {% if vendor and 'HVAC' in vendor.categories %}selected{% endif %}>HVAC</option>
-                                <option value="Concrete" {% if vendor and 'Concrete' in vendor.categories %}selected{% endif %}>Concrete</option>
-                                <option value="Masonry" {% if vendor and 'Masonry' in vendor.categories %}selected{% endif %}>Masonry</option>
-                                <option value="Roofing" {% if vendor and 'Roofing' in vendor.categories %}selected{% endif %}>Roofing</option>
-                                <option value="Flooring" {% if vendor and 'Flooring' in vendor.categories %}selected{% endif %}>Flooring</option>
-                                <option value="Painting" {% if vendor and 'Painting' in vendor.categories %}selected{% endif %}>Painting</option>
-                                <option value="Landscaping" {% if vendor and 'Landscaping' in vendor.categories %}selected{% endif %}>Landscaping</option>
-                                <option value="Equipment Rental" {% if vendor and 'Equipment Rental' in vendor.categories %}selected{% endif %}>Equipment Rental</option>
-                                <option value="Tools" {% if vendor and 'Tools' in vendor.categories %}selected{% endif %}>Tools</option>
-                                <option value="Heavy Machinery" {% if vendor and 'Heavy Machinery' in vendor.categories %}selected{% endif %}>Heavy Machinery</option>
-                                <option value="Consulting" {% if vendor and 'Consulting' in vendor.categories %}selected{% endif %}>Consulting</option>
-                                <option value="Engineering" {% if vendor and 'Engineering' in vendor.categories %}selected{% endif %}>Engineering</option>
-                                <option value="Architecture" {% if vendor and 'Architecture' in vendor.categories %}selected{% endif %}>Architecture</option>
-                            </select>
-                            <div class="form-text">Hold Ctrl/Cmd to select multiple categories</div>
+                            <label for="lead_time_days" class="form-label">Standard Lead Time (Days)</label>
+                            <input type="number" class="form-control" id="lead_time_days" name="lead_time_days" value="{{ vendor.lead_time_days if vendor else '' }}" min="0">
+                            <div class="form-text">Average time from order to delivery</div>
                         </div>
                     </div>
                 </div>
-                
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-muted mb-3">Material Categories & Certifications</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Material Categories <span class="text-danger">*</span></label>
+                            <select class="form-select" id="material_categories" name="material_categories" multiple required>
+                                {% for category in material_categories %}
+                                <option value="{{ category }}" {% if vendor and category in vendor.material_categories %}selected{% endif %}>{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Hold Ctrl/Cmd to select multiple categories</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="certifications" class="form-label">Quality Certifications</label>
+                            <textarea class="form-control" id="certifications" name="certifications" rows="2">{{ vendor.certifications if vendor else '' }}</textarea>
+                            <div class="form-text">List relevant quality certifications (e.g., ISO 9001, ASTM compliance)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-muted mb-3">Insurance Information</h6>
+                        
+                        <div class="mb-3">
+                            <label for="insurance_policy" class="form-label">Insurance Policy Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="insurance_policy" name="insurance_policy" value="{{ vendor.insurance_policy if vendor else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="insurance_expiry" class="form-label">Insurance Expiry Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="insurance_expiry" name="insurance_expiry" value="{{ vendor.insurance_expiry if vendor else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="insurance_document" class="form-label">Insurance Certificate</label>
+                            <input type="file" class="form-control" id="insurance_document" name="insurance_document" accept=".pdf,.doc,.docx">
+                            {% if vendor and vendor.insurance_document %}
+                            <div class="form-text">
+                                Current document: <a href="{{ vendor.insurance_document }}" target="_blank">View</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row mb-4">
                     <div class="col-12">
                         <h6 class="text-muted mb-3">Address Information</h6>
@@ -184,18 +205,31 @@
                 
                 <div class="row mb-4">
                     <div class="col-12">
-                        <h6 class="text-muted mb-3">Additional Information</h6>
+                        <h6 class="text-muted mb-3">Performance Metrics</h6>
                         
                         <div class="mb-3">
-                            <label for="notes" class="form-label">Notes</label>
+                            <label for="quality_rating" class="form-label">Quality Rating (1-5)</label>
+                            <input type="number" class="form-control" id="quality_rating" name="quality_rating" min="1" max="5" step="0.1" value="{{ vendor.quality_rating if vendor else '0' }}">
+                            <div class="form-text">Rate the overall quality of materials and service</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="on_time_rate" class="form-label">On-Time Delivery Rate (%)</label>
+                            <input type="number" class="form-control" id="on_time_rate" name="on_time_rate" min="0" max="100" step="0.1" value="{{ vendor.on_time_rate if vendor else '0' }}">
+                            <div class="form-text">Percentage of orders delivered within agreed timeframe</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Additional Notes</label>
                             <textarea class="form-control" id="notes" name="notes" rows="3">{{ vendor.notes if vendor else '' }}</textarea>
+                            <div class="form-text">Include any special arrangements, volume discounts, or other relevant information</div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="d-flex justify-content-end">
                     <a href="{% if vendor %}/vendors/{{ vendor.id }}{% else %}/vendors{% endif %}" class="btn btn-secondary me-2">Cancel</a>
-                    <button type="submit" class="btn btn-primary">{% if vendor %}Update{% else %}Create{% endif %} Vendor</button>
+                    <button type="submit" class="btn btn-primary">{% if vendor %}Update{% else %}Create{% endif %} Supplier</button>
                 </div>
             </form>
         </div>
@@ -207,6 +241,15 @@
 <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize select2 for material categories
+        if (typeof $.fn.select2 !== 'undefined') {
+            $('#material_categories').select2({
+                placeholder: 'Select categories',
+                allowClear: true,
+                theme: 'bootstrap4'
+            });
+        }
+
         // Initialize map
         let map;
         let marker;
@@ -383,14 +426,6 @@
         // Initialize map and autocomplete
         initMap();
         initAutocomplete();
-        
-        // Initialize select2 for categories
-        if (typeof $.fn.select2 !== 'undefined') {
-            $('#categories').select2({
-                placeholder: 'Select categories',
-                allowClear: true
-            });
-        }
     });
 </script>
 {% endblock %} 

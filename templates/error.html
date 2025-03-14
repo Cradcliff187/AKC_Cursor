@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ status_code }} - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Error {{ status_code }}</h4>
+                </div>
+                <div class="card-body">
+                    <h5>Something went wrong</h5>
+                    <p>{{ detail }}</p>
+                    
+                    {% if traceback %}
+                    <div class="mt-4">
+                        <h6>Technical Details (Debug Mode)</h6>
+                        <div class="bg-light p-3 rounded">
+                            <pre class="mb-0"><code>{{ traceback }}</code></pre>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="/" class="btn btn-primary">Return to Home</a>
+                        <a href="javascript:history.back()" class="btn btn-outline-secondary ms-2">Go Back</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

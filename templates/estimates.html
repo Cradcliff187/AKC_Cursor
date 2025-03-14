@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}Estimates{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">Estimates</h1>
+            <p class="text-muted">Manage and track all estimates and proposals</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('estimates/new') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>New Estimate
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1">Total Estimates</h6>
+                    <h3 class="mb-0">{{ total_estimates }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1">Total Amount</h6>
+                    <h3 class="mb-0">${{ "%.2f"|format(total_amount) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1">Accepted</h6>
+                    <h3 class="mb-0 text-success">${{ "%.2f"|format(accepted_amount) }}</h3>
+                    <small class="text-muted">{{ accepted_count }} estimates</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1">Pending</h6>
+                    <h3 class="mb-0 text-warning">${{ "%.2f"|format(pending_amount) }}</h3>
+                    <small class="text-muted">{{ pending_count }} estimates</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" action="{{ url_for('estimates') }}" class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control border-0 bg-light" placeholder="Search estimates..." name="search" value="{{ search_query }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select border-0 bg-light" name="status">
+                        <option value="">All Statuses</option>
+                        {% for status in statuses %}
+                        <option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>{{ status }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="fas fa-calendar"></i></span>
+                        <input type="month" class="form-control border-0 bg-light" name="month" value="{{ month_filter }}">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estimates Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Estimate #</th>
+                        <th>Customer</th>
+                        <th>Project</th>
+                        <th>Date</th>
+                        <th>Expiry Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if estimates %}
+                        {% for estimate in estimates %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('estimates/' + estimate.id|string) }}" class="text-decoration-none fw-medium">
+                                    {{ estimate.estimate_number }}
+                                </a>
+                            </td>
+                            <td>{{ estimate.customer_name }}</td>
+                            <td>{{ estimate.project_name }}</td>
+                            <td>{{ estimate.date }}</td>
+                            <td>{{ estimate.expiry_date }}</td>
+                            <td>${{ "%.2f"|format(estimate.amount) }}</td>
+                            <td>
+                                <span class="badge bg-{{ estimate.status_color }}">{{ estimate.status }}</span>
+                            </td>
+                            <td class="text-end">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="{{ url_for('estimates/' + estimate.id|string) }}"><i class="fas fa-eye me-2"></i>View</a></li>
+                                        <li><a class="dropdown-item" href="{{ url_for('estimates/' + estimate.id|string + '/edit') }}"><i class="fas fa-edit me-2"></i>Edit</a></li>
+                                        {% if estimate.status == 'Draft' %}
+                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sendEstimateModal{{ estimate.id }}"><i class="fas fa-paper-plane me-2 text-primary"></i>Send to Customer</a></li>
+                                        {% endif %}
+                                        {% if estimate.status == 'Sent' %}
+                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#markAcceptedModal{{ estimate.id }}"><i class="fas fa-check-circle me-2 text-success"></i>Mark as Accepted</a></li>
+                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#markRejectedModal{{ estimate.id }}"><i class="fas fa-times-circle me-2 text-danger"></i>Mark as Rejected</a></li>
+                                        {% endif %}
+                                        {% if estimate.status == 'Accepted' %}
+                                        <li><a class="dropdown-item" href="{{ url_for('invoices/new') }}?estimate_id={{ estimate.id }}"><i class="fas fa-file-invoice-dollar me-2 text-success"></i>Convert to Invoice</a></li>
+                                        {% endif %}
+                                        <li><a class="dropdown-item" href="{{ url_for('estimates/' + estimate.id|string + '/print') }}" target="_blank"><i class="fas fa-print me-2"></i>Print</a></li>
+                                        <li><a class="dropdown-item" href="#"><i class="fas fa-envelope me-2"></i>Email</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <div class="py-5">
+                                    <i class="fas fa-file-contract fa-3x text-muted mb-3"></i>
+                                    <h5>No estimates found</h5>
+                                    <p class="text-muted">Create your first estimate to get started</p>
+                                    <a href="{{ url_for('estimates/new') }}" class="btn btn-primary">
+                                        <i class="fas fa-plus me-2"></i>New Estimate
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Estimate pagination">
+            <ul class="pagination">
+                <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('estimates', page=page-1, search=search_query, status=status_filter) }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('estimates', page=p, search=search_query, status=status_filter) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+                <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('estimates', page=page+1, search=search_query, status=status_filter) }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Send Estimate Modals -->
+{% for estimate in estimates %}
+{% if estimate.status == 'Draft' %}
+<div class="modal fade" id="sendEstimateModal{{ estimate.id }}" tabindex="-1" aria-labelledby="sendEstimateModalLabel{{ estimate.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('estimates/' + estimate.id|string + '/send') }}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sendEstimateModalLabel{{ estimate.id }}">Send Estimate #{{ estimate.estimate_number }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="email_to{{ estimate.id }}" class="form-label">To</label>
+                        <input type="email" class="form-control" id="email_to{{ estimate.id }}" name="email_to" value="{{ estimate.customer_email }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email_cc{{ estimate.id }}" class="form-label">CC (Optional)</label>
+                        <input type="email" class="form-control" id="email_cc{{ estimate.id }}" name="email_cc">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email_subject{{ estimate.id }}" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="email_subject{{ estimate.id }}" name="email_subject" value="Estimate #{{ estimate.estimate_number }} from {{ company.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email_message{{ estimate.id }}" class="form-label">Message</label>
+                        <textarea class="form-control" id="email_message{{ estimate.id }}" name="email_message" rows="5" required>Dear {{ estimate.customer_name }},
+
+Please find attached estimate #{{ estimate.estimate_number }} for {{ estimate.project_name }} in the amount of ${{ "%.2f"|format(estimate.amount) }}.
+
+This estimate is valid until {{ estimate.expiry_date }}.
+
+Please let me know if you have any questions or would like to proceed with this estimate.
+
+Thank you for your business.
+
+Best regards,
+{{ session.user.name }}
+{{ company.name }}</textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="attach_pdf{{ estimate.id }}" name="attach_pdf" checked>
+                        <label class="form-check-label" for="attach_pdf{{ estimate.id }}">
+                            Attach PDF copy of estimate
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Send Estimate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- Mark as Accepted Modals -->
+{% for estimate in estimates %}
+{% if estimate.status == 'Sent' %}
+<div class="modal fade" id="markAcceptedModal{{ estimate.id }}" tabindex="-1" aria-labelledby="markAcceptedModalLabel{{ estimate.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('estimates/' + estimate.id|string + '/accept') }}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="markAcceptedModalLabel{{ estimate.id }}">Mark Estimate #{{ estimate.estimate_number }} as Accepted</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="acceptance_date{{ estimate.id }}" class="form-label">Acceptance Date</label>
+                        <input type="date" class="form-control" id="acceptance_date{{ estimate.id }}" name="acceptance_date" value="{{ now().strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="acceptance_notes{{ estimate.id }}" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="acceptance_notes{{ estimate.id }}" name="acceptance_notes" rows="3" placeholder="Any additional notes about the acceptance"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="create_invoice{{ estimate.id }}" name="create_invoice">
+                        <label class="form-check-label" for="create_invoice{{ estimate.id }}">
+                            Create invoice from this estimate
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Mark as Accepted</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Mark as Rejected Modals -->
+<div class="modal fade" id="markRejectedModal{{ estimate.id }}" tabindex="-1" aria-labelledby="markRejectedModalLabel{{ estimate.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('estimates/' + estimate.id|string + '/reject') }}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="markRejectedModalLabel{{ estimate.id }}">Mark Estimate #{{ estimate.estimate_number }} as Rejected</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="rejection_date{{ estimate.id }}" class="form-label">Rejection Date</label>
+                        <input type="date" class="form-control" id="rejection_date{{ estimate.id }}" name="rejection_date" value="{{ now().strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rejection_reason{{ estimate.id }}" class="form-label">Reason for Rejection</label>
+                        <select class="form-select" id="rejection_reason{{ estimate.id }}" name="rejection_reason" required>
+                            <option value="">Select a reason</option>
+                            <option value="Price too high">Price too high</option>
+                            <option value="Timeline too long">Timeline too long</option>
+                            <option value="Chose another contractor">Chose another contractor</option>
+                            <option value="Project postponed">Project postponed</option>
+                            <option value="Project cancelled">Project cancelled</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rejection_notes{{ estimate.id }}" class="form-label">Additional Notes</label>
+                        <textarea class="form-control" id="rejection_notes{{ estimate.id }}" name="rejection_notes" rows="3" placeholder="Any additional notes about the rejection"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Mark as Rejected</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %} 

@@ -10,10 +10,15 @@
                 <h4 class="mb-0">AKC CRM Login</h4>
             </div>
             <div class="card-body p-4">
+                {% if error %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+                {% endif %}
                 <form method="post" class="needs-validation" novalidate>
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="email" name="email" placeholder="name@akc.org" required>
+                        <label for="username" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="username" name="username" placeholder="name@akc.org" required>
                         <div class="invalid-feedback">
                             Please enter a valid email address.
                         </div>

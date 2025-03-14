@@ -1,25 +1,24 @@
-# Use Python 3.9 slim image
 FROM python:3.9-slim
 
-# Set working directory
 WORKDIR /app
 
-# Copy app.py and requirements.txt
-COPY app.py .
-COPY requirements.txt ./requirements.txt
-COPY static/ ./static/
-COPY templates/ ./templates/
+# Install system dependencies required for psycopg2-binary
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-RUN pip install -r requirements.txt
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application
+COPY . .
 
 # Set environment variables
 ENV PORT=8080
-ENV PYTHONUNBUFFERED=1
-ENV FASTAPI_ENV=production
+ENV HOST=0.0.0.0
 
-# Expose port
-EXPOSE 8080
-
-# Run the application
-CMD ["python", "app.py"] 
+# Command to run the application
+CMD exec uvicorn app:app --host 0.0.0.0 --port ${PORT} 
