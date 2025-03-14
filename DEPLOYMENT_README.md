@@ -2,6 +2,293 @@
 
 # AKC CRM Deployment Documentation
 
+## COMPREHENSIVE END-TO-END DEPLOYMENT GUIDE
+This guide provides a step-by-step process for deploying the AKC CRM application to Google Cloud Run, including all necessary configuration steps to avoid common pitfalls.
+
+### 1. Environment Setup
+
+**Local Environment Variables (.env file)**
+```
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+FLASK_SECRET_KEY=your_secret_key
+PORT=8080
+```
+
+**Google Cloud Secret Manager (required for production)**
+```bash
+# Create secrets in Google Cloud
+gcloud secrets create SUPABASE_URL --data-file=<(echo -n "your_supabase_url")
+gcloud secrets create SUPABASE_KEY --data-file=<(echo -n "your_supabase_key")
+gcloud secrets create FLASK_SECRET_KEY --data-file=<(echo -n "your_secret_key")
+
+# Grant access to the service account
+gcloud secrets add-iam-policy-binding SUPABASE_URL --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+gcloud secrets add-iam-policy-binding SUPABASE_KEY --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+gcloud secrets add-iam-policy-binding FLASK_SECRET_KEY --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+```
+
+### 2. Critical Code Components
+
+**Supabase Client Initialization (app.py)**
+```python
+def get_supabase_client() -> Optional[Client]:
+    """Initialize Supabase client with proper error handling.
+    Returns None if Supabase is not configured or if there is an error.
+    """
+    try:
+        # Get Supabase URL and key from environment variables
+        supabase_url = os.environ.get("SUPABASE_URL")
+        supabase_key = os.environ.get("SUPABASE_KEY")
+        
+        # If environment variables are not set, return None
+        if not supabase_url or not supabase_key:
+            print("Supabase configuration missing. Using mock data.")
+            return None
+        
+        # Initialize client
+        client = create_client(supabase_url, supabase_key)
+        
+        # Test connection by making a simple query
+        try:
+            client.table("purchases").select("*").limit(1).execute()
+            return client
+        except Exception as e:
+            print(f"Error testing Supabase connection: {str(e)}")
+            return None
+            
+    except Exception as e:
+        print(f"Error initializing Supabase client: {str(e)}")
+        return None
+```
+
+**Port Configuration (app.py, end of file)**
+```python
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+```
+
+### 3. Deployment Files
+
+**Dockerfile**
+```dockerfile
+FROM python:3.9-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application
+COPY . .
+
+# Use environment variable for port
+ENV PORT=8080
+
+# Run the application
+CMD exec gunicorn --bind :$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --threads 8 app:app
+```
+
+**requirements.txt**
+```
+fastapi>=0.95.1,<0.100.0
+pydantic>=1.9.0,<2.0.0
+uvicorn>=0.15.0,<0.30.0
+gunicorn>=20.1.0,<21.0.0
+starlette>=0.27.0,<0.28.0
+jinja2>=3.0.0,<4.0.0
+python-multipart>=0.0.5,<0.1.0
+supabase>=0.7.1,<1.0.0
+itsdangerous>=2.0.0,<3.0.0
+psycopg2-binary>=2.9.5,<3.0.0
+```
+
+**cloudbuild.yaml**
+```yaml
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/akc-crm:$COMMIT_SHA', '.']
+  
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/akc-crm:$COMMIT_SHA']
+  
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'akc-crm'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/akc-crm:$COMMIT_SHA'
+      - '--region'
+      - 'us-east4'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-secrets'
+      - 'SUPABASE_URL=SUPABASE_URL:latest,SUPABASE_KEY=SUPABASE_KEY:latest,FLASK_SECRET_KEY=FLASK_SECRET_KEY:latest'
+
+images:
+  - 'gcr.io/$PROJECT_ID/akc-crm:$COMMIT_SHA'
+```
+
+### 4. Step-by-Step Deployment Process
+
+1. **Initialize Google Cloud SDK**
+   ```bash
+   gcloud init
+   gcloud auth login
+   gcloud config set project YOUR_PROJECT_ID
+   ```
+
+2. **Enable Required APIs**
+   ```bash
+   gcloud services enable \
+     cloudbuild.googleapis.com \
+     run.googleapis.com \
+     artifactregistry.googleapis.com \
+     secretmanager.googleapis.com
+   ```
+
+3. **Set Up Secrets in Secret Manager (as shown in step 1)**
+
+4. **Set Up Local Environment for Testing**
+   ```bash
+   # Create a .env file with your Supabase credentials
+   echo "SUPABASE_URL=your_supabase_url" > .env
+   echo "SUPABASE_KEY=your_supabase_key" >> .env
+   echo "FLASK_SECRET_KEY=your_secret_key" >> .env
+   echo "PORT=8080" >> .env
+   
+   # Install dependencies
+   pip install -r requirements.txt
+   
+   # Run locally
+   python app.py
+   ```
+
+5. **Deploy to Google Cloud Run**
+   ```bash
+   # Option 1: Using Cloud Build
+   gcloud builds submit --config cloudbuild.yaml .
+   
+   # Option 2: Manual deployment
+   gcloud run deploy akc-crm --source . --platform managed --region us-east4 --allow-unauthenticated \
+   --set-secrets SUPABASE_URL=SUPABASE_URL:latest,SUPABASE_KEY=SUPABASE_KEY:latest,FLASK_SECRET_KEY=FLASK_SECRET_KEY:latest
+   ```
+
+6. **Verify Deployment**
+   ```bash
+   # Get the URL of the deployed service
+   gcloud run services describe akc-crm --platform managed --region us-east4 --format="value(status.url)"
+   
+   # Check logs for any errors
+   gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=akc-crm" --limit 10
+   ```
+
+### 5. Adding New Features
+
+When adding new features to the application, follow these steps:
+
+1. **Add New Route Handlers in app.py**
+   ```python
+   @app.get("/new-feature", response_class=HTMLResponse)
+   async def new_feature(request: Request, session: dict = Depends(get_session)):
+       # Get Supabase client (with fallback to mock data)
+       supabase_client = get_supabase_client()
+       
+       try:
+           if supabase_client:
+               # Fetch data from Supabase
+               result = supabase_client.table("feature_data").select("*").execute()
+               feature_data = result.data
+           else:
+               # Use mock data
+               feature_data = [{"id": 1, "name": "Mock Feature 1"}, {"id": 2, "name": "Mock Feature 2"}]
+               
+           return templates.TemplateResponse(
+               "new_feature.html", 
+               {"request": request, "session": session, "feature_data": feature_data}
+           )
+       except Exception as e:
+           print(f"Error in new_feature route: {str(e)}")
+           # Use mock data as fallback
+           feature_data = [{"id": 1, "name": "Mock Feature 1"}, {"id": 2, "name": "Mock Feature 2"}]
+           return templates.TemplateResponse(
+               "new_feature.html", 
+               {"request": request, "session": session, "feature_data": feature_data}
+           )
+   ```
+
+2. **Add URL Mapping in url_for Function**
+   ```python
+   def url_for(name, filename=None):
+       # Existing code...
+       url_map = {
+           # Existing mappings...
+           "new_feature": "/new-feature",
+       }
+       # Rest of the function...
+   ```
+
+3. **Create Template in templates/ Directory**
+   - Create a new HTML file in the templates directory
+   - Extend the base.html template
+   - Implement your UI with proper error handling
+
+4. **Test Locally Before Deploying**
+   ```bash
+   python app.py
+   # Visit http://localhost:8080/new-feature
+   ```
+
+5. **Deploy Changes**
+   ```bash
+   gcloud builds submit --config cloudbuild.yaml .
+   ```
+
+### 6. Common Issues and Solutions
+
+1. **Supabase Connection Issues**
+   - Ensure environment variables are properly set in Google Cloud Run
+   - Verify that secrets are correctly created in Secret Manager
+   - Confirm the service account has access to the secrets
+   - Check that the Supabase credentials are valid
+
+2. **Application Not Starting on Port 8080**
+   - Ensure the PORT environment variable is properly set
+   - Verify the code correctly reads the PORT environment variable
+   - Check that the Dockerfile CMD instruction uses the PORT variable
+
+3. **Template Rendering Errors**
+   - Ensure all variables referenced in templates are provided by route handlers
+   - Add fallback for undefined variables using Jinja2's `default` filter
+   - Properly handle pagination variables
+
+4. **Static Files Not Loading**
+   - Verify the app correctly mounts the static directory
+   - Check that templates reference static files using the url_for function
+   - Ensure static files are included in the Docker build
+
+5. **Form Submission Errors**
+   - Include python-multipart in requirements.txt
+   - Define both GET and POST routes for forms
+   - Ensure form field names match route handler parameters
+
 ## IMPORTANT: This file contains critical deployment information
 This document outlines the exact approach used for successfully deploying the AKC CRM application to Google Cloud Run. **DO NOT DELETE OR MODIFY** this file as it contains the only verified working deployment configuration.
 
