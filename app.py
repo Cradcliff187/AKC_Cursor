@@ -19,22 +19,25 @@ from typing import Optional, List
 
 # Initialize Supabase client
 def get_supabase_client() -> Optional[Client]:
-    """Get or create a Supabase client instance. Returns None if Supabase is not configured or unavailable."""
+    """Get Supabase client initialized with environment variables.
+    Returns None if environment variables are not set or initialization fails.
+    """
     try:
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_key = os.getenv("SUPABASE_KEY")
         
         if not supabase_url or not supabase_key:
-            print("Supabase configuration missing - falling back to mock data")
+            print("Warning: Supabase environment variables not found, using mock data")
             return None
-        
-        client = create_client(supabase_url, supabase_key)
-        # Test the connection
-        client.table("vendors").select("*").limit(1).execute()
-        return client
+            
+        return create_client(supabase_url, supabase_key)
     except Exception as e:
-        print(f"Error connecting to Supabase - falling back to mock data: {str(e)}")
+        print(f"Error initializing Supabase client: {e}")
+        traceback.print_exc()
         return None
+
+# Google Maps API configuration
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
 
 # Mock data for when Supabase is unavailable
 MOCK_ACTIVITY = [
@@ -145,6 +148,174 @@ MOCK_CUSTOMERS = [
     }
 ]
 
+# Mock projects data
+MOCK_PROJECTS = [
+    {
+        "id": 1,
+        "name": "Office Renovation",
+        "client_id": 1,
+        "client_name": "Acme Corporation",
+        "status": "In Progress",
+        "status_color": "primary",
+        "start_date": "2025-01-15",
+        "end_date": "2025-04-30",
+        "budget": 75000.00,
+        "spent": 30000.00,
+        "remaining": 45000.00,
+        "description": "Complete renovation of the main office space including new flooring, lighting, and workstations",
+        "manager": "Jane Doe",
+        "team": ["John Smith", "Emily Johnson", "Michael Brown"],
+        "progress": 40,
+        "created_at": "2024-12-10T09:00:00Z",
+        "updated_at": "2025-02-15T14:30:00Z",
+        "tasks": [
+            {"id": 101, "name": "Demolition", "status": "Completed", "due_date": "2025-01-25"},
+            {"id": 102, "name": "Electrical Work", "status": "In Progress", "due_date": "2025-02-20"},
+            {"id": 103, "name": "Flooring Installation", "status": "Pending", "due_date": "2025-03-10"},
+            {"id": 104, "name": "Furniture Assembly", "status": "Pending", "due_date": "2025-04-15"}
+        ]
+    },
+    {
+        "id": 2,
+        "name": "Website Redesign",
+        "client_id": 1,
+        "client_name": "Acme Corporation",
+        "status": "Planning",
+        "status_color": "info",
+        "start_date": "2025-03-01",
+        "end_date": "2025-05-31",
+        "budget": 25000.00,
+        "spent": 5000.00,
+        "remaining": 20000.00,
+        "description": "Complete overhaul of corporate website with responsive design and modern branding",
+        "manager": "David Chen",
+        "team": ["Sarah Williams", "Alex Rodriguez"],
+        "progress": 20,
+        "created_at": "2025-01-15T11:30:00Z",
+        "updated_at": "2025-02-20T16:45:00Z",
+        "tasks": [
+            {"id": 201, "name": "Requirements Gathering", "status": "Completed", "due_date": "2025-03-10"},
+            {"id": 202, "name": "Wireframing", "status": "In Progress", "due_date": "2025-03-25"},
+            {"id": 203, "name": "UI Design", "status": "Pending", "due_date": "2025-04-15"},
+            {"id": 204, "name": "Development", "status": "Pending", "due_date": "2025-05-15"}
+        ]
+    },
+    {
+        "id": 3,
+        "name": "Mobile App Development",
+        "client_id": 2,
+        "client_name": "TechSolutions Inc",
+        "status": "In Progress",
+        "status_color": "primary",
+        "start_date": "2024-11-01",
+        "end_date": "2025-06-30",
+        "budget": 120000.00,
+        "spent": 65000.00,
+        "remaining": 55000.00,
+        "description": "Development of cross-platform mobile application for inventory management",
+        "manager": "Mike Johnson",
+        "team": ["Jennifer Lee", "Raj Patel", "Chris Thompson", "Ana Garcia"],
+        "progress": 55,
+        "created_at": "2024-10-05T13:45:00Z",
+        "updated_at": "2025-02-26T10:15:00Z",
+        "tasks": [
+            {"id": 301, "name": "Requirements Analysis", "status": "Completed", "due_date": "2024-11-15"},
+            {"id": 302, "name": "UI/UX Design", "status": "Completed", "due_date": "2024-12-20"},
+            {"id": 303, "name": "Frontend Development", "status": "In Progress", "due_date": "2025-03-15"},
+            {"id": 304, "name": "Backend Integration", "status": "In Progress", "due_date": "2025-04-30"},
+            {"id": 305, "name": "Testing & QA", "status": "Pending", "due_date": "2025-06-01"}
+        ]
+    },
+    {
+        "id": 4,
+        "name": "Warehouse Expansion",
+        "client_id": 3,
+        "client_name": "Global Retail Group",
+        "status": "Planning",
+        "status_color": "info",
+        "start_date": "2025-04-15",
+        "end_date": "2025-12-31",
+        "budget": 500000.00,
+        "spent": 25000.00,
+        "remaining": 475000.00,
+        "description": "Construction of additional 50,000 sq ft warehouse space with modern logistics systems",
+        "manager": "Robert Jackson",
+        "team": ["Lisa Chen", "Mark Davis", "Samantha Perez"],
+        "progress": 5,
+        "created_at": "2025-01-10T09:30:00Z",
+        "updated_at": "2025-02-28T15:20:00Z",
+        "tasks": [
+            {"id": 401, "name": "Site Survey", "status": "Completed", "due_date": "2025-02-15"},
+            {"id": 402, "name": "Permit Acquisition", "status": "In Progress", "due_date": "2025-04-01"},
+            {"id": 403, "name": "Foundation Work", "status": "Pending", "due_date": "2025-06-15"},
+            {"id": 404, "name": "Structure Construction", "status": "Pending", "due_date": "2025-09-30"},
+            {"id": 405, "name": "Interior Finishing", "status": "Pending", "due_date": "2025-11-30"}
+        ]
+    },
+    {
+        "id": 5,
+        "name": "Clinic Renovation",
+        "client_id": 4,
+        "client_name": "Healthcare Partners",
+        "status": "On Hold",
+        "status_color": "warning",
+        "start_date": "2025-03-01",
+        "end_date": "2025-07-31",
+        "budget": 250000.00,
+        "spent": 0.00,
+        "remaining": 250000.00,
+        "description": "Renovation of outpatient clinic with updated medical facilities and patient waiting areas",
+        "manager": "Patricia Wilson",
+        "team": ["James Miller", "Nancy Thompson"],
+        "progress": 0,
+        "created_at": "2024-12-15T14:20:00Z",
+        "updated_at": "2025-02-10T11:45:00Z",
+        "tasks": [
+            {"id": 501, "name": "Initial Planning", "status": "Completed", "due_date": "2025-01-15"},
+            {"id": 502, "name": "Budget Approval", "status": "On Hold", "due_date": "2025-02-28"},
+            {"id": 503, "name": "Construction Start", "status": "Pending", "due_date": "2025-03-15"},
+            {"id": 504, "name": "Equipment Installation", "status": "Pending", "due_date": "2025-06-15"}
+        ]
+    },
+    {
+        "id": 6,
+        "name": "Campus Library Modernization",
+        "client_id": 5,
+        "client_name": "EduLearn Academy",
+        "status": "Completed",
+        "status_color": "success",
+        "start_date": "2024-06-01",
+        "end_date": "2024-12-15",
+        "budget": 180000.00,
+        "spent": 172500.00,
+        "remaining": 7500.00,
+        "description": "Renovation of the main campus library with digital learning spaces and modernized study areas",
+        "manager": "Thomas Wright",
+        "team": ["Elizabeth Young", "Daniel Martinez", "Olivia Johnson"],
+        "progress": 100,
+        "created_at": "2024-05-10T10:00:00Z",
+        "updated_at": "2024-12-20T16:30:00Z",
+        "tasks": [
+            {"id": 601, "name": "Design Phase", "status": "Completed", "due_date": "2024-06-30"},
+            {"id": 602, "name": "Demolition", "status": "Completed", "due_date": "2024-07-31"},
+            {"id": 603, "name": "Construction", "status": "Completed", "due_date": "2024-10-31"},
+            {"id": 604, "name": "Furnishing", "status": "Completed", "due_date": "2024-11-30"},
+            {"id": 605, "name": "Final Inspection", "status": "Completed", "due_date": "2024-12-15"}
+        ]
+    }
+]
+
+# Mock time logs data
+MOCK_TIME_LOGS = [
+    {"id": 1, "date": "2025-03-01", "project_id": 1, "project_name": "Office Renovation", "task_name": "Electrical Work", "user_name": "Admin", "hours": 4.5, "description": "Installed new lighting fixtures", "billable": True, "status": "Approved", "status_color": "success"},
+    {"id": 2, "date": "2025-03-02", "project_id": 4, "project_name": "Warehouse Expansion", "task_name": "Planning", "user_name": "Admin", "hours": 2.0, "description": "Meeting with architects", "billable": True, "status": "Approved", "status_color": "success"},
+    {"id": 3, "date": "2025-03-03", "project_id": 1, "project_name": "Office Renovation", "task_name": "Plumbing", "user_name": "Admin", "hours": 6.0, "description": "Bathroom fixtures installation", "billable": True, "status": "Pending", "status_color": "warning"},
+    {"id": 4, "date": "2025-03-04", "project_id": 3, "project_name": "Mobile App Development", "task_name": "Frontend Development", "user_name": "Admin", "hours": 8.0, "description": "Implemented UI components", "billable": True, "status": "Pending", "status_color": "warning"},
+    {"id": 5, "date": "2025-03-05", "project_id": 1, "project_name": "Office Renovation", "task_name": "Painting", "user_name": "Admin", "hours": 7.5, "description": "Painted main office area", "billable": True, "status": "Pending", "status_color": "warning"},
+    {"id": 6, "date": "2025-03-06", "project_id": 4, "project_name": "Warehouse Expansion", "task_name": "Foundation", "user_name": "Admin", "hours": 8.0, "description": "Supervised foundation pouring", "billable": True, "status": "Pending", "status_color": "warning"},
+    {"id": 7, "date": "2025-03-07", "project_id": 3, "project_name": "Mobile App Development", "task_name": "Backend Integration", "user_name": "Admin", "hours": 5.0, "description": "API integration work", "billable": True, "status": "Draft", "status_color": "secondary"},
+]
+
 # Create FastAPI app
 app = FastAPI(
     title="AKC CRM",
@@ -171,7 +342,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # Add custom template functions
-def url_for(name, filename=None):
+def url_for(name, filename=None, **kwargs):
     """Custom URL generator function for templates."""
     if name == 'static' and filename:
         return f"/static/{filename}"
@@ -191,14 +362,24 @@ def url_for(name, filename=None):
         
         # Time logs
         "new_time_log": "/time-logs/new",
+        "edit_time_log": "/time-logs/{}/edit",
         "time_summary_report": "/reports/time-summary",
         
         # Expenses
         "new_expense": "/expenses/new",
+        "edit_expense": "/expenses/{}/edit",
+        "expense_detail": "/expenses/{}",
         "expense_summary_report": "/reports/expense-summary",
         
         # Projects
         "new_project": "/projects/new",
+        "edit_project": "/projects/{}/edit",
+        "project_detail": "/projects/{}",
+        
+        # Contacts
+        "new_contact": "/contacts/new",
+        "contact_detail": "/contacts/{}",
+        "edit_contact": "/contacts/{}/edit",
         
         # Customers
         "customers": "/customers",
@@ -207,19 +388,57 @@ def url_for(name, filename=None):
         "edit_customer": "/customers/{}/edit",
         "delete_customer": "/customers/{}/delete",
         
+        # Vendors
+        "vendor_detail": "/vendors/{}",
+        "edit_vendor": "/vendors/{}/edit",
+        "new_vendor": "/vendors/new",
+        "delete_vendor": "/vendors/{}/delete",
+        
+        # Invoices
+        "invoices": "/invoices",
+        "edit_invoice": "/invoices/{}/edit",
+        "new_invoice": "/invoices/new",
+        "invoice_detail": "/invoices/{}",
+        
         # Other
         "login": "/login",
         "logout": "/logout"
     }
     
     if name in url_map:
-        return url_map[name]
+        url_pattern = url_map[name]
+        
+        # Handle URL patterns with format placeholders
+        if "{}" in url_pattern and kwargs:
+            # For routes with a single parameter (like customer_id)
+            if len(kwargs) == 1:
+                param_value = list(kwargs.values())[0]
+                return url_pattern.format(param_value)
+            # For routes with multiple parameters
+            elif len(kwargs) > 1:
+                url_parts = url_pattern.split('{}')
+                if len(url_parts) == len(kwargs) + 1:
+                    result = url_parts[0]
+                    for i, key in enumerate(kwargs):
+                        result += str(kwargs[key]) + url_parts[i+1]
+                    return result
+        
+        return url_pattern
+    
+    # Special case for direct paths
+    if name.startswith('/'):
+        return name
+    
+    # If the name contains a slash, treat it as a direct path
+    if '/' in name:
+        return f"/{name}"
     
     return f"/{name}"
 
 # Add template globals
 templates.env.globals["url_for"] = url_for
 templates.env.globals["get_flashed_messages"] = lambda with_categories=False: []
+templates.env.globals["google_maps_api_key"] = GOOGLE_MAPS_API_KEY
 
 # Session dependency
 def get_session(request: Request):
@@ -465,454 +684,144 @@ async def projects(
     session: dict = Depends(get_session),
     search: str = None,
     status: str = None,
-    sort: str = None
+    sort: str = None,
+    page: int = 1
 ):
     if not check_auth(session):
         return RedirectResponse(url="/login")
     
-    # Mock data for projects
-    projects = [
-        {
-            "id": 1,
-            "name": "Website Redesign",
-            "client_id": 1,
-            "client_name": "Acme Corporation",
-            "status": "In Progress",
-            "status_color": "primary",
-            "start_date": "2023-02-01",
-            "end_date": "2023-06-30",
-            "budget": 25000,
-            "description": "Complete overhaul of corporate website with new branding",
-            "manager": "Jane Doe",
-            "team": ["John Smith", "Emily Johnson", "Michael Brown"],
-            "progress": 45
-        },
-        {
-            "id": 2,
-            "name": "Mobile App Development",
-            "client_id": 1,
-            "client_name": "Acme Corporation",
-            "status": "Planning",
-            "status_color": "info",
-            "start_date": "2023-07-15",
-            "end_date": "2023-12-31",
-            "budget": 50000,
-            "description": "Development of iOS and Android mobile applications",
-            "manager": "Mike Johnson",
-            "team": ["Sarah Williams", "David Lee", "Jessica Taylor"],
-            "progress": 10
-        },
-        {
-            "id": 3,
-            "name": "CRM Implementation",
-            "client_id": 2,
-            "client_name": "TechSolutions Inc",
-            "status": "Completed",
-            "status_color": "success",
-            "start_date": "2023-01-10",
-            "end_date": "2023-04-30",
-            "budget": 35000,
-            "description": "Implementation of custom CRM solution with integration to existing systems",
-            "manager": "Robert Wilson",
-            "team": ["Jennifer Davis", "Christopher Martinez", "Amanda Thompson"],
-            "progress": 100
-        },
-        {
-            "id": 4,
-            "name": "Digital Marketing Campaign",
-            "client_id": 4,
-            "client_name": "Healthcare Partners",
-            "status": "On Hold",
-            "status_color": "warning",
-            "start_date": "2023-03-15",
-            "end_date": "2023-09-15",
-            "budget": 15000,
-            "description": "Comprehensive digital marketing campaign across multiple channels",
-            "manager": "Lisa Anderson",
-            "team": ["Daniel White", "Michelle Garcia"],
-            "progress": 30
-        },
-        {
-            "id": 5,
-            "name": "IT Infrastructure Upgrade",
-            "client_id": 3,
-            "client_name": "Global Retail Group",
-            "status": "Cancelled",
-            "status_color": "danger",
-            "start_date": "2023-02-20",
-            "end_date": "2023-05-20",
-            "budget": 40000,
-            "description": "Upgrade of network infrastructure and server hardware",
-            "manager": "Thomas Robinson",
-            "team": ["Kevin Lewis", "Stephanie Hall", "Brian Young"],
-            "progress": 15
-        }
-    ]
+    # Use global MOCK_PROJECTS data instead of inline mock data
+    projects_data = MOCK_PROJECTS.copy()
     
-    # Filter projects by search query
+    # Apply filters
     if search:
-        search = search.lower()
-        projects = [p for p in projects if search in p["name"].lower() or search in p["client_name"].lower()]
+        projects_data = [p for p in projects_data if search.lower() in p["name"].lower() or search.lower() in p["client_name"].lower()]
     
-    # Filter projects by status
     if status:
-        projects = [p for p in projects if p["status"] == status]
+        projects_data = [p for p in projects_data if p["status"].lower() == status.lower()]
     
-    # Sort projects
+    # Apply sorting
     if sort:
-        if sort == "name_asc":
-            projects = sorted(projects, key=lambda p: p["name"])
-        elif sort == "name_desc":
-            projects = sorted(projects, key=lambda p: p["name"], reverse=True)
-        elif sort == "date_asc":
-            projects = sorted(projects, key=lambda p: p["start_date"])
-        elif sort == "date_desc":
-            projects = sorted(projects, key=lambda p: p["start_date"], reverse=True)
-        elif sort == "budget_asc":
-            projects = sorted(projects, key=lambda p: p["budget"])
-        elif sort == "budget_desc":
-            projects = sorted(projects, key=lambda p: p["budget"], reverse=True)
+        reverse = False
+        if sort.startswith('-'):
+            sort = sort[1:]
+            reverse = True
+        
+        if sort == 'name':
+            projects_data = sorted(projects_data, key=lambda p: p["name"], reverse=reverse)
+        elif sort == 'client':
+            projects_data = sorted(projects_data, key=lambda p: p["client_name"], reverse=reverse)
+        elif sort == 'date':
+            projects_data = sorted(projects_data, key=lambda p: p["start_date"], reverse=reverse)
+        elif sort == 'budget':
+            projects_data = sorted(projects_data, key=lambda p: p["budget"], reverse=reverse)
+        elif sort == 'progress':
+            projects_data = sorted(projects_data, key=lambda p: p["progress"], reverse=reverse)
     
-    # Available statuses for filtering
+    # Pagination variables
+    items_per_page = 10
+    total_items = len(projects_data)
+    total_pages = (total_items + items_per_page - 1) // items_per_page  # Ceiling division
+    
+    # Ensure page is within valid range
+    if page < 1:
+        page = 1
+    elif page > total_pages and total_pages > 0:
+        page = total_pages
+    
+    # Calculate pagination indices
+    start_idx = (page - 1) * items_per_page
+    end_idx = min(start_idx + items_per_page, total_items)
+    
+    # Get paginated projects
+    paginated_projects = projects_data[start_idx:end_idx]
+    
+    # Get available statuses for filter dropdown
     statuses = ["Planning", "In Progress", "On Hold", "Completed", "Cancelled"]
     
-    # Prepare context with projects data
-    context = {
-        "request": request, 
-        "session": request.session,
-        "projects": projects,
-        "statuses": statuses,
-        "search_query": search or "",
-        "current_status": status or "All"
-    }
-    
-    return templates.TemplateResponse("projects.html", context)
+    return templates.TemplateResponse(
+        "projects.html",
+        {
+            "request": request, 
+            "projects": paginated_projects,
+            "page": page,
+            "total_pages": total_pages,
+            "total_items": total_items,
+            "search_query": search or "",
+            "current_status": status or "All",
+            "statuses": statuses
+        }
+    )
 
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
-async def project_detail(project_id: int, request: Request, session: dict = Depends(get_session)):
+async def project_detail(
+    request: Request, 
+    project_id: int,
+    session: dict = Depends(get_session)
+):
     if not check_auth(session):
         return RedirectResponse(url="/login")
     
-    # Mock data for projects (reusing the same data from projects)
-    projects = [
-        {
-            "id": 1,
-            "name": "Website Redesign",
-            "client_id": 1,
-            "client_name": "Acme Corporation",
-            "status": "In Progress",
-            "status_color": "primary",
-            "start_date": "2023-02-01",
-            "end_date": "2023-06-30",
-            "budget": 25000,
-            "description": "Complete overhaul of corporate website with new branding",
-            "manager": "Jane Doe",
-            "team": ["John Smith", "Emily Johnson", "Michael Brown"],
-            "progress": 45
-        },
-        {
-            "id": 2,
-            "name": "Mobile App Development",
-            "client_id": 1,
-            "client_name": "Acme Corporation",
-            "status": "Planning",
-            "status_color": "info",
-            "start_date": "2023-07-15",
-            "end_date": "2023-12-31",
-            "budget": 50000,
-            "description": "Development of iOS and Android mobile applications",
-            "manager": "Mike Johnson",
-            "team": ["Sarah Williams", "David Lee", "Jessica Taylor"],
-            "progress": 10
-        },
-        {
-            "id": 3,
-            "name": "CRM Implementation",
-            "client_id": 2,
-            "client_name": "TechSolutions Inc",
-            "status": "Completed",
-            "status_color": "success",
-            "start_date": "2023-01-10",
-            "end_date": "2023-04-30",
-            "budget": 35000,
-            "description": "Implementation of custom CRM solution with integration to existing systems",
-            "manager": "Robert Wilson",
-            "team": ["Jennifer Davis", "Christopher Martinez", "Amanda Thompson"],
-            "progress": 100
-        },
-        {
-            "id": 4,
-            "name": "Digital Marketing Campaign",
-            "client_id": 4,
-            "client_name": "Healthcare Partners",
-            "status": "On Hold",
-            "status_color": "warning",
-            "start_date": "2023-03-15",
-            "end_date": "2023-09-15",
-            "budget": 15000,
-            "description": "Comprehensive digital marketing campaign across multiple channels",
-            "manager": "Lisa Anderson",
-            "team": ["Daniel White", "Michelle Garcia"],
-            "progress": 30
-        },
-        {
-            "id": 5,
-            "name": "IT Infrastructure Upgrade",
-            "client_id": 3,
-            "client_name": "Global Retail Group",
-            "status": "Cancelled",
-            "status_color": "danger",
-            "start_date": "2023-02-20",
-            "end_date": "2023-05-20",
-            "budget": 40000,
-            "description": "Upgrade of network infrastructure and server hardware",
-            "manager": "Thomas Robinson",
-            "team": ["Kevin Lewis", "Stephanie Hall", "Brian Young"],
-            "progress": 15
-        }
-    ]
-    
+    # Use global MOCK_PROJECTS data
     # Find the project with the matching ID
-    project = next((p for p in projects if p["id"] == project_id), None)
+    project = next((p for p in MOCK_PROJECTS if p["id"] == project_id), None)
     
     # If project not found, return 404
     if not project:
         return templates.TemplateResponse(
             "error.html", 
-            {"request": request, "session": request.session, "status_code": 404, "detail": f"Project with ID {project_id} not found"}
+            {"request": request, "status_code": 404, "detail": f"Project with ID {project_id} not found"}
         )
     
-    # Mock tasks for this project
-    tasks = [
-        {
-            "id": 101,
-            "name": "Requirements Gathering",
-            "status": "Completed",
-            "status_color": "success",
-            "due_date": "2023-02-15",
-            "assigned_to": "John Smith",
-            "priority": "High",
-            "description": "Gather and document all requirements for the project"
-        },
-        {
-            "id": 102,
-            "name": "Design Mockups",
-            "status": "Completed",
-            "status_color": "success",
-            "due_date": "2023-03-01",
-            "assigned_to": "Emily Johnson",
-            "priority": "Medium",
-            "description": "Create design mockups for all pages"
-        },
-        {
-            "id": 103,
-            "name": "Frontend Development",
-            "status": "In Progress",
-            "status_color": "primary",
-            "due_date": "2023-04-15",
-            "assigned_to": "Michael Brown",
-            "priority": "High",
-            "description": "Implement frontend components based on approved designs"
-        },
-        {
-            "id": 104,
-            "name": "Backend Development",
-            "status": "In Progress",
-            "status_color": "primary",
-            "due_date": "2023-05-01",
-            "assigned_to": "John Smith",
-            "priority": "High",
-            "description": "Implement backend APIs and database integration"
-        },
-        {
-            "id": 105,
-            "name": "Testing",
-            "status": "Not Started",
-            "status_color": "secondary",
-            "due_date": "2023-05-15",
-            "assigned_to": "Emily Johnson",
-            "priority": "Medium",
-            "description": "Perform comprehensive testing of all features"
-        },
-        {
-            "id": 106,
-            "name": "Deployment",
-            "status": "Not Started",
-            "status_color": "secondary",
-            "due_date": "2023-06-15",
-            "assigned_to": "Michael Brown",
-            "priority": "High",
-            "description": "Deploy the application to production environment"
-        }
-    ] if project_id == 1 else []
-    
-    # Mock milestones for this project
-    milestones = [
-        {
-            "id": 201,
-            "name": "Project Kickoff",
-            "date": "2023-02-01",
-            "status": "Completed",
-            "status_color": "success",
-            "description": "Initial project kickoff meeting with all stakeholders"
-        },
-        {
-            "id": 202,
-            "name": "Design Approval",
-            "date": "2023-03-15",
-            "status": "Completed",
-            "status_color": "success",
-            "description": "Approval of all design mockups by client"
-        },
-        {
-            "id": 203,
-            "name": "Alpha Release",
-            "date": "2023-04-30",
-            "status": "In Progress",
-            "status_color": "primary",
-            "description": "Initial alpha release for internal testing"
-        },
-        {
-            "id": 204,
-            "name": "Beta Release",
-            "date": "2023-05-30",
-            "status": "Not Started",
-            "status_color": "secondary",
-            "description": "Beta release for client testing"
-        },
-        {
-            "id": 205,
-            "name": "Final Delivery",
-            "date": "2023-06-30",
-            "status": "Not Started",
-            "status_color": "secondary",
-            "description": "Final delivery of the project"
-        }
-    ] if project_id == 1 else []
-    
-    # Mock expenses for this project
-    expenses = [
-        {
-            "id": 301,
-            "description": "Software Licenses",
-            "date": "2023-02-10",
-            "amount": 1200,
-            "category": "Software",
-            "submitted_by": "Jane Doe"
-        },
-        {
-            "id": 302,
-            "description": "Design Tools Subscription",
-            "date": "2023-02-15",
-            "amount": 500,
-            "category": "Software",
-            "submitted_by": "Emily Johnson"
-        },
-        {
-            "id": 303,
-            "description": "Client Meeting Lunch",
-            "date": "2023-03-05",
-            "amount": 150,
-            "category": "Meals",
-            "submitted_by": "Jane Doe"
-        },
-        {
-            "id": 304,
-            "description": "Stock Photos",
-            "date": "2023-03-20",
-            "amount": 300,
-            "category": "Content",
-            "submitted_by": "Emily Johnson"
-        }
-    ] if project_id == 1 else []
-    
-    # Mock time entries for this project
-    time_entries = [
-        {
-            "id": 401,
-            "task": "Requirements Gathering",
-            "date": "2023-02-05",
-            "hours": 8,
-            "user": "John Smith",
-            "notes": "Initial requirements gathering session with client"
-        },
-        {
-            "id": 402,
-            "task": "Requirements Documentation",
-            "date": "2023-02-06",
-            "hours": 6,
-            "user": "John Smith",
-            "notes": "Documenting requirements from client meeting"
-        },
-        {
-            "id": 403,
-            "task": "Design Research",
-            "date": "2023-02-10",
-            "hours": 4,
-            "user": "Emily Johnson",
-            "notes": "Research on design trends and competitor websites"
-        },
-        {
-            "id": 404,
-            "task": "Initial Mockups",
-            "date": "2023-02-15",
-            "hours": 8,
-            "user": "Emily Johnson",
-            "notes": "Creating initial mockups for homepage and key pages"
-        },
-        {
-            "id": 405,
-            "task": "Client Review Meeting",
-            "date": "2023-02-20",
-            "hours": 2,
-            "user": "Jane Doe",
-            "notes": "Meeting with client to review initial mockups"
-        }
-    ] if project_id == 1 else []
-    
-    # Prepare context with project and related data
+    # Prepare context with project data
     context = {
-        "request": request, 
-        "session": request.session,
+        "request": request,
         "project": project,
-        "tasks": tasks,
-        "milestones": milestones,
-        "expenses": expenses,
-        "time_entries": time_entries
     }
     
     return templates.TemplateResponse("project_detail.html", context)
 
 @app.get("/projects/new", response_class=HTMLResponse)
-async def new_project(request: Request, session: dict = Depends(get_session), customer_id: int = None):
+async def new_project(
+    request: Request, 
+    session: dict = Depends(get_session), 
+    customer_id: int = None
+):
     if not check_auth(session):
         return RedirectResponse(url="/login")
     
-    # Mock data for contacts/clients
-    contacts = [
-        {"id": 1, "name": "Acme Corporation"},
-        {"id": 2, "name": "TechSolutions Inc"},
-        {"id": 3, "name": "Global Retail Group"},
-        {"id": 4, "name": "Healthcare Partners"},
-        {"id": 5, "name": "EduLearn Academy"}
-    ]
+    # Get all customers for the dropdown
+    customers = MOCK_CUSTOMERS
     
     # Create an empty project object for the form
-    project = None
-    
-    # If customer_id is provided, pre-select that customer
-    selected_client_id = customer_id
-    
-    # Prepare context with project data and contacts
-    context = {
-        "request": request, 
-        "session": request.session,
-        "project": project,
-        "contacts": contacts,
-        "selected_client_id": selected_client_id
+    project = {
+        "id": None,
+        "name": "",
+        "client_id": customer_id,
+        "client_name": "",
+        "status": "Planning",
+        "status_color": "info",
+        "start_date": "",
+        "end_date": "",
+        "budget": 0.0,
+        "spent": 0.0,
+        "remaining": 0.0,
+        "description": "",
+        "manager": "",
+        "team": [],
+        "progress": 0
     }
     
-    return templates.TemplateResponse("project_form.html", context)
+    # If customer_id is provided, pre-select that customer and set client_name
+    if customer_id:
+        customer = next((c for c in customers if c["id"] == customer_id), None)
+        if customer:
+            project["client_name"] = customer["name"]
+    
+    return templates.TemplateResponse(
+        "project_form.html", 
+        {"request": request, "project": project, "customers": customers, "mode": "new"}
+    )
 
 @app.post("/projects/new", response_class=HTMLResponse)
 async def new_project_post(
@@ -937,117 +846,32 @@ async def new_project_post(
     return RedirectResponse(url="/projects", status_code=303)
 
 @app.get("/projects/{project_id}/edit", response_class=HTMLResponse)
-async def edit_project(project_id: int, request: Request, session: dict = Depends(get_session)):
+async def edit_project(
+    request: Request, 
+    project_id: int,
+    session: dict = Depends(get_session)
+):
     if not check_auth(session):
         return RedirectResponse(url="/login")
     
-    # Mock data for projects (reusing the same data from projects)
-    projects = [
-        {
-            "id": 1,
-            "name": "Website Redesign",
-            "client_id": 1,
-            "client_name": "Acme Corporation",
-            "status": "In Progress",
-            "status_color": "primary",
-            "start_date": "2023-02-01",
-            "end_date": "2023-06-30",
-            "budget": 25000,
-            "description": "Complete overhaul of corporate website with new branding",
-            "manager": "Jane Doe",
-            "team": ["John Smith", "Emily Johnson", "Michael Brown"],
-            "progress": 45
-        },
-        {
-            "id": 2,
-            "name": "Mobile App Development",
-            "client_id": 1,
-            "client_name": "Acme Corporation",
-            "status": "Planning",
-            "status_color": "info",
-            "start_date": "2023-07-15",
-            "end_date": "2023-12-31",
-            "budget": 50000,
-            "description": "Development of iOS and Android mobile applications",
-            "manager": "Mike Johnson",
-            "team": ["Sarah Williams", "David Lee", "Jessica Taylor"],
-            "progress": 10
-        },
-        {
-            "id": 3,
-            "name": "CRM Implementation",
-            "client_id": 2,
-            "client_name": "TechSolutions Inc",
-            "status": "Completed",
-            "status_color": "success",
-            "start_date": "2023-01-10",
-            "end_date": "2023-04-30",
-            "budget": 35000,
-            "description": "Implementation of custom CRM solution with integration to existing systems",
-            "manager": "Robert Wilson",
-            "team": ["Jennifer Davis", "Christopher Martinez", "Amanda Thompson"],
-            "progress": 100
-        },
-        {
-            "id": 4,
-            "name": "Digital Marketing Campaign",
-            "client_id": 4,
-            "client_name": "Healthcare Partners",
-            "status": "On Hold",
-            "status_color": "warning",
-            "start_date": "2023-03-15",
-            "end_date": "2023-09-15",
-            "budget": 15000,
-            "description": "Comprehensive digital marketing campaign across multiple channels",
-            "manager": "Lisa Anderson",
-            "team": ["Daniel White", "Michelle Garcia"],
-            "progress": 30
-        },
-        {
-            "id": 5,
-            "name": "IT Infrastructure Upgrade",
-            "client_id": 3,
-            "client_name": "Global Retail Group",
-            "status": "Cancelled",
-            "status_color": "danger",
-            "start_date": "2023-02-20",
-            "end_date": "2023-05-20",
-            "budget": 40000,
-            "description": "Upgrade of network infrastructure and server hardware",
-            "manager": "Thomas Robinson",
-            "team": ["Kevin Lewis", "Stephanie Hall", "Brian Young"],
-            "progress": 15
-        }
-    ]
-    
+    # Use global MOCK_PROJECTS data
     # Find the project with the matching ID
-    project = next((p for p in projects if p["id"] == project_id), None)
+    project = next((p for p in MOCK_PROJECTS if p["id"] == project_id), None)
     
     # If project not found, return 404
     if not project:
         return templates.TemplateResponse(
             "error.html", 
-            {"request": request, "session": request.session, "status_code": 404, "detail": f"Project with ID {project_id} not found"}
+            {"request": request, "status_code": 404, "detail": f"Project with ID {project_id} not found"}
         )
     
-    # Mock data for contacts/clients
-    contacts = [
-        {"id": 1, "name": "Acme Corporation"},
-        {"id": 2, "name": "TechSolutions Inc"},
-        {"id": 3, "name": "Global Retail Group"},
-        {"id": 4, "name": "Healthcare Partners"},
-        {"id": 5, "name": "EduLearn Academy"}
-    ]
+    # Get all customers for the dropdown
+    customers = MOCK_CUSTOMERS
     
-    # Prepare context with project data and contacts
-    context = {
-        "request": request, 
-        "session": request.session,
-        "project": project,
-        "contacts": contacts
-    }
-    
-    return templates.TemplateResponse("project_form.html", context)
+    return templates.TemplateResponse(
+        "project_form.html", 
+        {"request": request, "project": project, "customers": customers, "mode": "edit"}
+    )
 
 @app.post("/projects/{project_id}/edit", response_class=HTMLResponse)
 async def edit_project_post(
@@ -1073,24 +897,36 @@ async def edit_project_post(
     return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 @app.get("/time-logs", response_class=HTMLResponse)
-async def time_logs(request: Request, session: dict = Depends(get_session), page: int = 1, search_query: str = None, status_filter: str = None, project_filter: str = None):
+async def time_logs(
+    request: Request, 
+    session: dict = Depends(get_session), 
+    page: int = 1, 
+    search_query: str = None, 
+    status_filter: str = None, 
+    project_filter: int = None
+):
     if not check_auth(session):
         return RedirectResponse(url="/login")
     
-    # Mock data for time logs
-    mock_time_logs = [
-        {"id": 1, "date": "2025-03-01", "project": "Office Renovation", "task": "Electrical Work", "user": "Admin", "hours": 4.5, "description": "Installed new lighting fixtures", "billable": True, "status": "Approved", "status_color": "success"},
-        {"id": 2, "date": "2025-03-02", "project": "Warehouse Expansion", "task": "Planning", "user": "Admin", "hours": 2.0, "description": "Meeting with architects", "billable": True, "status": "Approved", "status_color": "success"},
-        {"id": 3, "date": "2025-03-03", "project": "Office Renovation", "task": "Plumbing", "user": "Admin", "hours": 6.0, "description": "Bathroom fixtures installation", "billable": True, "status": "Pending", "status_color": "warning"},
-        {"id": 4, "date": "2025-03-04", "project": "Retail Store Remodel", "task": "Demolition", "user": "Admin", "hours": 8.0, "description": "Removed old fixtures and walls", "billable": True, "status": "Pending", "status_color": "warning"},
-        {"id": 5, "date": "2025-03-05", "project": "Office Renovation", "task": "Painting", "user": "Admin", "hours": 7.5, "description": "Painted main office area", "billable": True, "status": "Pending", "status_color": "warning"},
-        {"id": 6, "date": "2025-03-06", "project": "Warehouse Expansion", "task": "Foundation", "user": "Admin", "hours": 8.0, "description": "Supervised foundation pouring", "billable": True, "status": "Pending", "status_color": "warning"},
-        {"id": 7, "date": "2025-03-07", "project": "Retail Store Remodel", "task": "Electrical Work", "user": "Admin", "hours": 5.0, "description": "Rewired sales floor", "billable": True, "status": "Draft", "status_color": "secondary"},
-    ]
+    # Use global MOCK_TIME_LOGS data
+    time_logs_data = MOCK_TIME_LOGS.copy()
+    
+    # Apply filters
+    if search_query:
+        time_logs_data = [log for log in time_logs_data if 
+                         search_query.lower() in log["project_name"].lower() or 
+                         search_query.lower() in log["task_name"].lower() or 
+                         search_query.lower() in log["description"].lower()]
+    
+    if status_filter:
+        time_logs_data = [log for log in time_logs_data if log["status"].lower() == status_filter.lower()]
+    
+    if project_filter:
+        time_logs_data = [log for log in time_logs_data if log["project_id"] == project_filter]
     
     # Pagination variables
     items_per_page = 10
-    total_items = len(mock_time_logs)
+    total_items = len(time_logs_data)
     total_pages = (total_items + items_per_page - 1) // items_per_page  # Ceiling division
     
     # Ensure page is within valid range
@@ -1103,70 +939,83 @@ async def time_logs(request: Request, session: dict = Depends(get_session), page
     start_idx = (page - 1) * items_per_page
     end_idx = min(start_idx + items_per_page, total_items)
     
-    # Get time logs for current page
-    paginated_time_logs = mock_time_logs[start_idx:end_idx]
+    # Get paginated time logs
+    paginated_time_logs = time_logs_data[start_idx:end_idx]
     
-    # Mock projects for filter
-    projects = ["Office Renovation", "Warehouse Expansion", "Retail Store Remodel"]
+    # Get projects for filter dropdown
+    projects = [(p["id"], p["name"]) for p in MOCK_PROJECTS]
     
-    # Mock statuses for filter
-    statuses = ["Draft", "Pending", "Approved", "Rejected"]
+    # Get statuses for filter dropdown
+    statuses = ["Approved", "Pending", "Draft", "Rejected"]
     
-    # Prepare context with pagination data
-    context = {
-        "request": request, 
-        "session": request.session,
-        "time_logs": paginated_time_logs,
-        "page": page,
-        "total_pages": total_pages,
-        "search_query": search_query or "",
-        "status_filter": status_filter or "",
-        "project_filter": project_filter or "",
-        "projects": projects,
-        "statuses": statuses,
-        "total_hours": sum(log["hours"] for log in mock_time_logs),
-        "billable_hours": sum(log["hours"] for log in mock_time_logs if log["billable"]),
-        "pending_hours": sum(log["hours"] for log in mock_time_logs if log["status"] == "Pending")
-    }
+    # Calculate summary statistics
+    total_hours = sum(log["hours"] for log in time_logs_data)
+    billable_hours = sum(log["hours"] for log in time_logs_data if log["billable"])
+    pending_hours = sum(log["hours"] for log in time_logs_data if log["status"] == "Pending")
     
-    return templates.TemplateResponse("time_logs.html", context)
+    return templates.TemplateResponse(
+        "time_logs.html", 
+        {
+            "request": request,
+            "time_logs": paginated_time_logs,
+            "page": page,
+            "total_pages": total_pages,
+            "total_items": total_items,
+            "search_query": search_query or "",
+            "status_filter": status_filter or "",
+            "project_filter": project_filter or "",
+            "projects": projects,
+            "statuses": statuses,
+            "total_hours": total_hours,
+            "billable_hours": billable_hours,
+            "pending_hours": pending_hours
+        }
+    )
 
 @app.get("/time-logs/new", response_class=HTMLResponse)
-async def new_time_log(request: Request, session: dict = Depends(get_session), project_id: int = None):
+async def new_time_log(
+    request: Request, 
+    session: dict = Depends(get_session), 
+    project_id: int = None
+):
     if not check_auth(session):
         return RedirectResponse(url="/login")
     
-    # Mock projects for selection
-    projects = [
-        (1, "Office Renovation"),
-        (2, "Warehouse Expansion"),
-        (3, "Retail Store Remodel")
-    ]
+    # Get projects from MOCK_PROJECTS for selection
+    projects = [(p["id"], p["name"]) for p in MOCK_PROJECTS]
     
     # Mock tasks for the selected project
     project_tasks = []
     selected_project = None
     
     if project_id:
-        # In a real app, we would fetch tasks for the selected project from the database
-        if project_id == 1:
-            project_tasks = [(1, "Electrical Work"), (2, "Plumbing"), (3, "Painting")]
-            selected_project = {"id": 1, "name": "Office Renovation"}
-        elif project_id == 2:
-            project_tasks = [(4, "Planning"), (5, "Foundation"), (6, "Framing")]
-            selected_project = {"id": 2, "name": "Warehouse Expansion"}
-        elif project_id == 3:
-            project_tasks = [(7, "Demolition"), (8, "Electrical Work"), (9, "Fixtures")]
-            selected_project = {"id": 3, "name": "Retail Store Remodel"}
+        # Find the selected project from MOCK_PROJECTS
+        selected_project = next((p for p in MOCK_PROJECTS if p["id"] == project_id), None)
+        
+        if selected_project:
+            # In a real app, we would fetch tasks for the selected project from the database
+            # For now, use mock tasks based on the project's tasks array if available
+            if "tasks" in selected_project and selected_project["tasks"]:
+                project_tasks = [(task["id"], task["name"]) for task in selected_project["tasks"]]
+            else:
+                # Fallback mock tasks
+                if project_id == 1:  # Office Renovation
+                    project_tasks = [(101, "Electrical Work"), (102, "Plumbing"), (103, "Painting")]
+                elif project_id == 4:  # Warehouse Expansion
+                    project_tasks = [(401, "Planning"), (402, "Foundation"), (403, "Framing")]
+                elif project_id == 3:  # Mobile App Development
+                    project_tasks = [(301, "Frontend Development"), (302, "Backend Integration"), (303, "Testing")]
     
-    return templates.TemplateResponse("time_log_form.html", {
-        "request": request, 
-        "session": request.session,
-        "projects": projects,
-        "project_tasks": project_tasks,
-        "selected_project": selected_project,
-        "time_log": None
-    })
+    return templates.TemplateResponse(
+        "time_log_form.html", 
+        {
+            "request": request,
+            "projects": projects,
+            "project_tasks": project_tasks,
+            "selected_project": selected_project,
+            "time_log": None
+        }
+    )
 
 @app.post("/time-logs/new", response_class=HTMLResponse)
 async def create_time_log(
@@ -1198,65 +1047,54 @@ async def edit_time_log(request: Request, log_id: int, session: dict = Depends(g
     if not check_auth(session):
         return RedirectResponse(url="/login")
     
-    # Mock time log data
-    # In a real app, we would fetch this from the database
-    mock_time_logs = {
-        1: {"id": 1, "date": "2025-03-01", "project_id": 1, "project_name": "Office Renovation", 
-            "task_id": 1, "task_name": "Electrical Work", "user_id": 1, "user_name": "Admin", 
-            "hours": 4.5, "description": "Installed new lighting fixtures", "billable": True, "status": "Approved"},
-        2: {"id": 2, "date": "2025-03-02", "project_id": 2, "project_name": "Warehouse Expansion", 
-            "task_id": 4, "task_name": "Planning", "user_id": 1, "user_name": "Admin", 
-            "hours": 2.0, "description": "Meeting with architects", "billable": True, "status": "Approved"},
-        3: {"id": 3, "date": "2025-03-03", "project_id": 1, "project_name": "Office Renovation", 
-            "task_id": 2, "task_name": "Plumbing", "user_id": 1, "user_name": "Admin", 
-            "hours": 6.0, "description": "Bathroom fixtures installation", "billable": True, "status": "Pending"}
-    }
+    # Find the time log in MOCK_TIME_LOGS
+    time_log = next((log for log in MOCK_TIME_LOGS if log["id"] == log_id), None)
     
-    # Get the time log or return 404
-    time_log = mock_time_logs.get(log_id)
+    # If time log not found, return 404
     if not time_log:
-        return templates.TemplateResponse("404.html", {"request": request, "session": request.session}, status_code=404)
+        return templates.TemplateResponse(
+            "error.html", 
+            {"request": request, "status_code": 404, "detail": f"Time log with ID {log_id} not found"}
+        )
     
-    # Mock projects for selection
-    projects = [
-        (1, "Office Renovation"),
-        (2, "Warehouse Expansion"),
-        (3, "Retail Store Remodel")
-    ]
+    # Get projects from MOCK_PROJECTS for selection
+    projects = [(p["id"], p["name"]) for p in MOCK_PROJECTS]
     
     # Use project_id from query param if provided, otherwise use the time log's project_id
     project_id = project_id if project_id else time_log["project_id"]
     
-    # Mock tasks for the selected project
+    # Find the project for this time log
+    project = next((p for p in MOCK_PROJECTS if p["id"] == project_id), None)
+    
+    # Get tasks for the project
     project_tasks = []
-    selected_project = None
+    if project and "tasks" in project and project["tasks"]:
+        project_tasks = [(task["id"], task["name"]) for task in project["tasks"]]
+    else:
+        # Fallback mock tasks
+        if project_id == 1:  # Office Renovation
+            project_tasks = [(101, "Electrical Work"), (102, "Plumbing"), (103, "Painting")]
+        elif project_id == 4:  # Warehouse Expansion
+            project_tasks = [(401, "Planning"), (402, "Foundation"), (403, "Framing")]
+        elif project_id == 3:  # Mobile App Development
+            project_tasks = [(301, "Frontend Development"), (302, "Backend Integration"), (303, "Testing")]
     
-    if project_id:
-        # In a real app, we would fetch tasks for the selected project from the database
-        if project_id == 1:
-            project_tasks = [(1, "Electrical Work"), (2, "Plumbing"), (3, "Painting")]
-            selected_project = {"id": 1, "name": "Office Renovation"}
-        elif project_id == 2:
-            project_tasks = [(4, "Planning"), (5, "Foundation"), (6, "Framing")]
-            selected_project = {"id": 2, "name": "Warehouse Expansion"}
-        elif project_id == 3:
-            project_tasks = [(7, "Demolition"), (8, "Electrical Work"), (9, "Fixtures")]
-            selected_project = {"id": 3, "name": "Retail Store Remodel"}
-    
-    return templates.TemplateResponse("time_log_form.html", {
-        "request": request, 
-        "session": request.session,
-        "time_log": time_log,
-        "projects": projects,
-        "project_tasks": project_tasks,
-        "selected_project": selected_project
-    })
+    return templates.TemplateResponse(
+        "time_log_form.html", 
+        {
+            "request": request,
+            "time_log": time_log,
+            "projects": projects,
+            "project_tasks": project_tasks,
+            "selected_project": project
+        }
+    )
 
 @app.post("/time-logs/{log_id}/edit", response_class=HTMLResponse)
 async def update_time_log(
-    request: Request,
-    log_id: int,
-    session: dict = Depends(get_session),
+    request: Request, 
+    log_id: int, 
+    session: dict = Depends(get_session), 
     project_id: int = Form(...),
     task_id: int = Form(...),
     date: str = Form(...),
@@ -1279,50 +1117,34 @@ async def update_time_log(
     return RedirectResponse(url="/time-logs", status_code=303)
 
 @app.get("/projects/{project_id}/time-logs", response_class=HTMLResponse)
-async def project_time_logs(request: Request, project_id: int, session: dict = Depends(get_session)):
+async def project_time_logs(
+    request: Request, 
+    project_id: int, 
+    session: dict = Depends(get_session)
+):
     if not check_auth(session):
         return RedirectResponse(url="/login")
     
-    # Mock project data
-    # In a real app, we would fetch this from the database
-    mock_projects = {
-        1: {"id": 1, "name": "Office Renovation", "customer_name": "Acme Corporation"},
-        2: {"id": 2, "name": "Mobile App Development", "customer_name": "Acme Corporation"},
-        3: {"id": 3, "name": "CRM Implementation", "customer_name": "TechSolutions Inc"},
-        4: {"id": 4, "name": "Digital Marketing Campaign", "customer_name": "Healthcare Partners"}
-    }
+    # Use global MOCK_PROJECTS data
+    # Find the project with the matching ID
+    project = next((p for p in MOCK_PROJECTS if p["id"] == project_id), None)
     
-    # Get the project or return 404
-    project = mock_projects.get(project_id)
+    # If project not found, return 404
     if not project:
         return templates.TemplateResponse(
             "error.html", 
-            {"request": request, "session": request.session, "status_code": 404, "detail": f"Project with ID {project_id} not found"}
+            {"request": request, "status_code": 404, "detail": f"Project with ID {project_id} not found"}
         )
     
-    # Mock data for time logs filtered by project
-    mock_time_logs = [
-        {"id": 1, "date": "2025-03-01", "project_id": 1, "project_name": "Office Renovation", 
-         "task_name": "Electrical Work", "user_name": "Admin", "hours": 4.5, 
-         "description": "Installed new lighting fixtures", "billable": True, "status": "Approved", "status_color": "success"},
-        {"id": 3, "date": "2025-03-03", "project_id": 1, "project_name": "Office Renovation", 
-         "task_name": "Plumbing", "user_name": "Admin", "hours": 6.0, 
-         "description": "Bathroom fixtures installation", "billable": True, "status": "Pending", "status_color": "warning"},
-        {"id": 5, "date": "2025-03-05", "project_id": 1, "project_name": "Office Renovation", 
-         "task_name": "Painting", "user_name": "Admin", "hours": 7.5, 
-         "description": "Painted main office area", "billable": True, "status": "Pending", "status_color": "warning"}
-    ]
-    
     # Filter time logs by project
-    project_time_logs = [log for log in mock_time_logs if log["project_id"] == project_id]
+    project_time_logs = [log for log in MOCK_TIME_LOGS if log["project_id"] == project_id]
     
-    # Mock statuses for filter
-    statuses = ["Draft", "Pending", "Approved", "Rejected"]
+    # Available statuses for filtering
+    statuses = ["Pending", "Approved", "Rejected"]
     
     # Prepare context
     context = {
-        "request": request, 
-        "session": request.session,
+        "request": request,
         "project": project,
         "time_logs": project_time_logs,
         "statuses": statuses,
@@ -2398,79 +2220,73 @@ async def create_customer(
     customer_since: str = Form(None),
     payment_terms: str = Form("Net 30"),
     credit_limit: float = Form(0.00),
-    notes: str = Form(None)
+    notes: str = Form(None),
+    latitude: float = Form(None),
+    longitude: float = Form(None),
+    formatted_address: str = Form(None)
 ):
-    """Handle customer creation form submission."""
+    """Create a new customer."""
     if not check_auth(session):
         return RedirectResponse(url="/login")
     
+    supabase_client = get_supabase_client()
+    
     try:
-        # Create new customer data
-        new_customer = {
-            "id": len(MOCK_CUSTOMERS) + 1,  # Simple ID generation for mock data
+        # Prepare the customer data
+        customer_data = {
             "name": name,
             "contact_name": contact_name,
             "email": email,
             "phone": phone,
-            "address": address or "",
-            "city": city or "",
-            "state": state or "",
-            "zip": zip or "",
+            "address": address,
+            "city": city,
+            "state": state,
+            "zip": zip,
             "status": status,
             "customer_since": customer_since or datetime.now().strftime("%Y-%m-%d"),
             "payment_terms": payment_terms,
             "credit_limit": credit_limit,
-            "notes": notes or "",
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat()
+            "notes": notes,
+            "latitude": latitude,
+            "longitude": longitude,
+            "formatted_address": formatted_address,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
         }
         
-        # Try to save to Supabase if available
-        supabase_client = get_supabase_client()
+        # Try to insert into Supabase
+        customer_id = None
         if supabase_client:
-            result = supabase_client.table("customers").insert(new_customer).execute()
-            if result.data:
-                new_customer = result.data[0]
-        else:
-            # Just add to mock data
-            MOCK_CUSTOMERS.append(new_customer)
+            try:
+                result = supabase_client.table("customers").insert(customer_data).execute()
+                if result.data:
+                    customer_id = result.data[0].get('id')
+            except Exception as supabase_error:
+                print(f"Supabase error creating customer: {str(supabase_error)}")
         
-        # Redirect to customer detail page
-        return RedirectResponse(url=f"/customers/{new_customer['id']}", status_code=303)
+        # If we couldn't insert into Supabase, use a mock ID
+        if not customer_id:
+            # In a mock scenario, generate a new ID
+            customer_id = max([c["id"] for c in MOCK_CUSTOMERS]) + 1
+            
+            # Add to mock data for this session
+            customer_data["id"] = customer_id
+            MOCK_CUSTOMERS.append(customer_data)
+        
+        # Redirect to the new customer's detail page
+        return RedirectResponse(url=f"/customers/{customer_id}", status_code=303)
     
     except Exception as e:
         print(f"Error creating customer: {str(e)}")
-        
-        # Return the form with error
-        statuses = ["Active", "Inactive", "Pending", "VIP"]
-        payment_terms = ["Net 15", "Net 30", "Net 45", "Net 60", "Due on Receipt"]
-        
         return templates.TemplateResponse(
-            "customer_form.html", 
+            "error.html",
             {
-                "request": request, 
-                "session": request.session, 
-                "customer": {
-                    "id": None,
-                    "name": name,
-                    "contact_name": contact_name,
-                    "email": email,
-                    "phone": phone,
-                    "address": address,
-                    "city": city,
-                    "state": state,
-                    "zip": zip,
-                    "status": status,
-                    "customer_since": customer_since,
-                    "payment_terms": payment_terms,
-                    "credit_limit": credit_limit,
-                    "notes": notes
-                },
-                "statuses": statuses,
-                "payment_terms": payment_terms,
-                "error": str(e)
+                "request": request,
+                "session": request.session,
+                "status_code": 500,
+                "detail": f"Error creating customer: {str(e)}"
             },
-            status_code=400
+            status_code=500
         )
 
 @app.get("/customers/{customer_id}", response_class=HTMLResponse)
@@ -2499,41 +2315,20 @@ async def customer_detail(customer_id: int, request: Request, session: dict = De
                 "error.html", 
                 {
                     "request": request, 
-                    "session": request.session,
                     "status_code": 404,
                     "detail": f"Customer with ID {customer_id} not found"
                 },
                 status_code=404
             )
         
-        # Get related projects for this customer (mock data for now)
-        projects = [
-            {
-                "id": 1,
-                "name": "Office Renovation",
-                "status": "In Progress",
-                "start_date": "2025-01-15",
-                "end_date": "2025-04-30",
-                "budget": 75000.00,
-                "progress": 40
-            },
-            {
-                "id": 2,
-                "name": "Warehouse Expansion",
-                "status": "Planning",
-                "start_date": "2025-05-01",
-                "end_date": "2025-08-31",
-                "budget": 150000.00,
-                "progress": 10
-            }
-        ] if customer_id == 1 else []
+        # Get related projects for this customer from MOCK_PROJECTS
+        projects = [p for p in MOCK_PROJECTS if p["client_id"] == customer_id]
         
         # Return the customer detail template
         return templates.TemplateResponse(
             "customer_detail.html", 
             {
                 "request": request, 
-                "session": request.session,
                 "customer": customer,
                 "projects": projects
             }
@@ -2545,7 +2340,6 @@ async def customer_detail(customer_id: int, request: Request, session: dict = De
             "error.html", 
             {
                 "request": request, 
-                "session": request.session,
                 "status_code": 500,
                 "detail": f"Error retrieving customer: {str(e)}"
             },
@@ -2631,83 +2425,63 @@ async def update_customer(
     customer_since: str = Form(None),
     payment_terms: str = Form("Net 30"),
     credit_limit: float = Form(0.00),
-    notes: str = Form(None)
+    notes: str = Form(None),
+    latitude: float = Form(None),
+    longitude: float = Form(None),
+    formatted_address: str = Form(None)
 ):
-    """Handle customer update form submission."""
+    """Update customer information."""
     if not check_auth(session):
         return RedirectResponse(url="/login")
     
+    supabase_client = get_supabase_client()
+    
     try:
-        # Prepare updated customer data
-        updated_customer = {
+        customer_data = {
             "name": name,
             "contact_name": contact_name,
             "email": email,
             "phone": phone,
-            "address": address or "",
-            "city": city or "",
-            "state": state or "",
-            "zip": zip or "",
+            "address": address,
+            "city": city,
+            "state": state,
+            "zip": zip,
             "status": status,
-            "customer_since": customer_since or datetime.now().strftime("%Y-%m-%d"),
+            "customer_since": customer_since,
             "payment_terms": payment_terms,
             "credit_limit": credit_limit,
-            "notes": notes or "",
-            "updated_at": datetime.now().isoformat()
+            "notes": notes,
+            "latitude": latitude,
+            "longitude": longitude,
+            "formatted_address": formatted_address,
+            "updated_at": datetime.utcnow().isoformat()
         }
         
-        # Try to update in Supabase if available
-        supabase_client = get_supabase_client()
         if supabase_client:
-            result = supabase_client.table("customers").update(updated_customer).eq("id", customer_id).execute()
-            if result.data:
-                updated_customer = result.data[0]
-        else:
-            # Update in mock data
-            for i, customer in enumerate(MOCK_CUSTOMERS):
-                if customer["id"] == customer_id:
-                    # Preserve id and created_at
-                    updated_customer["id"] = customer_id
-                    updated_customer["created_at"] = customer["created_at"]
-                    MOCK_CUSTOMERS[i] = updated_customer
-                    break
+            try:
+                result = supabase_client.table("customers").update(customer_data).eq("id", customer_id).execute()
+                
+                if not result.data:
+                    print(f"No data returned when updating customer {customer_id}")
+            except Exception as supabase_error:
+                print(f"Supabase error updating customer: {str(supabase_error)}")
         
-        # Redirect to customer detail page
+        # In a real app, you would update the customer in the database
+        # Here we're just redirecting back to the customer detail page
+        
         return RedirectResponse(url=f"/customers/{customer_id}", status_code=303)
     
     except Exception as e:
         print(f"Error updating customer {customer_id}: {str(e)}")
-        
-        # Return the form with error
-        statuses = ["Active", "Inactive", "Pending", "VIP"]
-        payment_terms = ["Net 15", "Net 30", "Net 45", "Net 60", "Due on Receipt"]
-        
         return templates.TemplateResponse(
-            "customer_form.html", 
+            "error.html",
             {
-                "request": request, 
-                "session": request.session, 
-                "customer": {
-                    "id": customer_id,
-                    "name": name,
-                    "contact_name": contact_name,
-                    "email": email,
-                    "phone": phone,
-                    "address": address,
-                    "city": city,
-                    "state": state,
-                    "zip": zip,
-                    "status": status,
-                    "customer_since": customer_since,
-                    "payment_terms": payment_terms,
-                    "credit_limit": credit_limit,
-                    "notes": notes
-                },
-                "statuses": statuses,
-                "payment_terms": payment_terms,
-                "error": str(e)
+                "request": request,
+                "session": request.session,
+                "status_code": 500,
+                "detail": f"Error updating customer: {str(e)}"
             },
-            status_code=400
+            status_code=500
         )
 
 @app.post("/customers/{customer_id}/delete", response_class=HTMLResponse)

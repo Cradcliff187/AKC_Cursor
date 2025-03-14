@@ -66,6 +66,7 @@
                             {{ customer.address }}<br>
                             {{ customer.city }}, {{ customer.state }} {{ customer.zip }}
                         </p>
+                        <div id="map" style="width: 100%; height: 200px; margin-top: 10px; border-radius: 4px;"></div>
                     </div>
                     
                     <div class="mb-3">
@@ -208,4 +209,59 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Store customer location data
+    const customerAddress = "{{ customer.address }}, {{ customer.city }}, {{ customer.state }} {{ customer.zip }}";
+    const customerLatitude = {{ customer.latitude|default(0) }};
+    const customerLongitude = {{ customer.longitude|default(0) }};
+    const hasCoordinates = {% if customer.latitude and customer.longitude %}true{% else %}false{% endif %};
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap" async defer></script>
+<script>
+    function initMap() {
+        // Default to US center if no coordinates
+        const position = hasCoordinates 
+            ? { lat: customerLatitude, lng: customerLongitude }
+            : { lat: 39.8283, lng: -98.5795 };
+        
+        const zoom = hasCoordinates ? 15 : 4;
+        
+        // Create map
+        const map = new google.maps.Map(document.getElementById("map"), {
+            center: position,
+            zoom: zoom,
+            mapTypeId: "roadmap",
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: true
+        });
+        
+        // If we don't have coordinates but we do have an address, geocode it
+        if (!hasCoordinates && customerAddress) {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ 'address': customerAddress }, function(results, status) {
+                if (status === 'OK' && results[0]) {
+                    map.setCenter(results[0].geometry.location);
+                    map.setZoom(15);
+                    
+                    new google.maps.Marker({
+                        map: map,
+                        position: results[0].geometry.location,
+                        title: "{{ customer.name }}"
+                    });
+                }
+            });
+        } else if (hasCoordinates) {
+            // Add marker at the customer location
+            new google.maps.Marker({
+                map: map,
+                position: position,
+                title: "{{ customer.name }}"
+            });
+        }
+    }
+</script>
 {% endblock %} 

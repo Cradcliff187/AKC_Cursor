@@ -44,8 +44,23 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="address" class="form-label">Address</label>
-                    <input type="text" class="form-control" id="address" name="address" value="{{ customer.address }}">
+                    <label for="address_search" class="form-label">Search Address</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="address_search" placeholder="Type to search for an address...">
+                        <button class="btn btn-outline-secondary" type="button" id="search_address_btn">Search</button>
+                    </div>
+                    <div class="form-text">Search for an address using Google Maps</div>
+                </div>
+
+                <div id="map" style="height: 300px; width: 100%; margin-bottom: 20px;"></div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Street Address</label>
+                            <input type="text" class="form-control" id="address" name="address" value="{{ customer.address }}">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="row">
@@ -68,6 +83,11 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Hidden fields for coordinates and formatted address -->
+                <input type="hidden" id="latitude" name="latitude" value="{{ customer.latitude if customer.latitude else '' }}">
+                <input type="hidden" id="longitude" name="longitude" value="{{ customer.longitude if customer.longitude else '' }}">
+                <input type="hidden" id="formatted_address" name="formatted_address" value="{{ customer.formatted_address if customer.formatted_address else '' }}">
 
                 <div class="row">
                     <div class="col-md-4">
@@ -122,14 +142,156 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Include Google Maps API script -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set default date to today for new customers
-        if (!document.getElementById('customer_since').value) {
-            const today = new Date();
-            const formattedDate = today.toISOString().substr(0, 10);
-            document.getElementById('customer_since').value = formattedDate;
+    // Store customer data in variables for JavaScript
+    const customerLatitude = {% if customer.latitude %}{{ customer.latitude }}{% else %}39.8283{% endif %};
+    const customerLongitude = {% if customer.longitude %}{{ customer.longitude }}{% else %}-98.5795{% endif %};
+    const hasCoordinates = {% if customer.latitude %}true{% else %}false{% endif %};
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key|default('YOUR_GOOGLE_MAPS_API_KEY') }}&libraries=places"></script>
+<script>
+    let map;
+    let marker;
+    let geocoder;
+
+    // Initialize the map
+    function initMap() {
+        geocoder = new google.maps.Geocoder();
+        
+        map = new google.maps.Map(document.getElementById("map"), {
+            center: { lat: customerLatitude, lng: customerLongitude },
+            zoom: hasCoordinates ? 15 : 4,
+            mapTypeId: "roadmap"
+        });
+
+        // Add a marker if we have latitude/longitude
+        marker = new google.maps.Marker({
+            map: map,
+            draggable: true,
+            visible: hasCoordinates
+        });
+        
+        if (hasCoordinates) {
+            marker.setPosition({ lat: customerLatitude, lng: customerLongitude });
         }
-    });
+
+        // Update coordinates when marker is dragged
+        google.maps.event.addListener(marker, 'dragend', function() {
+            const position = marker.getPosition();
+            document.getElementById('latitude').value = position.lat();
+            document.getElementById('longitude').value = position.lng();
+            
+            // Reverse geocode to get address details
+            geocoder.geocode({ 'location': position }, function(results, status) {
+                if (status === 'OK') {
+                    updateAddressFields(results[0]);
+                }
+            });
+        });
+
+        // Set up click handler for the map
+        google.maps.event.addListener(map, 'click', function(event) {
+            placeMarker(event.latLng);
+        });
+
+        // Set up address search
+        document.getElementById('search_address_btn').addEventListener('click', function() {
+            searchAddress();
+        });
+
+        // Set up address search on enter key
+        document.getElementById('address_search').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchAddress();
+            }
+        });
+    }
+
+    function searchAddress() {
+        const address = document.getElementById('address_search').value;
+        
+        if (!address) return;
+        
+        geocoder.geocode({ 'address': address }, function(results, status) {
+            if (status === 'OK') {
+                // Center map on location
+                map.setCenter(results[0].geometry.location);
+                map.setZoom(15);
+                
+                // Place marker
+                if (!marker.getVisible()) {
+                    marker.setVisible(true);
+                }
+                marker.setPosition(results[0].geometry.location);
+                
+                // Update form fields
+                document.getElementById('latitude').value = results[0].geometry.location.lat();
+                document.getElementById('longitude').value = results[0].geometry.location.lng();
+                
+                // Reverse geocode to get address details
+                updateAddressFields(results[0]);
+            } else {
+                alert("Address search was not successful for the following reason: " + status);
+            }
+        });
+    }
+
+    function placeMarker(location) {
+        if (!marker.getVisible()) {
+            marker.setVisible(true);
+        }
+        marker.setPosition(location);
+        
+        document.getElementById('latitude').value = location.lat();
+        document.getElementById('longitude').value = location.lng();
+        
+        // Reverse geocode to get address details
+        geocoder.geocode({ 'location': location }, function(results, status) {
+            if (status === 'OK') {
+                updateAddressFields(results[0]);
+            }
+        });
+    }
+
+    function updateAddressFields(result) {
+        document.getElementById('latitude').value = result.geometry.location.lat();
+        document.getElementById('longitude').value = result.geometry.location.lng();
+        document.getElementById('formatted_address').value = result.formatted_address;
+        
+        // Parse address components
+        let street_number = '';
+        let route = '';
+        let locality = '';
+        let administrative_area_level_1 = '';
+        let postal_code = '';
+        
+        // Extract each component
+        for (const component of result.address_components) {
+            const types = component.types;
+            
+            if (types.includes('street_number')) {
+                street_number = component.long_name;
+            } else if (types.includes('route')) {
+                route = component.long_name;
+            } else if (types.includes('locality')) {
+                locality = component.long_name;
+            } else if (types.includes('administrative_area_level_1')) {
+                administrative_area_level_1 = component.short_name;
+            } else if (types.includes('postal_code')) {
+                postal_code = component.long_name;
+            }
+        }
+        
+        // Set the values
+        document.getElementById('address').value = street_number + ' ' + route;
+        document.getElementById('city').value = locality;
+        document.getElementById('state').value = administrative_area_level_1;
+        document.getElementById('zip').value = postal_code;
+    }
+
+    // Initialize map when the page loads
+    window.onload = initMap;
 </script>
 {% endblock %} 

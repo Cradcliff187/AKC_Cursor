@@ -74,6 +74,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.path.startswith('/customers') %}active{% endif %}" href="{{ url_for('customers') }}">
+                            <i class="fas fa-users"></i> Customers
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.path.startswith('/vendors') %}active{% endif %}" href="{{ url_for('vendors') }}">
                             <i class="fas fa-building"></i> Vendors
                         </a>
