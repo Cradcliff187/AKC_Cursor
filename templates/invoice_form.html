@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{% if invoice.id %}Edit Invoice #{{ invoice.invoice_number }}{% else %}Create New Invoice{% endif %}{% endblock %}
+{% block title %}{% if is_new %}New Invoice{% else %}Edit Invoice{% endif %}{% endblock %}
 
 {% block styles %}
 <style>
@@ -18,478 +18,531 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-4">
-    <!-- Header -->
+<div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h3 mb-0">{% if invoice.id %}Edit Invoice #{{ invoice.invoice_number }}{% else %}Create New Invoice{% endif %}</h1>
-            <p class="text-muted">{% if invoice.id %}Update invoice details{% else %}Create a new invoice{% endif %}</p>
+            <h1 class="h3 mb-0">{% if is_new %}New Invoice{% else %}Edit Invoice {% endif %}</h1>
+            <p class="text-muted">{% if is_new %}Create a new invoice{% else %}Modify existing invoice{% endif %}</p>
         </div>
         <div>
-            <a href="{% if invoice.id %}{{ url_for('invoices/' + invoice.id|string) }}{% else %}{{ url_for('invoices') }}{% endif %}" class="btn btn-outline-secondary">
-                <i class="fas fa-times me-1"></i> Cancel
+            <a href="{{ url_for('invoices') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Invoices
             </a>
         </div>
     </div>
-
-    <form method="post" id="invoiceForm">
-        <div class="row">
-            <!-- Main Form -->
-            <div class="col-lg-8">
-                <!-- Customer and Project Selection -->
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="card-title mb-0">Customer & Project Information</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="customer_id" class="form-label">Customer <span class="text-danger">*</span></label>
-                                <select class="form-select" id="customer_id" name="customer_id" required {% if invoice.id %}disabled{% endif %}>
-                                    <option value="">Select Customer</option>
-                                    {% for customer in customers %}
-                                    <option value="{{ customer.id }}" {% if customer.id == invoice.customer_id %}selected{% endif %}>{{ customer.name }}</option>
-                                    {% endfor %}
-                                </select>
-                                {% if invoice.id %}
-                                <input type="hidden" name="customer_id" value="{{ invoice.customer_id }}">
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label for="project_id" class="form-label">Project <span class="text-danger">*</span></label>
-                                <select class="form-select" id="project_id" name="project_id" required {% if invoice.id %}disabled{% endif %}>
-                                    <option value="">Select Project</option>
-                                    {% for project in projects %}
-                                    <option value="{{ project.id }}" {% if project.id == invoice.project_id %}selected{% endif %} data-customer="{{ project.customer_id }}">{{ project.name }}</option>
-                                    {% endfor %}
-                                </select>
-                                {% if invoice.id %}
-                                <input type="hidden" name="project_id" value="{{ invoice.project_id }}">
-                                {% endif %}
-                            </div>
-                            {% if estimates %}
-                            <div class="col-md-12">
-                                <label for="estimate_id" class="form-label">Based on Estimate (Optional)</label>
-                                <select class="form-select" id="estimate_id" name="estimate_id" {% if invoice.id %}disabled{% endif %}>
-                                    <option value="">None</option>
-                                    {% for estimate in estimates %}
-                                    <option value="{{ estimate.id }}" {% if estimate.id == invoice.estimate_id %}selected{% endif %} data-project="{{ estimate.project_id }}">{{ estimate.estimate_number }} - ${{ "%.2f"|format(estimate.total) }}</option>
-                                    {% endfor %}
-                                </select>
-                                {% if invoice.id and invoice.estimate_id %}
-                                <input type="hidden" name="estimate_id" value="{{ invoice.estimate_id }}">
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Invoice Details -->
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="card-title mb-0">Invoice Details</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="invoice_number" class="form-label">Invoice Number <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="invoice_number" name="invoice_number" value="{{ invoice.invoice_number }}" required {% if invoice.id %}readonly{% endif %}>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
-                                <select class="form-select" id="status" name="status" required>
-                                    <option value="Draft" {% if invoice.status == 'Draft' %}selected{% endif %}>Draft</option>
-                                    <option value="Pending" {% if invoice.status == 'Pending' %}selected{% endif %}>Pending</option>
-                                    <option value="Paid" {% if invoice.status == 'Paid' %}selected{% endif %}>Paid</option>
-                                    <option value="Overdue" {% if invoice.status == 'Overdue' %}selected{% endif %}>Overdue</option>
-                                    <option value="Cancelled" {% if invoice.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="date" class="form-label">Invoice Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="date" name="date" value="{{ invoice.date }}" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="due_date" class="form-label">Due Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="due_date" name="due_date" value="{{ invoice.due_date }}" required>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Line Items -->
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Line Items</h5>
-                        <button type="button" class="btn btn-sm btn-primary" id="addLineItem">
-                            <i class="fas fa-plus me-1"></i> Add Item
-                        </button>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table mb-0" id="lineItemsTable">
-                                <thead class="bg-light">
-                                    <tr>
-                                        <th style="width: 45%">Description</th>
-                                        <th style="width: 15%" class="text-center">Quantity</th>
-                                        <th style="width: 20%" class="text-end">Unit Price</th>
-                                        <th style="width: 15%" class="text-end">Amount</th>
-                                        <th style="width: 5%"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="lineItemsBody">
-                                    {% if invoice.items %}
-                                        {% for item in invoice.items %}
-                                        <tr class="line-item-row">
-                                            <td>
-                                                <input type="text" class="form-control item-description" name="items[{{ loop.index0 }}][description]" value="{{ item.description }}" placeholder="Item description" required>
-                                                <textarea class="form-control mt-2 item-details" name="items[{{ loop.index0 }}][details]" placeholder="Additional details (optional)" rows="1">{{ item.details }}</textarea>
-                                            </td>
-                                            <td>
-                                                <input type="number" class="form-control text-center item-quantity" name="items[{{ loop.index0 }}][quantity]" value="{{ item.quantity }}" min="0.01" step="0.01" required>
-                                            </td>
-                                            <td>
-                                                <div class="input-group">
-                                                    <span class="input-group-text">$</span>
-                                                    <input type="number" class="form-control text-end item-price" name="items[{{ loop.index0 }}][unit_price]" value="{{ item.unit_price }}" min="0.01" step="0.01" required>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="input-group">
-                                                    <span class="input-group-text">$</span>
-                                                    <input type="number" class="form-control text-end item-amount" name="items[{{ loop.index0 }}][amount]" value="{{ item.amount }}" readonly>
-                                                </div>
-                                            </td>
-                                            <td class="text-center">
-                                                <button type="button" class="btn btn-sm btn-icon text-danger delete-line-item">
-                                                    <i class="fas fa-trash-alt"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    {% else %}
-                                        <tr class="line-item-row">
-                                            <td>
-                                                <input type="text" class="form-control item-description" name="items[0][description]" placeholder="Item description" required>
-                                                <textarea class="form-control mt-2 item-details" name="items[0][details]" placeholder="Additional details (optional)" rows="1"></textarea>
-                                            </td>
-                                            <td>
-                                                <input type="number" class="form-control text-center item-quantity" name="items[0][quantity]" value="1" min="0.01" step="0.01" required>
-                                            </td>
-                                            <td>
-                                                <div class="input-group">
-                                                    <span class="input-group-text">$</span>
-                                                    <input type="number" class="form-control text-end item-price" name="items[0][unit_price]" value="0.00" min="0.01" step="0.01" required>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="input-group">
-                                                    <span class="input-group-text">$</span>
-                                                    <input type="number" class="form-control text-end item-amount" name="items[0][amount]" value="0.00" readonly>
-                                                </div>
-                                            </td>
-                                            <td class="text-center">
-                                                <button type="button" class="btn btn-sm btn-icon text-danger delete-line-item">
-                                                    <i class="fas fa-trash-alt"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    {% endif %}
-                                </tbody>
-                                <tfoot class="border-top">
-                                    <tr>
-                                        <td colspan="3" class="text-end fw-medium">Subtotal</td>
-                                        <td class="text-end">
-                                            <div class="input-group">
-                                                <span class="input-group-text">$</span>
-                                                <input type="number" class="form-control text-end" id="subtotal" name="subtotal" value="{{ invoice.subtotal|default(0.00) }}" readonly>
-                                            </div>
-                                        </td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2" class="text-end fw-medium">Tax Rate (%)</td>
-                                        <td>
-                                            <input type="number" class="form-control text-end" id="tax_rate" name="tax_rate" value="{{ invoice.tax_rate|default(0.00) }}" min="0" step="0.01">
-                                        </td>
-                                        <td class="text-end">
-                                            <div class="input-group">
-                                                <span class="input-group-text">$</span>
-                                                <input type="number" class="form-control text-end" id="tax_amount" name="tax_amount" value="{{ invoice.tax_amount|default(0.00) }}" readonly>
-                                            </div>
-                                        </td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="3" class="text-end fw-bold">Total</td>
-                                        <td class="text-end">
-                                            <div class="input-group">
-                                                <span class="input-group-text">$</span>
-                                                <input type="number" class="form-control text-end fw-bold" id="total" name="total" value="{{ invoice.total|default(0.00) }}" readonly>
-                                            </div>
-                                        </td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Notes and Terms -->
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="card-title mb-0">Notes & Terms</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="notes" class="form-label">Notes (Optional)</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Additional notes to the customer">{{ invoice.notes }}</textarea>
-                        </div>
-                        <div class="mb-0">
-                            <label for="terms" class="form-label">Terms & Conditions (Optional)</label>
-                            <textarea class="form-control" id="terms" name="terms" rows="3" placeholder="Payment terms and conditions">{{ invoice.terms|default('Payment is due within 30 days. Late payments are subject to a 1.5% monthly finance charge.') }}</textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sidebar -->
-            <div class="col-lg-4">
-                <!-- Actions -->
-                <div class="card border-0 shadow-sm mb-4 sticky-top" style="top: 80px;">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="card-title mb-0">Actions</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>{% if invoice.id %}Update{% else %}Create{% endif %} Invoice
-                            </button>
-                            {% if not invoice.id %}
-                            <button type="submit" class="btn btn-outline-primary" name="save_as_draft" value="1">
-                                <i class="fas fa-save me-2"></i>Save as Draft
-                            </button>
-                            {% endif %}
-                            <a href="{% if invoice.id %}{{ url_for('invoices/' + invoice.id|string) }}{% else %}{{ url_for('invoices') }}{% endif %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-2"></i>Cancel
-                            </a>
-                        </div>
-                        {% if invoice.id %}
-                        <hr>
-                        <div class="d-grid">
-                            <a href="#" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteInvoiceModal">
-                                <i class="fas fa-trash-alt me-2"></i>Delete Invoice
-                            </a>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-file-invoice me-1"></i>
+            Invoice Details
         </div>
-    </form>
-</div>
-
-{% if invoice.id %}
-<!-- Delete Invoice Modal -->
-<div class="modal fade" id="deleteInvoiceModal" tabindex="-1" aria-labelledby="deleteInvoiceModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="{{ url_for('invoices/' + invoice.id|string + '/delete') }}" method="post">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteInvoiceModalLabel">Delete Invoice #{{ invoice.invoice_number }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-0">Are you sure you want to delete this invoice? This action cannot be undone.</p>
-                    {% if invoice.status == 'Paid' %}
-                    <div class="alert alert-warning mt-3">
-                        <i class="fas fa-exclamation-triangle me-2"></i> This invoice has been marked as paid. Deleting it may affect your financial records.
+        <div class="card-body">
+            <form action="{% if is_new %}{{ url_for('create_invoice') }}{% else %}{{ url_for('update_invoice', invoice_id=invoice.id) }}{% endif %}" method="POST" id="invoiceForm">
+                <div class="row mb-4">
+                    <!-- Basic Information -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="invoice_number" class="form-label">Invoice Number</label>
+                            <input type="text" class="form-control" id="invoice_number" name="invoice_number" value="{% if is_new %}{{ new_invoice_number }}{% else %}{{ invoice.invoice_number }}{% endif %}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="project_id" class="form-label">Project</label>
+                            <select class="form-select" id="project_id" name="project_id">
+                                <option value="">-- Select Project (Optional) --</option>
+                                {% for project in projects %}
+                                <option value="{{ project.id }}" {% if selected_project and selected_project.id == project.id %}selected{% elif not is_new and invoice.project_id == project.id %}selected{% endif %}>
+                                    {{ project.name }} ({{ project.client_name }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="client_id" class="form-label">Client</label>
+                            <select class="form-select" id="client_id" name="client_id" required>
+                                <option value="">-- Select Client --</option>
+                                {% for project in projects %}
+                                <option value="{{ project.client_id }}" {% if selected_project and selected_project.client_id == project.client_id %}selected{% elif not is_new and invoice.client_id == project.client_id %}selected{% endif %}>
+                                    {{ project.client_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
+                    
+                    <!-- Dates and Status -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="issue_date" class="form-label">Issue Date</label>
+                            <input type="date" class="form-control" id="issue_date" name="issue_date" value="{% if is_new %}{{ today }}{% else %}{{ invoice.issue_date }}{% endif %}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="due_date" class="form-label">Due Date</label>
+                            <input type="date" class="form-control" id="due_date" name="due_date" value="{% if is_new %}{{ due_date }}{% else %}{{ invoice.due_date }}{% endif %}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status" required>
+                                {% for status in statuses %}
+                                <option value="{{ status }}" {% if not is_new and invoice.status == status %}selected{% elif is_new and status == 'Draft' %}selected{% endif %}>{{ status }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Invoice Items -->
+                <h5 class="mb-3">Invoice Items</h5>
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered" id="itemsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 45%;">Description</th>
+                                <th style="width: 15%;" class="text-center">Quantity</th>
+                                <th style="width: 15%;" class="text-center">Unit Price</th>
+                                <th style="width: 15%;" class="text-center">Amount</th>
+                                <th style="width: 10%;" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsList">
+                            {% if not is_new and invoice.items %}
+                                {% for item in invoice.items %}
+                                <tr class="item-row">
+                                    <td>
+                                        <input type="text" class="form-control item-description" name="item_description[]" value="{{ item.description }}" required>
+                                        <input type="hidden" name="item_id[]" value="{{ item.id }}">
+                                        <input type="hidden" name="item_type[]" value="{{ item.type }}">
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input item-taxable" type="checkbox" name="item_taxable[]" value="1" {% if item.taxable %}checked{% endif %}>
+                                            <label class="form-check-label small">Taxable</label>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control item-quantity" name="item_quantity[]" value="{{ item.quantity }}" min="0.01" step="0.01" required>
+                                    </td>
+                                    <td>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control item-price" name="item_price[]" value="{{ item.unit_price }}" min="0" step="0.01" required>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control item-amount" name="item_amount[]" value="{{ item.amount }}" readonly>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-danger remove-item"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                            <tr class="item-row">
+                                <td>
+                                    <input type="text" class="form-control item-description" name="item_description[]" required>
+                                    <input type="hidden" name="item_id[]" value="">
+                                    <input type="hidden" name="item_type[]" value="Service">
+                                    <div class="form-check mt-1">
+                                        <input class="form-check-input item-taxable" type="checkbox" name="item_taxable[]" value="1" checked>
+                                        <label class="form-check-label small">Taxable</label>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control item-quantity" name="item_quantity[]" value="1" min="0.01" step="0.01" required>
+                                </td>
+                                <td>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control item-price" name="item_price[]" value="0" min="0" step="0.01" required>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control item-amount" name="item_amount[]" value="0" readonly>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-danger remove-item"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mb-4">
+                    <button type="button" class="btn btn-secondary" id="addItemBtn">
+                        <i class="fas fa-plus me-1"></i> Add Item
+                    </button>
+                    {% if unbilled_expenses and unbilled_expenses|length > 0 %}
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addExpensesModal">
+                        <i class="fas fa-receipt me-1"></i> Add Expenses
+                    </button>
                     {% endif %}
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Delete Invoice</button>
+                
+                <!-- Invoice Totals -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <!-- Notes and Terms -->
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{% if not is_new %}{{ invoice.notes }}{% endif %}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="terms" class="form-label">Terms</label>
+                            <input type="text" class="form-control" id="terms" name="terms" value="{% if is_new %}Net 30{% elif not is_new %}{{ invoice.terms }}{% endif %}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="payment_instructions" class="form-label">Payment Instructions</label>
+                            <textarea class="form-control" id="payment_instructions" name="payment_instructions" rows="3">{% if is_new %}Please remit payment via bank transfer{% elif not is_new %}{{ invoice.payment_instructions }}{% endif %}</textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">Subtotal:</label>
+                                    <div class="col-6 text-end">
+                                        <span id="subtotal">$0.00</span>
+                                        <input type="hidden" name="subtotal" id="subtotal_input" value="{% if not is_new %}{{ invoice.subtotal }}{% else %}0{% endif %}">
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">Discount:</label>
+                                    <div class="col-6">
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control text-end" id="discount_amount" name="discount_amount" min="0" step="0.01" value="{% if not is_new %}{{ invoice.discount_amount }}{% else %}0{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">Tax Rate:</label>
+                                    <div class="col-6">
+                                        <div class="input-group">
+                                            <input type="number" class="form-control text-end" id="tax_rate" name="tax_rate" min="0" step="0.01" value="{% if not is_new %}{{ invoice.tax_rate }}{% else %}0{% endif %}">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">Tax Amount:</label>
+                                    <div class="col-6 text-end">
+                                        <span id="tax_amount_display">$0.00</span>
+                                        <input type="hidden" name="tax_amount" id="tax_amount" value="{% if not is_new %}{{ invoice.tax_amount }}{% else %}0{% endif %}">
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end"><strong>Total:</strong></label>
+                                    <div class="col-6 text-end">
+                                        <strong id="total_display">$0.00</strong>
+                                        <input type="hidden" name="total_amount" id="total_amount" value="{% if not is_new %}{{ invoice.total_amount }}{% else %}0{% endif %}">
+                                    </div>
+                                </div>
+                                
+                                {% if not is_new and invoice.amount_paid > 0 %}
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">Amount Paid:</label>
+                                    <div class="col-6 text-end">
+                                        <span>${{ '{:,.2f}'.format(invoice.amount_paid) }}</span>
+                                        <input type="hidden" name="amount_paid" value="{{ invoice.amount_paid }}">
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <label class="col-6 text-end"><strong>Balance Due:</strong></label>
+                                    <div class="col-6 text-end">
+                                        <strong>${{ '{:,.2f}'.format(invoice.balance_due) }}</strong>
+                                        <input type="hidden" name="balance_due" value="{{ invoice.balance_due }}">
+                                    </div>
+                                </div>
+                                {% else %}
+                                <input type="hidden" name="amount_paid" value="0">
+                                <input type="hidden" name="balance_due" id="balance_due" value="{% if not is_new %}{{ invoice.balance_due }}{% else %}0{% endif %}">
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-end">
+                    <a href="{{ url_for('invoices') }}" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Invoice</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<!-- Add Expenses Modal -->
+{% if unbilled_expenses and unbilled_expenses|length > 0 %}
+<div class="modal fade" id="addExpensesModal" tabindex="-1" aria-labelledby="addExpensesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addExpensesModalLabel">Add Expenses to Invoice</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;"></th>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in unbilled_expenses %}
+                            <tr class="expense-row" data-expense-id="{{ expense.id }}" data-expense-description="{{ expense.description }}" data-expense-amount="{{ expense.amount }}">
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input expense-checkbox" type="checkbox" value="{{ expense.id }}">
+                                    </div>
+                                </td>
+                                <td>{{ expense.date }}</td>
+                                <td>{{ expense.description }}</td>
+                                <td>{{ expense.category }}</td>
+                                <td class="text-end">${{ '{:,.2f}'.format(expense.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="addSelectedExpensesBtn">Add Selected Expenses</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endif %}
-{% endblock %}
 
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Line item template
-        const lineItemTemplate = `
-            <tr class="line-item-row">
-                <td>
-                    <input type="text" class="form-control item-description" name="items[INDEX][description]" placeholder="Item description" required>
-                    <textarea class="form-control mt-2 item-details" name="items[INDEX][details]" placeholder="Additional details (optional)" rows="1"></textarea>
-                </td>
-                <td>
-                    <input type="number" class="form-control text-center item-quantity" name="items[INDEX][quantity]" value="1" min="0.01" step="0.01" required>
-                </td>
-                <td>
-                    <div class="input-group">
-                        <span class="input-group-text">$</span>
-                        <input type="number" class="form-control text-end item-price" name="items[INDEX][unit_price]" value="0.00" min="0.01" step="0.01" required>
-                    </div>
-                </td>
-                <td>
-                    <div class="input-group">
-                        <span class="input-group-text">$</span>
-                        <input type="number" class="form-control text-end item-amount" name="items[INDEX][amount]" value="0.00" readonly>
-                    </div>
-                </td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-icon text-danger delete-line-item">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-
-        // Add line item
-        document.getElementById('addLineItem').addEventListener('click', function() {
-            const tbody = document.getElementById('lineItemsBody');
-            const rowCount = tbody.querySelectorAll('tr').length;
-            const newRow = lineItemTemplate.replace(/INDEX/g, rowCount);
-            tbody.insertAdjacentHTML('beforeend', newRow);
-            attachLineItemEvents();
-            calculateTotals();
-        });
-
-        // Delete line item
-        function attachLineItemEvents() {
-            document.querySelectorAll('.delete-line-item').forEach(button => {
-                button.addEventListener('click', function() {
-                    const row = this.closest('tr');
-                    if (document.querySelectorAll('.line-item-row').length > 1) {
-                        row.remove();
-                        renumberLineItems();
-                        calculateTotals();
-                    } else {
-                        alert('You must have at least one line item.');
-                    }
-                });
-            });
-
-            document.querySelectorAll('.item-quantity, .item-price').forEach(input => {
-                input.addEventListener('input', function() {
-                    calculateLineAmount(this.closest('tr'));
-                    calculateTotals();
-                });
-            });
+        // Initialize calculated values
+        calculateItemAmounts();
+        calculateTotals();
+        
+        // Format currency function
+        function formatCurrency(amount) {
+            return '$' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
         }
-
-        // Calculate line amount
-        function calculateLineAmount(row) {
+        
+        // Update amount when quantity or price changes
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('item-quantity') || e.target.classList.contains('item-price')) {
+                calculateItemAmount(e.target.closest('tr'));
+                calculateTotals();
+            }
+            
+            if (e.target.id === 'tax_rate' || e.target.id === 'discount_amount') {
+                calculateTotals();
+            }
+        });
+        
+        // Calculate amount for a row
+        function calculateItemAmount(row) {
             const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
             const price = parseFloat(row.querySelector('.item-price').value) || 0;
             const amount = quantity * price;
             row.querySelector('.item-amount').value = amount.toFixed(2);
         }
-
-        // Renumber line items
-        function renumberLineItems() {
-            const rows = document.querySelectorAll('.line-item-row');
-            rows.forEach((row, index) => {
-                row.querySelectorAll('input, textarea').forEach(input => {
-                    const name = input.getAttribute('name');
-                    if (name) {
-                        input.setAttribute('name', name.replace(/items\[\d+\]/, `items[${index}]`));
-                    }
-                });
+        
+        // Calculate amount for all rows
+        function calculateItemAmounts() {
+            document.querySelectorAll('.item-row').forEach(function(row) {
+                calculateItemAmount(row);
             });
         }
-
+        
         // Calculate totals
         function calculateTotals() {
             let subtotal = 0;
-            document.querySelectorAll('.item-amount').forEach(input => {
-                subtotal += parseFloat(input.value) || 0;
+            let taxableSubtotal = 0;
+            
+            // Add up all item amounts
+            document.querySelectorAll('.item-row').forEach(function(row) {
+                const amount = parseFloat(row.querySelector('.item-amount').value) || 0;
+                subtotal += amount;
+                
+                // Check if item is taxable
+                const isTaxable = row.querySelector('.item-taxable').checked;
+                if (isTaxable) {
+                    taxableSubtotal += amount;
+                }
             });
             
+            // Update subtotal
+            document.getElementById('subtotal').textContent = formatCurrency(subtotal);
+            document.getElementById('subtotal_input').value = subtotal.toFixed(2);
+            
+            // Get discount
+            const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+            
+            // Calculate tax
             const taxRate = parseFloat(document.getElementById('tax_rate').value) || 0;
-            const taxAmount = subtotal * (taxRate / 100);
-            const total = subtotal + taxAmount;
+            const taxAmount = (taxableSubtotal - discountAmount > 0) ? (taxableSubtotal - discountAmount) * (taxRate / 100) : 0;
             
-            document.getElementById('subtotal').value = subtotal.toFixed(2);
+            // Update tax amount
+            document.getElementById('tax_amount_display').textContent = formatCurrency(taxAmount);
             document.getElementById('tax_amount').value = taxAmount.toFixed(2);
-            document.getElementById('total').value = total.toFixed(2);
+            
+            // Calculate total
+            const total = subtotal - discountAmount + taxAmount;
+            
+            // Update total
+            document.getElementById('total_display').textContent = formatCurrency(total);
+            document.getElementById('total_amount').value = total.toFixed(2);
+            
+            // Update balance due (for new invoices)
+            if (document.getElementById('balance_due')) {
+                document.getElementById('balance_due').value = total.toFixed(2);
+            }
         }
-
-        // Tax rate change
-        document.getElementById('tax_rate').addEventListener('input', calculateTotals);
-
-        // Customer change - filter projects
-        document.getElementById('customer_id').addEventListener('change', function() {
-            const customerId = this.value;
-            const projectSelect = document.getElementById('project_id');
-            const projectOptions = projectSelect.querySelectorAll('option');
+        
+        // Add item button
+        document.getElementById('addItemBtn').addEventListener('click', function() {
+            const itemsList = document.getElementById('itemsList');
+            const newRow = document.createElement('tr');
+            newRow.classList.add('item-row');
             
-            projectSelect.value = '';
+            newRow.innerHTML = `
+                <td>
+                    <input type="text" class="form-control item-description" name="item_description[]" required>
+                    <input type="hidden" name="item_id[]" value="">
+                    <input type="hidden" name="item_type[]" value="Service">
+                    <div class="form-check mt-1">
+                        <input class="form-check-input item-taxable" type="checkbox" name="item_taxable[]" value="1" checked>
+                        <label class="form-check-label small">Taxable</label>
+                    </div>
+                </td>
+                <td>
+                    <input type="number" class="form-control item-quantity" name="item_quantity[]" value="1" min="0.01" step="0.01" required>
+                </td>
+                <td>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control item-price" name="item_price[]" value="0" min="0" step="0.01" required>
+                    </div>
+                </td>
+                <td>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control item-amount" name="item_amount[]" value="0" readonly>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-danger remove-item"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
             
-            projectOptions.forEach(option => {
-                if (option.value === '' || option.dataset.customer === customerId) {
-                    option.style.display = '';
+            itemsList.appendChild(newRow);
+            calculateTotals();
+        });
+        
+        // Remove item button
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-item') || e.target.parentElement.classList.contains('remove-item')) {
+                const itemRows = document.querySelectorAll('.item-row');
+                if (itemRows.length > 1) {
+                    const row = e.target.closest('tr');
+                    row.remove();
+                    calculateTotals();
                 } else {
-                    option.style.display = 'none';
+                    alert('Invoice must have at least one item.');
                 }
-            });
+            }
         });
-
-        // Project change - filter estimates
-        const estimateSelect = document.getElementById('estimate_id');
-        if (estimateSelect) {
-            document.getElementById('project_id').addEventListener('change', function() {
-                const projectId = this.value;
-                const estimateOptions = estimateSelect.querySelectorAll('option');
+        
+        // Add expenses to invoice
+        if (document.getElementById('addSelectedExpensesBtn')) {
+            document.getElementById('addSelectedExpensesBtn').addEventListener('click', function() {
+                const selectedExpenses = document.querySelectorAll('.expense-checkbox:checked');
+                if (selectedExpenses.length === 0) {
+                    alert('Please select at least one expense.');
+                    return;
+                }
                 
-                estimateSelect.value = '';
-                
-                estimateOptions.forEach(option => {
-                    if (option.value === '' || option.dataset.project === projectId) {
-                        option.style.display = '';
-                    } else {
-                        option.style.display = 'none';
-                    }
+                selectedExpenses.forEach(function(checkbox) {
+                    const expenseRow = checkbox.closest('.expense-row');
+                    const expenseId = expenseRow.dataset.expenseId;
+                    const description = expenseRow.dataset.expenseDescription;
+                    const amount = parseFloat(expenseRow.dataset.expenseAmount);
+                    
+                    // Add expense as line item
+                    const itemsList = document.getElementById('itemsList');
+                    const newRow = document.createElement('tr');
+                    newRow.classList.add('item-row');
+                    
+                    newRow.innerHTML = `
+                        <td>
+                            <input type="text" class="form-control item-description" name="item_description[]" value="Expense: ${description}" required>
+                            <input type="hidden" name="item_id[]" value="">
+                            <input type="hidden" name="item_type[]" value="Expense">
+                            <input type="hidden" name="expense_id[]" value="${expenseId}">
+                            <div class="form-check mt-1">
+                                <input class="form-check-input item-taxable" type="checkbox" name="item_taxable[]" value="1">
+                                <label class="form-check-label small">Taxable</label>
+                            </div>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control item-quantity" name="item_quantity[]" value="1" min="0.01" step="0.01" required>
+                        </td>
+                        <td>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control item-price" name="item_price[]" value="${amount.toFixed(2)}" min="0" step="0.01" required>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control item-amount" name="item_amount[]" value="${amount.toFixed(2)}" readonly>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-danger remove-item"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    
+                    itemsList.appendChild(newRow);
                 });
-            });
-
-            // Estimate change - load estimate items
-            estimateSelect.addEventListener('change', function() {
-                const estimateId = this.value;
-                if (estimateId) {
-                    // In a real app, this would fetch estimate data via AJAX
-                    // For this template, we'll just show an alert
-                    alert('In a real application, this would load the line items from the selected estimate.');
-                }
+                
+                calculateTotals();
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addExpensesModal'));
+                modal.hide();
             });
         }
-
-        // Initialize calculations
-        document.querySelectorAll('.line-item-row').forEach(row => {
-            calculateLineAmount(row);
+        
+        // Update client when project changes
+        document.getElementById('project_id').addEventListener('change', function() {
+            const projectId = this.value;
+            if (projectId) {
+                const clientId = document.querySelector(`option[value="${projectId}"]`).dataset.clientId;
+                document.getElementById('client_id').value = clientId;
+            }
         });
-        calculateTotals();
-        attachLineItemEvents();
-
-        // Initialize customer filter
-        const customerSelect = document.getElementById('customer_id');
-        if (customerSelect.value) {
-            customerSelect.dispatchEvent(new Event('change'));
-        }
-
-        // Initialize project filter
-        const projectSelect = document.getElementById('project_id');
-        if (projectSelect.value && estimateSelect) {
-            projectSelect.dispatchEvent(new Event('change'));
-        }
     });
 </script>
 {% endblock %} 

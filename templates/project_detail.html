@@ -189,6 +189,51 @@
                 {% endif %}
             </div>
         </div>
+        
+        <!-- Project Invoices Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Invoices</h5>
+                <div>
+                    <a href="{{ url_for('new_invoice') }}?project_id={{ project.id }}" class="btn btn-sm btn-light">
+                        <i class="fas fa-plus"></i> New Invoice
+                    </a>
+                    <a href="{{ url_for('project_invoices', project_id=project.id) }}" class="btn btn-sm btn-light ms-2">
+                        <i class="fas fa-list"></i> View All
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-invoice-dollar text-primary fs-2 mb-2"></i>
+                                <h5 class="card-title">${{ "{:,.2f}".format(project.budget) }}</h5>
+                                <p class="card-text text-muted">Total Budget</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="fas fa-money-bill-wave text-success fs-2 mb-2"></i>
+                                <h5 class="card-title">${{ "{:,.2f}".format(project.spent) }}</h5>
+                                <p class="card-text text-muted">Total Spent</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="progress mb-3" style="height: 10px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ (project.spent / project.budget * 100) if project.budget > 0 else 0 }}%;" aria-valuenow="{{ (project.spent / project.budget * 100) if project.budget > 0 else 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('project_invoices', project_id=project.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-file-invoice me-1"></i> Manage Project Invoices
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
     
     <div class="col-md-4">

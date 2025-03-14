@@ -399,10 +399,18 @@ def url_for(name, filename=None, **kwargs):
         "edit_invoice": "/invoices/{}/edit",
         "new_invoice": "/invoices/new",
         "invoice_detail": "/invoices/{}",
+        "create_invoice": "/invoices/create",
+        "update_invoice": "/invoices/{}/update",
+        "delete_invoice": "/invoices/{}/delete",
+        "send_invoice": "/invoices/{}/send",
+        "record_payment": "/invoices/{}/payment",
+        "cancel_invoice": "/invoices/{}/cancel",
+        "project_invoices": "/projects/{}/invoices",
         
         # Other
         "login": "/login",
-        "logout": "/logout"
+        "logout": "/logout",
+        "index": "/"
     }
     
     if name in url_map:
@@ -1299,116 +1307,47 @@ async def expenses(
     project_id: int = None,
     date_from: str = None,
     date_to: str = None,
-    page: int = 1
+    page: int = 1,
+    status: str = None
 ):
     if not check_auth(session):
         return RedirectResponse(url="/login")
     
-    # Mock data for expenses
-    mock_expenses = [
-        {
-            "id": 1,
-            "date": "2023-03-01",
-            "category": "Materials",
-            "vendor_id": 3,
-            "vendor_name": "Quality Construction Materials",
-            "project_id": 1,
-            "project_name": "Office Renovation",
-            "amount": 1250.00,
-            "description": "Lumber and drywall materials",
-            "status": "Approved",
-            "status_color": "success",
-            "receipt": True,
-            "submitted_by": "John Doe"
-        },
-        {
-            "id": 2,
-            "date": "2023-03-05",
-            "category": "Equipment Rental",
-            "vendor_id": 5,
-            "vendor_name": "Equipment Rental Co",
-            "project_id": 1,
-            "project_name": "Office Renovation",
-            "amount": 450.00,
-            "description": "Concrete mixer rental (3 days)",
-            "status": "Approved",
-            "status_color": "success",
-            "receipt": True,
-            "submitted_by": "John Doe"
-        },
-        {
-            "id": 3,
-            "date": "2023-03-10",
-            "category": "Subcontractor",
-            "vendor_id": 1,
-            "vendor_name": "Elite Electrical Services",
-            "project_id": 1,
-            "project_name": "Office Renovation",
-            "amount": 2800.00,
-            "description": "Electrical work - Phase 1",
-            "status": "Approved",
-            "status_color": "success",
-            "receipt": True,
-            "submitted_by": "John Doe"
-        },
-        {
-            "id": 4,
-            "date": "2023-03-15",
-            "category": "Permits",
-            "vendor_id": None,
-            "vendor_name": "City Building Department",
-            "project_id": 1,
-            "project_name": "Office Renovation",
-            "amount": 350.00,
-            "description": "Building permit fees",
-            "status": "Pending",
-            "status_color": "warning",
-            "receipt": True,
-            "submitted_by": "Jane Smith"
-        },
-        {
-            "id": 5,
-            "date": "2023-03-20",
-            "category": "Materials",
-            "vendor_id": 3,
-            "vendor_name": "Quality Construction Materials",
-            "project_id": 1,
-            "project_name": "Office Renovation",
-            "amount": 875.00,
-            "description": "Paint and finishing materials",
-            "status": "Pending",
-            "status_color": "warning",
-            "receipt": False,
-            "submitted_by": "Jane Smith"
-        }
-    ]
+    # Use our comprehensive MOCK_EXPENSES for data
+    expenses_data = MOCK_EXPENSES.copy()
     
     # Filter by search query
     if search:
         search = search.lower()
-        mock_expenses = [e for e in mock_expenses if search in e["description"].lower() or 
-                         search in e["vendor_name"].lower() or 
-                         search in e["project_name"].lower() or
-                         search in e["category"].lower()]
+        expenses_data = [e for e in expenses_data if 
+                        (e["description"] and search in e["description"].lower()) or 
+                        (e["vendor_name"] and search in e["vendor_name"].lower()) or 
+                        (e["project_name"] and search in e["project_name"].lower()) or
+                        (e["category"] and search in e["category"].lower()) or
+                        (e["submitted_by"] and search in e["submitted_by"].lower())]
     
     # Filter by category
-    if category:
-        mock_expenses = [e for e in mock_expenses if e["category"] == category]
+    if category and category != "All":
+        expenses_data = [e for e in expenses_data if e["category"] == category]
     
     # Filter by project
     if project_id:
-        mock_expenses = [e for e in mock_expenses if e["project_id"] == project_id]
+        expenses_data = [e for e in expenses_data if e["project_id"] == project_id]
+    
+    # Filter by status
+    if status and status != "All":
+        expenses_data = [e for e in expenses_data if e["status"] == status]
     
     # Filter by date range
     if date_from:
-        mock_expenses = [e for e in mock_expenses if e["date"] >= date_from]
+        expenses_data = [e for e in expenses_data if e["date"] >= date_from]
     
     if date_to:
-        mock_expenses = [e for e in mock_expenses if e["date"] <= date_to]
+        expenses_data = [e for e in expenses_data if e["date"] <= date_to]
     
     # Pagination variables
     items_per_page = 10
-    total_items = len(mock_expenses)
+    total_items = len(expenses_data)
     total_pages = (total_items + items_per_page - 1) // items_per_page  # Ceiling division
     
     # Ensure page is within valid range
@@ -1422,23 +1361,26 @@ async def expenses(
     end_idx = min(start_idx + items_per_page, total_items)
     
     # Get expenses for current page
-    paginated_expenses = mock_expenses[start_idx:end_idx]
+    paginated_expenses = expenses_data[start_idx:end_idx]
     
-    # Expense categories for filtering
-    expense_categories = ["Materials", "Equipment Rental", "Subcontractor", "Permits", "Labor", "Travel", "Office", "Other"]
-    
-    # Mock projects for filtering
-    projects = [
-        {"id": 1, "name": "Office Renovation"},
-        {"id": 2, "name": "Mobile App Development"},
-        {"id": 3, "name": "CRM Implementation"},
-        {"id": 4, "name": "Digital Marketing Campaign"}
-    ]
+    # Process expense status for display
+    for expense in paginated_expenses:
+        if expense["status"] == "Approved" or expense["status"] == "Reimbursed" or expense["status"] == "Reconciled":
+            expense["status_color"] = "success"
+        elif expense["status"] == "Pending Review":
+            expense["status_color"] = "warning"
+        elif expense["status"] == "Rejected":
+            expense["status_color"] = "danger"
+        else:
+            expense["status_color"] = "primary"
+        
+        # Check if receipt exists
+        expense["receipt"] = True if expense.get("receipt_url") else False
     
     # Calculate summary statistics
-    total_amount = sum(e["amount"] for e in mock_expenses)
-    approved_amount = sum(e["amount"] for e in mock_expenses if e["status"] == "Approved")
-    pending_amount = sum(e["amount"] for e in mock_expenses if e["status"] == "Pending")
+    total_amount = sum(e["amount"] for e in expenses_data)
+    approved_amount = sum(e["amount"] for e in expenses_data if e["status"] in ["Approved", "Reimbursed", "Reconciled"])
+    pending_amount = sum(e["amount"] for e in expenses_data if e["status"] == "Pending Review")
     
     # Prepare context
     context = {
@@ -1450,10 +1392,12 @@ async def expenses(
         "search_query": search or "",
         "category_filter": category or "All",
         "project_filter": project_id,
+        "status_filter": status or "All",
         "date_from": date_from or "",
         "date_to": date_to or "",
-        "categories": expense_categories,
-        "projects": projects,
+        "categories": EXPENSE_CATEGORIES,
+        "statuses": EXPENSE_STATUSES,
+        "projects": MOCK_PROJECTS,
         "total_expenses": total_items,
         "total_amount": total_amount,
         "approved_amount": approved_amount,
@@ -1641,6 +1585,9 @@ async def list_vendors(
 ):
     """List all vendors with optional filtering."""
     try:
+        # Get the current date for insurance expiry comparisons
+        current_date = datetime.now().date()
+        
         supabase = get_supabase_client()
         vendors = []
         
@@ -1671,18 +1618,31 @@ async def list_vendors(
             if status:
                 vendors = [v for v in vendors if v.get('status') == status]
         
+        # Process vendor dates for comparison
+        for vendor in vendors:
+            if vendor.get('insurance_expiry'):
+                # Parse the ISO-formatted date string to a datetime object
+                try:
+                    insurance_date = datetime.fromisoformat(vendor['insurance_expiry'].replace('Z', '+00:00'))
+                    vendor['insurance_expiry'] = insurance_date.date()
+                except (ValueError, AttributeError):
+                    # If parsing fails, set to None to avoid comparison errors
+                    vendor['insurance_expiry'] = None
+        
         return templates.TemplateResponse(
             "vendors.html",
             {
                 "request": request,
                 "session": request.session,
                 "vendors": vendors,
-                "material_categories": MATERIAL_CATEGORIES
+                "material_categories": MATERIAL_CATEGORIES,
+                "now": current_date  # Add the current date to the template context
             }
         )
     except Exception as e:
         print(f"Error listing vendors: {str(e)}")
         # Fall back to mock data on error
+        current_date = datetime.now().date()  # Also add in the error case
         vendors = MOCK_VENDORS
         if material_category:
             vendors = [v for v in vendors if material_category in v.get('material_categories', [])]
@@ -1690,6 +1650,17 @@ async def list_vendors(
             vendors = [v for v in vendors if v.get('is_preferred')]
         if status:
             vendors = [v for v in vendors if v.get('status') == status]
+        
+        # Process vendor dates for comparison
+        for vendor in vendors:
+            if vendor.get('insurance_expiry'):
+                # Parse the ISO-formatted date string to a datetime object
+                try:
+                    insurance_date = datetime.fromisoformat(vendor['insurance_expiry'].replace('Z', '+00:00'))
+                    vendor['insurance_expiry'] = insurance_date.date()
+                except (ValueError, AttributeError):
+                    # If parsing fails, set to None to avoid comparison errors
+                    vendor['insurance_expiry'] = None
             
         return templates.TemplateResponse(
             "vendors.html",
@@ -1697,7 +1668,8 @@ async def list_vendors(
                 "request": request,
                 "session": request.session,
                 "vendors": vendors,
-                "material_categories": MATERIAL_CATEGORIES
+                "material_categories": MATERIAL_CATEGORIES,
+                "now": current_date  # Add the current date to the template context
             }
         )
 
@@ -1789,8 +1761,18 @@ async def view_vendor(request: Request, vendor_id: str):
                 metrics = {
                     "total_purchases": len(supabase.table("purchases").select("id").eq("vendor_id", vendor_id).execute().data),
                     "active_projects": len(supabase.table("project_vendors").select("project_id").eq("vendor_id", vendor_id).eq("status", "active").execute().data),
-                    "insurance_status": "Valid" if vendor.get("insurance_expiry") and datetime.fromisoformat(vendor["insurance_expiry"]) > datetime.now() else "Expired"
+                    "insurance_status": "Valid" 
                 }
+                
+                # Handle insurance expiry date
+                if vendor.get("insurance_expiry"):
+                    try:
+                        insurance_date = datetime.fromisoformat(vendor["insurance_expiry"].replace('Z', '+00:00')).date()
+                        vendor["insurance_expiry"] = insurance_date
+                        metrics["insurance_status"] = "Valid" if insurance_date > datetime.now().date() else "Expired"
+                    except (ValueError, TypeError):
+                        vendor["insurance_expiry"] = None
+                        metrics["insurance_status"] = "Unknown"
         else:
             # Use mock data
             vendor = next((v for v in MOCK_VENDORS if v['id'] == vendor_id), None)
@@ -1798,8 +1780,17 @@ async def view_vendor(request: Request, vendor_id: str):
                 metrics = {
                     "total_purchases": len([p for p in MOCK_MATERIALS if p['vendor_id'] == vendor_id]),
                     "active_projects": 2,  # Mock value
-                    "insurance_status": "Valid" if vendor.get("insurance_expiry") and datetime.fromisoformat(vendor["insurance_expiry"]) > datetime.now() else "Expired"
+                    "insurance_status": "Unknown"
                 }
+                
+                # Handle insurance expiry date
+                if vendor.get("insurance_expiry"):
+                    try:
+                        insurance_date = datetime.fromisoformat(vendor["insurance_expiry"].replace('Z', '+00:00')).date()
+                        vendor["insurance_expiry"] = insurance_date
+                        metrics["insurance_status"] = "Valid" if insurance_date > datetime.now().date() else "Expired"
+                    except (ValueError, TypeError):
+                        vendor["insurance_expiry"] = None
         
         if not vendor:
             raise HTTPException(status_code=404, detail="Vendor not found")
@@ -1825,8 +1816,18 @@ async def view_vendor(request: Request, vendor_id: str):
         metrics = {
             "total_purchases": len([p for p in MOCK_MATERIALS if p['vendor_id'] == vendor_id]),
             "active_projects": 2,  # Mock value
-            "insurance_status": "Valid" if vendor.get("insurance_expiry") and datetime.fromisoformat(vendor["insurance_expiry"]) > datetime.now() else "Expired"
+            "insurance_status": "Unknown"
         }
+        
+        # Handle insurance expiry date
+        if vendor.get("insurance_expiry"):
+            try:
+                insurance_date = datetime.fromisoformat(vendor["insurance_expiry"].replace('Z', '+00:00')).date()
+                vendor["insurance_expiry"] = insurance_date
+                metrics["insurance_status"] = "Valid" if insurance_date > datetime.now().date() else "Expired"
+            except (ValueError, TypeError):
+                vendor["insurance_expiry"] = None
+                metrics["insurance_status"] = "Unknown"
         
         return templates.TemplateResponse(
             "vendor_details.html",
@@ -1920,49 +1921,39 @@ async def update_vendor_route(
             "quality_rating": quality_rating,
             "tax_id": tax_id,
             "insurance_policy": insurance_policy,
-            "insurance_expiry": insurance_expiry,
+            "insurance_expiry": insurance_expiry,  # This is a string from the form
             "certifications": certifications.split('\n') if certifications else [],
             "notes": notes,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.utcnow().isoformat() + "Z"  # Store as ISO format string with Z
         }
         
         # Handle insurance document upload if provided
-        if insurance_document:
-            document_url = await save_uploaded_file(
-                insurance_document, 
-                f"vendors/{vendor_id}/insurance",
-                metadata={
-                    "type": "insurance",
-                    "policy_number": insurance_policy,
-                    "expiry_date": insurance_expiry
-                }
+        if insurance_document and insurance_document.filename:
+            file_path = f"vendor_docs/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{insurance_document.filename}"
+            result = supabase.storage.from_("vendor_documents").upload(
+                file_path,
+                insurance_document.file.read()
             )
-            vendor_data["insurance_document_url"] = document_url
+            if result:
+                vendor_data["insurance_doc_url"] = file_path
         
         # Update vendor in database
         if supabase:
-            response = supabase.from_("vendors").update(vendor_data).eq("id", vendor_id).execute()
-            result = response.data[0] if response.data else None
-        else:
-            # Update mock data
-            for i, vendor in enumerate(MOCK_VENDORS):
-                if vendor['id'] == vendor_id:
-                    MOCK_VENDORS[i].update(vendor_data)
-                    result = MOCK_VENDORS[i]
-                    break
-            else:
-                result = None
+            result = supabase.table("vendors").update(vendor_data).eq("id", vendor_id).execute()
+            if not result or not result.data:
+                raise HTTPException(status_code=500, detail="Failed to update vendor")
         
-        if not result:
-            raise HTTPException(status_code=404, detail="Vendor not found")
-        
-        return RedirectResponse(
-            url=f"/vendors/{vendor_id}",
-            status_code=303
-        )
+        return RedirectResponse(url=f"/vendors/{vendor_id}", status_code=303)
     except Exception as e:
-        print(f"Error updating vendor: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error updating vendor: {str(e)}")
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "status_code": 500,
+                "detail": f"Error updating vendor: {str(e)}"
+            }
+        )
 
 @app.post("/vendors/{vendor_id}/delete")
 async def delete_vendor_route(
@@ -2515,3 +2506,866 @@ async def delete_customer(customer_id: int, request: Request, session: dict = De
             },
             status_code=500
         )
+
+# Expense categories
+EXPENSE_CATEGORIES = [
+    "Materials",
+    "Labor",
+    "Equipment Rental",
+    "Permits & Fees",
+    "Subcontractor",
+    "Transportation",
+    "Accommodation",
+    "Meals",
+    "Office Supplies",
+    "Software & Subscriptions",
+    "Insurance",
+    "Professional Services",
+    "Marketing & Advertising",
+    "Utilities",
+    "Maintenance & Repairs",
+    "Miscellaneous"
+]
+
+# Define expense statuses
+EXPENSE_STATUSES = [
+    "Pending Review",
+    "Approved",
+    "Rejected",
+    "Reimbursed",
+    "Reconciled"
+]
+
+# Comprehensive mock expenses data
+MOCK_EXPENSES = [
+    {
+        "id": 1,
+        "date": "2025-02-15",
+        "category": "Materials",
+        "vendor_id": "1",
+        "vendor_name": "ABC Building Supply",
+        "project_id": 1,
+        "project_name": "Office Renovation",
+        "description": "Lumber for framing",
+        "amount": 2500.00,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-001.pdf",
+        "status": "Approved",
+        "payment_method": "Company Credit Card",
+        "submitted_by": "John Smith",
+        "billable": True,
+        "notes": "Bulk purchase for main office area",
+        "invoice_id": 1,
+        "created_at": "2025-02-15T10:30:00Z",
+        "updated_at": "2025-02-16T14:15:00Z"
+    },
+    {
+        "id": 2,
+        "date": "2025-02-18",
+        "category": "Equipment Rental",
+        "vendor_id": "3",
+        "vendor_name": "Acme Plumbing",
+        "project_id": 1,
+        "project_name": "Office Renovation",
+        "description": "Pipe bender rental (3 days)",
+        "amount": 350.00,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-002.pdf",
+        "status": "Approved",
+        "payment_method": "Company Credit Card",
+        "submitted_by": "Emily Johnson",
+        "billable": True,
+        "notes": "Needed for bathroom plumbing modifications",
+        "invoice_id": 1,
+        "created_at": "2025-02-18T09:20:00Z",
+        "updated_at": "2025-02-19T11:30:00Z"
+    },
+    {
+        "id": 3,
+        "date": "2025-02-20",
+        "category": "Permits & Fees",
+        "vendor_id": "",
+        "vendor_name": "City Planning Department",
+        "project_id": 1,
+        "project_name": "Office Renovation",
+        "description": "Building permit application fee",
+        "amount": 750.00,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-003.pdf",
+        "status": "Reimbursed",
+        "payment_method": "Personal Funds",
+        "submitted_by": "Michael Brown",
+        "billable": True,
+        "notes": "Required for structural modifications",
+        "invoice_id": None,
+        "created_at": "2025-02-20T14:45:00Z",
+        "updated_at": "2025-02-22T10:10:00Z"
+    },
+    {
+        "id": 4,
+        "date": "2025-02-22",
+        "category": "Subcontractor",
+        "vendor_id": "2",
+        "vendor_name": "XYZ Electrical",
+        "project_id": 1,
+        "project_name": "Office Renovation",
+        "description": "Electrical wiring installation",
+        "amount": 3800.00,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-004.pdf",
+        "status": "Approved",
+        "payment_method": "Company Check",
+        "submitted_by": "Jane Doe",
+        "billable": True,
+        "notes": "Completed per electrical plans",
+        "invoice_id": 2,
+        "created_at": "2025-02-22T16:30:00Z",
+        "updated_at": "2025-02-23T09:45:00Z"
+    },
+    {
+        "id": 5,
+        "date": "2025-02-25",
+        "category": "Materials",
+        "vendor_id": "1",
+        "vendor_name": "ABC Building Supply",
+        "project_id": 1,
+        "project_name": "Office Renovation",
+        "description": "Drywall and finishing materials",
+        "amount": 1850.00,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-005.pdf",
+        "status": "Approved",
+        "payment_method": "Company Credit Card",
+        "submitted_by": "John Smith",
+        "billable": True,
+        "notes": "For office dividing walls",
+        "invoice_id": 2,
+        "created_at": "2025-02-25T13:20:00Z",
+        "updated_at": "2025-02-26T15:15:00Z"
+    },
+    {
+        "id": 6,
+        "date": "2025-02-10",
+        "category": "Transportation",
+        "vendor_id": "",
+        "vendor_name": "Uber",
+        "project_id": 2,
+        "project_name": "Mobile App Development",
+        "description": "Client meeting transportation",
+        "amount": 45.00,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-006.pdf",
+        "status": "Reimbursed",
+        "payment_method": "Personal Funds",
+        "submitted_by": "Sarah Williams",
+        "billable": False,
+        "notes": "Traveled to client headquarters for project kickoff",
+        "invoice_id": None,
+        "created_at": "2025-02-10T18:10:00Z",
+        "updated_at": "2025-02-12T09:30:00Z"
+    },
+    {
+        "id": 7,
+        "date": "2025-02-12",
+        "category": "Meals",
+        "vendor_id": "",
+        "vendor_name": "City Grill Restaurant",
+        "project_id": 2,
+        "project_name": "Mobile App Development",
+        "description": "Client lunch meeting",
+        "amount": 120.00,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-007.pdf",
+        "status": "Approved",
+        "payment_method": "Company Credit Card",
+        "submitted_by": "Sarah Williams",
+        "billable": True,
+        "notes": "Discussion of app requirements with client stakeholders",
+        "invoice_id": 3,
+        "created_at": "2025-02-12T14:40:00Z",
+        "updated_at": "2025-02-13T10:20:00Z"
+    },
+    {
+        "id": 8,
+        "date": "2025-02-18",
+        "category": "Software & Subscriptions",
+        "vendor_id": "",
+        "vendor_name": "Adobe",
+        "project_id": 2,
+        "project_name": "Mobile App Development",
+        "description": "Adobe Creative Cloud (1 month)",
+        "amount": 79.99,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-008.pdf",
+        "status": "Approved",
+        "payment_method": "Company Credit Card",
+        "submitted_by": "Alex Thompson",
+        "billable": True,
+        "notes": "For app UI design",
+        "invoice_id": 3,
+        "created_at": "2025-02-18T11:25:00Z",
+        "updated_at": "2025-02-19T16:40:00Z"
+    },
+    {
+        "id": 9,
+        "date": "2025-02-05",
+        "category": "Labor",
+        "vendor_id": "",
+        "vendor_name": "Freelance Developer Group",
+        "project_id": 3,
+        "project_name": "CRM Implementation",
+        "description": "Contract developer assistance (40 hours)",
+        "amount": 4000.00,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-009.pdf",
+        "status": "Approved",
+        "payment_method": "Bank Transfer",
+        "submitted_by": "David Chen",
+        "billable": True,
+        "notes": "Additional developer resources for data migration component",
+        "invoice_id": None,
+        "created_at": "2025-02-05T09:15:00Z",
+        "updated_at": "2025-02-07T14:30:00Z"
+    },
+    {
+        "id": 10,
+        "date": "2025-02-08",
+        "category": "Professional Services",
+        "vendor_id": "",
+        "vendor_name": "Data Solutions Inc",
+        "project_id": 3,
+        "project_name": "CRM Implementation",
+        "description": "Data cleaning and preparation",
+        "amount": 2500.00,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-010.pdf",
+        "status": "Pending Review",
+        "payment_method": "Bank Transfer",
+        "submitted_by": "David Chen",
+        "billable": True,
+        "notes": "Preparation of client data for CRM import",
+        "invoice_id": None,
+        "created_at": "2025-02-08T15:45:00Z",
+        "updated_at": "2025-02-08T15:45:00Z"
+    },
+    {
+        "id": 11,
+        "date": "2025-03-01",
+        "category": "Office Supplies",
+        "vendor_id": "",
+        "vendor_name": "Office Depot",
+        "project_id": None,
+        "project_name": None,
+        "description": "General office supplies",
+        "amount": 235.67,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-011.pdf",
+        "status": "Approved",
+        "payment_method": "Company Credit Card",
+        "submitted_by": "Lisa Martinez",
+        "billable": False,
+        "notes": "Monthly office supply order",
+        "invoice_id": None,
+        "created_at": "2025-03-01T11:30:00Z",
+        "updated_at": "2025-03-02T09:15:00Z"
+    },
+    {
+        "id": 12,
+        "date": "2025-03-05",
+        "category": "Accommodation",
+        "vendor_id": "",
+        "vendor_name": "Hilton Hotel",
+        "project_id": 2,
+        "project_name": "Mobile App Development",
+        "description": "Client site visit - 3 nights hotel stay",
+        "amount": 780.00,
+        "receipt_url": "https://storage.googleapis.com/receipt-images/receipt-012.pdf",
+        "status": "Pending Review",
+        "payment_method": "Company Credit Card",
+        "submitted_by": "Sarah Williams",
+        "billable": True,
+        "notes": "On-site app testing with client team",
+        "invoice_id": None,
+        "created_at": "2025-03-05T19:20:00Z",
+        "updated_at": "2025-03-05T19:20:00Z"
+    }
+]
+
+# Comprehensive mock invoices data
+MOCK_INVOICES = [
+    {
+        "id": 1,
+        "invoice_number": "INV-2025-001",
+        "client_id": 1,
+        "client_name": "Acme Corporation",
+        "project_id": 1,
+        "project_name": "Office Renovation",
+        "status": "Paid",
+        "issue_date": "2025-02-20",
+        "due_date": "2025-03-20",
+        "subtotal": 2850.00,
+        "tax_rate": 8.5,
+        "tax_amount": 242.25,
+        "discount_amount": 0.00,
+        "total_amount": 3092.25,
+        "amount_paid": 3092.25,
+        "balance_due": 0.00,
+        "notes": "Initial invoice for materials and equipment rental",
+        "terms": "Net 30",
+        "payment_instructions": "Please remit payment via bank transfer",
+        "sent_date": "2025-02-20",
+        "paid_date": "2025-03-15",
+        "created_by": "Jane Doe",
+        "created_at": "2025-02-20T10:00:00Z",
+        "updated_at": "2025-03-15T14:30:00Z",
+        "items": [
+            {
+                "id": 1,
+                "invoice_id": 1,
+                "description": "Lumber for framing",
+                "quantity": 1,
+                "unit_price": 2500.00,
+                "amount": 2500.00,
+                "type": "Material",
+                "taxable": True
+            },
+            {
+                "id": 2,
+                "invoice_id": 1,
+                "description": "Pipe bender rental (3 days)",
+                "quantity": 1,
+                "unit_price": 350.00,
+                "amount": 350.00,
+                "type": "Equipment",
+                "taxable": True
+            }
+        ],
+        "payments": [
+            {
+                "id": 1,
+                "invoice_id": 1,
+                "date": "2025-03-15",
+                "amount": 3092.25,
+                "method": "Bank Transfer",
+                "reference": "REF45678",
+                "notes": "Full payment received"
+            }
+        ]
+    },
+    {
+        "id": 2,
+        "invoice_number": "INV-2025-002",
+        "client_id": 1,
+        "client_name": "Acme Corporation",
+        "project_id": 1,
+        "project_name": "Office Renovation",
+        "status": "Sent",
+        "issue_date": "2025-03-01",
+        "due_date": "2025-03-31",
+        "subtotal": 5650.00,
+        "tax_rate": 8.5,
+        "tax_amount": 480.25,
+        "discount_amount": 0.00,
+        "total_amount": 6130.25,
+        "amount_paid": 0.00,
+        "balance_due": 6130.25,
+        "notes": "Progress invoice for electrical work and materials",
+        "terms": "Net 30",
+        "payment_instructions": "Please remit payment via bank transfer",
+        "sent_date": "2025-03-01",
+        "paid_date": None,
+        "created_by": "Jane Doe",
+        "created_at": "2025-03-01T11:15:00Z",
+        "updated_at": "2025-03-01T11:45:00Z",
+        "items": [
+            {
+                "id": 3,
+                "invoice_id": 2,
+                "description": "Electrical wiring installation",
+                "quantity": 1,
+                "unit_price": 3800.00,
+                "amount": 3800.00,
+                "type": "Labor",
+                "taxable": True
+            },
+            {
+                "id": 4,
+                "invoice_id": 2,
+                "description": "Drywall and finishing materials",
+                "quantity": 1,
+                "unit_price": 1850.00,
+                "amount": 1850.00,
+                "type": "Material",
+                "taxable": True
+            }
+        ],
+        "payments": []
+    },
+    {
+        "id": 3,
+        "invoice_number": "INV-2025-003",
+        "client_id": 2,
+        "client_name": "Tech Innovations Inc",
+        "project_id": 2,
+        "project_name": "Mobile App Development",
+        "status": "Draft",
+        "issue_date": "2025-03-10",
+        "due_date": "2025-04-09",
+        "subtotal": 199.99,
+        "tax_rate": 0.0,
+        "tax_amount": 0.00,
+        "discount_amount": 0.00,
+        "total_amount": 199.99,
+        "amount_paid": 0.00,
+        "balance_due": 199.99,
+        "notes": "Invoice for initial project expenses",
+        "terms": "Net 30",
+        "payment_instructions": "Please remit payment via credit card",
+        "sent_date": None,
+        "paid_date": None,
+        "created_by": "Sarah Williams",
+        "created_at": "2025-03-10T09:30:00Z",
+        "updated_at": "2025-03-10T09:30:00Z",
+        "items": [
+            {
+                "id": 5,
+                "invoice_id": 3,
+                "description": "Client lunch meeting",
+                "quantity": 1,
+                "unit_price": 120.00,
+                "amount": 120.00,
+                "type": "Expense",
+                "taxable": False
+            },
+            {
+                "id": 6,
+                "invoice_id": 3,
+                "description": "Adobe Creative Cloud (1 month)",
+                "quantity": 1,
+                "unit_price": 79.99,
+                "amount": 79.99,
+                "type": "Subscription",
+                "taxable": False
+            }
+        ],
+        "payments": []
+    },
+    {
+        "id": 4,
+        "invoice_number": "INV-2025-004",
+        "client_id": 3,
+        "client_name": "Global Logistics Co",
+        "project_id": 3,
+        "project_name": "CRM Implementation",
+        "status": "Overdue",
+        "issue_date": "2025-02-01",
+        "due_date": "2025-03-01",
+        "subtotal": 4000.00,
+        "tax_rate": 7.0,
+        "tax_amount": 280.00,
+        "discount_amount": 400.00,
+        "total_amount": 3880.00,
+        "amount_paid": 0.00,
+        "balance_due": 3880.00,
+        "notes": "Invoice for contract development services",
+        "terms": "Net 30",
+        "payment_instructions": "Please remit payment via bank transfer",
+        "sent_date": "2025-02-01",
+        "paid_date": None,
+        "created_by": "David Chen",
+        "created_at": "2025-02-01T15:20:00Z",
+        "updated_at": "2025-03-02T09:00:00Z",
+        "items": [
+            {
+                "id": 7,
+                "invoice_id": 4,
+                "description": "Contract developer assistance (40 hours)",
+                "quantity": 40,
+                "unit_price": 100.00,
+                "amount": 4000.00,
+                "type": "Labor",
+                "taxable": True
+            },
+            {
+                "id": 8,
+                "invoice_id": 4,
+                "description": "First-time client discount",
+                "quantity": 1,
+                "unit_price": -400.00,
+                "amount": -400.00,
+                "type": "Discount",
+                "taxable": False
+            }
+        ],
+        "payments": []
+    }
+]
+
+@app.get("/invoices", response_class=HTMLResponse)
+async def invoices(
+    request: Request, 
+    session: dict = Depends(get_session),
+    search: str = None,
+    status: str = None,
+    client_id: int = None,
+    project_id: int = None,
+    date_from: str = None,
+    date_to: str = None,
+    page: int = 1
+):
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # Use our comprehensive MOCK_INVOICES for data
+    invoices_data = MOCK_INVOICES.copy()
+    
+    # Filter by search query
+    if search:
+        search = search.lower()
+        invoices_data = [i for i in invoices_data if 
+                        (i["invoice_number"] and search in i["invoice_number"].lower()) or 
+                        (i["client_name"] and search in i["client_name"].lower()) or 
+                        (i["project_name"] and search in i["project_name"].lower()) or
+                        (i["notes"] and search in i["notes"].lower())]
+    
+    # Filter by status
+    if status and status != "All":
+        invoices_data = [i for i in invoices_data if i["status"] == status]
+    
+    # Filter by client
+    if client_id:
+        invoices_data = [i for i in invoices_data if i["client_id"] == client_id]
+    
+    # Filter by project
+    if project_id:
+        invoices_data = [i for i in invoices_data if i["project_id"] == project_id]
+    
+    # Filter by date range
+    if date_from:
+        invoices_data = [i for i in invoices_data if i["issue_date"] >= date_from]
+    
+    if date_to:
+        invoices_data = [i for i in invoices_data if i["issue_date"] <= date_to]
+    
+    # Pagination variables
+    items_per_page = 10
+    total_items = len(invoices_data)
+    total_pages = (total_items + items_per_page - 1) // items_per_page  # Ceiling division
+    
+    # Ensure page is within valid range
+    if page < 1:
+        page = 1
+    elif page > total_pages and total_pages > 0:
+        page = total_pages
+    
+    # Calculate pagination indices
+    start_idx = (page - 1) * items_per_page
+    end_idx = min(start_idx + items_per_page, total_items)
+    
+    # Get invoices for current page
+    paginated_invoices = invoices_data[start_idx:end_idx]
+    
+    # Process invoice status for display
+    for invoice in paginated_invoices:
+        if invoice["status"] == "Paid":
+            invoice["status_color"] = "success"
+        elif invoice["status"] == "Sent":
+            invoice["status_color"] = "primary"
+        elif invoice["status"] == "Draft":
+            invoice["status_color"] = "secondary"
+        elif invoice["status"] == "Overdue":
+            invoice["status_color"] = "danger"
+        else:
+            invoice["status_color"] = "info"
+    
+    # Define invoice statuses for filtering
+    invoice_statuses = ["Draft", "Sent", "Paid", "Overdue", "Cancelled"]
+    
+    # Calculate summary statistics
+    total_amount = sum(i["total_amount"] for i in invoices_data)
+    paid_amount = sum(i["amount_paid"] for i in invoices_data)
+    due_amount = sum(i["balance_due"] for i in invoices_data)
+    
+    # Prepare context
+    context = {
+        "request": request, 
+        "session": request.session,
+        "invoices": paginated_invoices,
+        "page": page,
+        "total_pages": total_pages,
+        "search_query": search or "",
+        "status_filter": status or "All",
+        "client_filter": client_id,
+        "project_filter": project_id,
+        "date_from": date_from or "",
+        "date_to": date_to or "",
+        "statuses": invoice_statuses,
+        "projects": MOCK_PROJECTS,
+        "total_invoices": total_items,
+        "total_amount": total_amount,
+        "paid_amount": paid_amount,
+        "due_amount": due_amount
+    }
+    
+    return templates.TemplateResponse("invoices.html", context)
+
+@app.get("/invoices/{invoice_id}", response_class=HTMLResponse)
+async def invoice_detail(
+    request: Request, 
+    invoice_id: int,
+    session: dict = Depends(get_session)
+):
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # Find the invoice by id
+    invoice = next((i for i in MOCK_INVOICES if i["id"] == invoice_id), None)
+    
+    if not invoice:
+        return templates.TemplateResponse(
+            "error.html", 
+            {
+                "request": request, 
+                "session": request.session,
+                "error_title": "Invoice Not Found",
+                "error_message": f"Invoice with ID {invoice_id} could not be found.",
+                "status_code": 404
+            },
+            status_code=404
+        )
+    
+    # Find the project if it exists
+    project = None
+    if invoice["project_id"]:
+        project = next((p for p in MOCK_PROJECTS if p["id"] == invoice["project_id"]), None)
+    
+    # Find related expenses
+    related_expenses = [e for e in MOCK_EXPENSES if e.get("invoice_id") == invoice_id]
+    
+    # Process invoice status for display
+    if invoice["status"] == "Paid":
+        invoice["status_color"] = "success"
+    elif invoice["status"] == "Sent":
+        invoice["status_color"] = "primary"
+    elif invoice["status"] == "Draft":
+        invoice["status_color"] = "secondary"
+    elif invoice["status"] == "Overdue":
+        invoice["status_color"] = "danger"
+    else:
+        invoice["status_color"] = "info"
+    
+    # Create a copy of the invoice with items renamed to line_items to avoid conflict with dict.items() method
+    invoice_data = invoice.copy()
+    invoice_data["line_items"] = invoice_data.pop("items")
+    
+    return templates.TemplateResponse(
+        "invoice_detail.html", 
+        {
+            "request": request, 
+            "session": request.session,
+            "invoice": invoice_data,
+            "project": project,
+            "related_expenses": related_expenses
+        }
+    )
+
+@app.get("/invoices/new", response_class=HTMLResponse)
+async def new_invoice(
+    request: Request,
+    session: dict = Depends(get_session),
+    project_id: int = None
+):
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # Get all projects for the dropdown
+    projects = MOCK_PROJECTS
+    
+    # If project_id is provided, pre-select that project
+    selected_project = None
+    if project_id:
+        selected_project = next((p for p in projects if p["id"] == project_id), None)
+    
+    # Get unbilled expenses
+    unbilled_expenses = [e for e in MOCK_EXPENSES if e.get("invoice_id") is None and e.get("billable") is True]
+    
+    # Generate a new invoice number
+    last_invoice_num = max([int(i["invoice_number"].split("-")[-1]) for i in MOCK_INVOICES])
+    new_invoice_num = f"INV-2025-{last_invoice_num + 1:03d}"
+    
+    # Get invoice statuses
+    invoice_statuses = ["Draft", "Sent", "Paid", "Overdue", "Cancelled"]
+    
+    return templates.TemplateResponse(
+        "invoice_form.html", 
+        {
+            "request": request, 
+            "session": request.session,
+            "projects": projects,
+            "selected_project": selected_project,
+            "unbilled_expenses": unbilled_expenses,
+            "new_invoice_number": new_invoice_num,
+            "statuses": invoice_statuses,
+            "is_new": True
+        }
+    )
+
+@app.post("/invoices/create", response_class=RedirectResponse)
+async def create_invoice(
+    request: Request,
+    session: dict = Depends(get_session)
+):
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # This would normally create an invoice in the database
+    # For now, we'll just redirect back to the invoices page
+    return RedirectResponse(url="/invoices", status_code=303)
+
+@app.post("/invoices/{invoice_id}/update", response_class=RedirectResponse)
+async def update_invoice(
+    request: Request,
+    invoice_id: int,
+    session: dict = Depends(get_session)
+):
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # This would normally update an invoice in the database
+    # For now, we'll just redirect back to the invoice detail page
+    return RedirectResponse(url=f"/invoices/{invoice_id}", status_code=303)
+
+@app.get("/invoices/{invoice_id}/edit", response_class=HTMLResponse)
+async def edit_invoice(
+    request: Request,
+    invoice_id: int,
+    session: dict = Depends(get_session)
+):
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # Find the invoice by id
+    invoice = next((i for i in MOCK_INVOICES if i["id"] == invoice_id), None)
+    
+    if not invoice:
+        return templates.TemplateResponse(
+            "error.html", 
+            {
+                "request": request, 
+                "session": request.session,
+                "error_title": "Invoice Not Found",
+                "error_message": f"Invoice with ID {invoice_id} could not be found.",
+                "status_code": 404
+            },
+            status_code=404
+        )
+    
+    # Get all projects for the dropdown
+    projects = MOCK_PROJECTS
+    
+    # Get invoice statuses
+    invoice_statuses = ["Draft", "Sent", "Paid", "Overdue", "Cancelled"]
+    
+    return templates.TemplateResponse(
+        "invoice_form.html", 
+        {
+            "request": request, 
+            "session": request.session,
+            "invoice": invoice,
+            "projects": projects,
+            "statuses": invoice_statuses,
+            "is_new": False
+        }
+    )
+
+@app.post("/invoices/{invoice_id}/send", response_class=RedirectResponse)
+async def send_invoice(
+    request: Request,
+    invoice_id: int,
+    session: dict = Depends(get_session)
+):
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # This would normally send an invoice via email
+    # For now, we'll just redirect back to the invoice detail page with a status update
+    invoice = next((i for i in MOCK_INVOICES if i["id"] == invoice_id), None)
+    if invoice and invoice["status"] == "Draft":
+        invoice["status"] = "Sent"
+        invoice["sent_date"] = datetime.now().strftime("%Y-%m-%d")
+    
+    return RedirectResponse(url=f"/invoices/{invoice_id}", status_code=303)
+
+@app.post("/invoices/{invoice_id}/payment", response_class=RedirectResponse)
+async def record_payment(
+    request: Request,
+    invoice_id: int,
+    session: dict = Depends(get_session)
+):
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # This would normally record a payment for an invoice
+    # For now, we'll just redirect back to the invoice detail page with a status update
+    invoice = next((i for i in MOCK_INVOICES if i["id"] == invoice_id), None)
+    
+    if invoice:
+        form = await request.form()
+        amount = float(form.get("amount", 0))
+        
+        if amount >= invoice["balance_due"]:
+            # Full payment
+            invoice["status"] = "Paid"
+            invoice["amount_paid"] = invoice["total_amount"]
+            invoice["balance_due"] = 0
+            invoice["paid_date"] = datetime.now().strftime("%Y-%m-%d")
+        else:
+            # Partial payment
+            invoice["amount_paid"] += amount
+            invoice["balance_due"] -= amount
+    
+    return RedirectResponse(url=f"/invoices/{invoice_id}", status_code=303)
+
+@app.post("/invoices/{invoice_id}/cancel", response_class=RedirectResponse)
+async def cancel_invoice(
+    request: Request,
+    invoice_id: int,
+    session: dict = Depends(get_session)
+):
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # This would normally cancel an invoice
+    # For now, we'll just redirect back to the invoice detail page with a status update
+    invoice = next((i for i in MOCK_INVOICES if i["id"] == invoice_id), None)
+    if invoice:
+        invoice["status"] = "Cancelled"
+    
+    return RedirectResponse(url=f"/invoices/{invoice_id}", status_code=303)
+
+@app.get("/projects/{project_id}/invoices", response_class=HTMLResponse)
+async def project_invoices(
+    request: Request,
+    project_id: int,
+    session: dict = Depends(get_session)
+):
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # Find the project
+    project = next((p for p in MOCK_PROJECTS if p["id"] == project_id), None)
+    
+    if not project:
+        return templates.TemplateResponse(
+            "error.html", 
+            {
+                "request": request, 
+                "session": request.session,
+                "error_title": "Project Not Found",
+                "error_message": f"Project with ID {project_id} could not be found.",
+                "status_code": 404
+            },
+            status_code=404
+        )
+    
+    # Get invoices for this project
+    project_invoices = [i for i in MOCK_INVOICES if i["project_id"] == project_id]
+    
+    return templates.TemplateResponse(
+        "project_invoices.html", 
+        {
+            "request": request, 
+            "session": request.session,
+            "project": project,
+            "invoices": project_invoices
+        }
+    )
