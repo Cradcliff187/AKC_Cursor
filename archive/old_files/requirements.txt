@@ -8,7 +8,7 @@ supabase==1.0.3
 httpx==0.24.0
 httpcore==0.15.0
 pydantic==1.10.7
-postgrest-py==0.10.8
+postgrest-py==0.10.6
 python-dotenv==1.0.0
 PyJWT==2.8.0
 python-jose[cryptography]==3.3.0
