@@ -4,9 +4,9 @@ FROM python:3.9-slim
 # Set working directory
 WORKDIR /app
 
-# Copy app.py and requirements-minimal.txt
+# Copy app.py and requirements.txt
 COPY app.py .
-COPY requirements-minimal.txt ./requirements.txt
+COPY requirements.txt ./requirements.txt
 COPY static/ ./static/
 COPY templates/ ./templates/
 
