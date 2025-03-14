@@ -185,6 +185,7 @@ CMD ["python", "app.py"]
 3. **Dependency Issues:**
    - If you encounter issues with a specific package, check its compatibility with Python 3.9
    - Always use binary packages when available (e.g., psycopg2-binary instead of psycopg2)
+   - Make sure FastAPI and Starlette versions are compatible (FastAPI 0.95.1 requires starlette<0.27.0)
 
 4. **Internal Server Error (500):**
    - If you encounter a 500 Internal Server Error when accessing the application, check the following:
@@ -194,6 +195,8 @@ CMD ["python", "app.py"]
      - Include `starlette` and `itsdangerous` in the requirements.txt file
      - Check that all template files are properly formatted and extend the correct base template
      - Verify that the index.html file doesn't reference missing images or resources
+     - **IMPORTANT**: Make sure to pass the session to the template context in all route handlers
+     - **IMPORTANT**: Update the base.html template to check if session exists before accessing it
    - The fixed app.py should include:
      ```python
      # Add session middleware
@@ -208,10 +211,30 @@ CMD ["python", "app.py"]
      # Add template globals
      templates.env.globals["url_for"] = url_for
      templates.env.globals["get_flashed_messages"] = lambda with_categories=False: []
+     
+     # Root endpoint
+     @app.get("/", response_class=HTMLResponse)
+     async def root(request: Request):
+         """Root endpoint for the API."""
+         # Set a mock session for templates
+         request.session["user_id"] = None
+         request.session["user_name"] = "Guest"
+         request.session["user_role"] = None
+         
+         # Pass the session to the template context
+         return templates.TemplateResponse("index.html", {"request": request, "session": request.session})
+     ```
+   - The base.html template should check if session exists before accessing it:
+     ```html
+     {% if session and session.get('user_id') %}
+     <!-- User is logged in -->
+     {% else %}
+     <!-- User is not logged in -->
+     {% endif %}
      ```
    - The requirements.txt should include:
      ```
-     starlette==0.27.0
+     starlette==0.26.1  # Must be compatible with FastAPI version
      itsdangerous==2.1.2
      ```
    - If you're still experiencing issues, try the following:
