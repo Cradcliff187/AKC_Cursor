@@ -51,6 +51,100 @@ MOCK_METRICS = {
     "pending_approvals": 3
 }
 
+# Mock customer data
+MOCK_CUSTOMERS = [
+    {
+        "id": 1,
+        "name": "Acme Corporation",
+        "contact_name": "John Smith",
+        "email": "john.smith@acme.com",
+        "phone": "(555) 123-4567",
+        "address": "123 Main Street",
+        "city": "Springfield",
+        "state": "IL",
+        "zip": "62701",
+        "status": "Active",
+        "customer_since": "2023-01-15",
+        "payment_terms": "Net 30",
+        "credit_limit": 25000.00,
+        "notes": "Key client for commercial projects. Prefers email communication.",
+        "created_at": "2023-01-15T10:00:00Z",
+        "updated_at": "2025-02-20T14:30:00Z"
+    },
+    {
+        "id": 2,
+        "name": "TechSolutions Inc",
+        "contact_name": "Sarah Johnson",
+        "email": "sarah@techsolutions.com",
+        "phone": "(555) 987-6543",
+        "address": "456 Tech Boulevard",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94105",
+        "status": "Active",
+        "customer_since": "2023-03-10",
+        "payment_terms": "Net 15",
+        "credit_limit": 50000.00,
+        "notes": "Tech company requiring regular office renovations. Quick payment history.",
+        "created_at": "2023-03-10T09:15:00Z",
+        "updated_at": "2025-01-15T11:20:00Z"
+    },
+    {
+        "id": 3,
+        "name": "Global Retail Group",
+        "contact_name": "Michael Williams",
+        "email": "m.williams@globalretail.com",
+        "phone": "(555) 456-7890",
+        "address": "789 Shopping Lane",
+        "city": "Chicago",
+        "state": "IL",
+        "zip": "60601",
+        "status": "Active",
+        "customer_since": "2023-05-22",
+        "payment_terms": "Net 45",
+        "credit_limit": 100000.00,
+        "notes": "Multiple retail locations requiring consistent buildouts and maintenance.",
+        "created_at": "2023-05-22T13:45:00Z",
+        "updated_at": "2024-12-10T16:30:00Z"
+    },
+    {
+        "id": 4,
+        "name": "Healthcare Partners",
+        "contact_name": "Dr. Emily Chen",
+        "email": "dr.chen@healthcarepartners.org",
+        "phone": "(555) 234-5678",
+        "address": "321 Medical Center Drive",
+        "city": "Boston",
+        "state": "MA",
+        "zip": "02115",
+        "status": "Inactive",
+        "customer_since": "2023-08-05",
+        "payment_terms": "Net 30",
+        "credit_limit": 75000.00,
+        "notes": "Healthcare facility specializing in clinic renovations. Currently on hold due to budget constraints.",
+        "created_at": "2023-08-05T08:20:00Z",
+        "updated_at": "2025-01-30T10:15:00Z"
+    },
+    {
+        "id": 5,
+        "name": "EduLearn Academy",
+        "contact_name": "Robert Taylor",
+        "email": "r.taylor@edulearn.edu",
+        "phone": "(555) 876-5432",
+        "address": "555 Campus Circle",
+        "city": "Austin",
+        "state": "TX",
+        "zip": "78712",
+        "status": "Active",
+        "customer_since": "2023-11-15",
+        "payment_terms": "Net 60",
+        "credit_limit": 40000.00,
+        "notes": "Educational institution with regular summer renovation projects. Requires detailed planning and scheduling around academic calendar.",
+        "created_at": "2023-11-15T11:30:00Z",
+        "updated_at": "2025-02-28T09:45:00Z"
+    }
+]
+
 # Create FastAPI app
 app = FastAPI(
     title="AKC CRM",
@@ -105,6 +199,13 @@ def url_for(name, filename=None):
         
         # Projects
         "new_project": "/projects/new",
+        
+        # Customers
+        "customers": "/customers",
+        "new_customer": "/customers/new",
+        "customer_detail": "/customers/{}",
+        "edit_customer": "/customers/{}/edit",
+        "delete_customer": "/customers/{}/delete",
         
         # Other
         "login": "/login",
@@ -2175,7 +2276,468 @@ async def login_post(request: Request, username: str = Form(...), password: str 
         {"request": request, "session": request.session, "error": "Invalid username or password"}
     )
 
+# If this file is run directly, use Uvicorn to serve the app
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", "8080"))
-    uvicorn.run(app, host="0.0.0.0", port=port) 
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+# Customer routes
+@app.get("/customers", response_class=HTMLResponse)
+async def customers(
+    request: Request, 
+    session: dict = Depends(get_session),
+    search: str = None,
+    status: str = None
+):
+    """List all customers with optional filtering."""
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # Try to get customer data from Supabase
+    supabase_client = get_supabase_client()
+    customers_data = []
+    
+    try:
+        if supabase_client:
+            # Fetch data from Supabase with optional filters
+            query = supabase_client.table("customers").select("*")
+            
+            if status:
+                query = query.eq("status", status)
+                
+            if search:
+                query = query.or_(f"name.ilike.%{search}%,contact_name.ilike.%{search}%,email.ilike.%{search}%")
+            
+            result = query.execute()
+            customers_data = result.data
+        else:
+            # Use mock data with filtering in Python
+            customers_data = MOCK_CUSTOMERS
+            
+            # Apply filters
+            if status:
+                customers_data = [c for c in customers_data if c["status"].lower() == status.lower()]
+                
+            if search:
+                search = search.lower()
+                customers_data = [c for c in customers_data if 
+                                 search in c["name"].lower() or
+                                 search in c["contact_name"].lower() or
+                                 search in c["email"].lower()]
+    except Exception as e:
+        print(f"Error fetching customers: {str(e)}")
+        # Fallback to mock data
+        customers_data = MOCK_CUSTOMERS
+    
+    # Get unique statuses for the status filter dropdown
+    statuses = sorted(list(set(c["status"] for c in MOCK_CUSTOMERS)))
+    
+    return templates.TemplateResponse(
+        "customers.html", 
+        {
+            "request": request, 
+            "session": request.session, 
+            "customers": customers_data,
+            "statuses": statuses
+        }
+    )
+
+@app.get("/customers/new", response_class=HTMLResponse)
+async def new_customer(request: Request, session: dict = Depends(get_session)):
+    """Create a new customer form."""
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # Empty customer object for the form
+    customer = {
+        "id": None,
+        "name": "",
+        "contact_name": "",
+        "email": "",
+        "phone": "",
+        "address": "",
+        "city": "",
+        "state": "",
+        "zip": "",
+        "status": "Active",
+        "customer_since": datetime.now().strftime("%Y-%m-%d"),
+        "payment_terms": "Net 30",
+        "credit_limit": 0.00,
+        "notes": ""
+    }
+    
+    # Statuses and payment terms for form dropdowns
+    statuses = ["Active", "Inactive", "Pending", "VIP"]
+    payment_terms = ["Net 15", "Net 30", "Net 45", "Net 60", "Due on Receipt"]
+    
+    return templates.TemplateResponse(
+        "customer_form.html", 
+        {
+            "request": request, 
+            "session": request.session, 
+            "customer": customer,
+            "statuses": statuses,
+            "payment_terms": payment_terms
+        }
+    )
+
+@app.post("/customers/new", response_class=HTMLResponse)
+async def create_customer(
+    request: Request,
+    session: dict = Depends(get_session),
+    name: str = Form(...),
+    contact_name: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(...),
+    address: str = Form(None),
+    city: str = Form(None),
+    state: str = Form(None),
+    zip: str = Form(None),
+    status: str = Form("Active"),
+    customer_since: str = Form(None),
+    payment_terms: str = Form("Net 30"),
+    credit_limit: float = Form(0.00),
+    notes: str = Form(None)
+):
+    """Handle customer creation form submission."""
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    try:
+        # Create new customer data
+        new_customer = {
+            "id": len(MOCK_CUSTOMERS) + 1,  # Simple ID generation for mock data
+            "name": name,
+            "contact_name": contact_name,
+            "email": email,
+            "phone": phone,
+            "address": address or "",
+            "city": city or "",
+            "state": state or "",
+            "zip": zip or "",
+            "status": status,
+            "customer_since": customer_since or datetime.now().strftime("%Y-%m-%d"),
+            "payment_terms": payment_terms,
+            "credit_limit": credit_limit,
+            "notes": notes or "",
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        # Try to save to Supabase if available
+        supabase_client = get_supabase_client()
+        if supabase_client:
+            result = supabase_client.table("customers").insert(new_customer).execute()
+            if result.data:
+                new_customer = result.data[0]
+        else:
+            # Just add to mock data
+            MOCK_CUSTOMERS.append(new_customer)
+        
+        # Redirect to customer detail page
+        return RedirectResponse(url=f"/customers/{new_customer['id']}", status_code=303)
+    
+    except Exception as e:
+        print(f"Error creating customer: {str(e)}")
+        
+        # Return the form with error
+        statuses = ["Active", "Inactive", "Pending", "VIP"]
+        payment_terms = ["Net 15", "Net 30", "Net 45", "Net 60", "Due on Receipt"]
+        
+        return templates.TemplateResponse(
+            "customer_form.html", 
+            {
+                "request": request, 
+                "session": request.session, 
+                "customer": {
+                    "id": None,
+                    "name": name,
+                    "contact_name": contact_name,
+                    "email": email,
+                    "phone": phone,
+                    "address": address,
+                    "city": city,
+                    "state": state,
+                    "zip": zip,
+                    "status": status,
+                    "customer_since": customer_since,
+                    "payment_terms": payment_terms,
+                    "credit_limit": credit_limit,
+                    "notes": notes
+                },
+                "statuses": statuses,
+                "payment_terms": payment_terms,
+                "error": str(e)
+            },
+            status_code=400
+        )
+
+@app.get("/customers/{customer_id}", response_class=HTMLResponse)
+async def customer_detail(customer_id: int, request: Request, session: dict = Depends(get_session)):
+    """Display customer details."""
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # Try to get the customer from Supabase
+    supabase_client = get_supabase_client()
+    customer = None
+    
+    try:
+        if supabase_client:
+            result = supabase_client.table("customers").select("*").eq("id", customer_id).execute()
+            if result.data:
+                customer = result.data[0]
+        
+        # If not found or Supabase not available, check mock data
+        if not customer:
+            customer = next((c for c in MOCK_CUSTOMERS if c["id"] == customer_id), None)
+        
+        if not customer:
+            # Customer not found
+            return templates.TemplateResponse(
+                "error.html", 
+                {
+                    "request": request, 
+                    "session": request.session,
+                    "status_code": 404,
+                    "detail": f"Customer with ID {customer_id} not found"
+                },
+                status_code=404
+            )
+        
+        # Get related projects for this customer (mock data for now)
+        projects = [
+            {
+                "id": 1,
+                "name": "Office Renovation",
+                "status": "In Progress",
+                "start_date": "2025-01-15",
+                "end_date": "2025-04-30",
+                "budget": 75000.00,
+                "progress": 40
+            },
+            {
+                "id": 2,
+                "name": "Warehouse Expansion",
+                "status": "Planning",
+                "start_date": "2025-05-01",
+                "end_date": "2025-08-31",
+                "budget": 150000.00,
+                "progress": 10
+            }
+        ] if customer_id == 1 else []
+        
+        # Return the customer detail template
+        return templates.TemplateResponse(
+            "customer_detail.html", 
+            {
+                "request": request, 
+                "session": request.session,
+                "customer": customer,
+                "projects": projects
+            }
+        )
+    
+    except Exception as e:
+        print(f"Error retrieving customer {customer_id}: {str(e)}")
+        return templates.TemplateResponse(
+            "error.html", 
+            {
+                "request": request, 
+                "session": request.session,
+                "status_code": 500,
+                "detail": f"Error retrieving customer: {str(e)}"
+            },
+            status_code=500
+        )
+
+@app.get("/customers/{customer_id}/edit", response_class=HTMLResponse)
+async def edit_customer(customer_id: int, request: Request, session: dict = Depends(get_session)):
+    """Edit customer form."""
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    # Try to get the customer from Supabase
+    supabase_client = get_supabase_client()
+    customer = None
+    
+    try:
+        if supabase_client:
+            result = supabase_client.table("customers").select("*").eq("id", customer_id).execute()
+            if result.data:
+                customer = result.data[0]
+        
+        # If not found or Supabase not available, check mock data
+        if not customer:
+            customer = next((c for c in MOCK_CUSTOMERS if c["id"] == customer_id), None)
+        
+        if not customer:
+            # Customer not found
+            return templates.TemplateResponse(
+                "error.html", 
+                {
+                    "request": request, 
+                    "session": request.session,
+                    "status_code": 404,
+                    "detail": f"Customer with ID {customer_id} not found"
+                },
+                status_code=404
+            )
+        
+        # Statuses and payment terms for form dropdowns
+        statuses = ["Active", "Inactive", "Pending", "VIP"]
+        payment_terms = ["Net 15", "Net 30", "Net 45", "Net 60", "Due on Receipt"]
+        
+        # Return the customer edit form
+        return templates.TemplateResponse(
+            "customer_form.html", 
+            {
+                "request": request, 
+                "session": request.session,
+                "customer": customer,
+                "statuses": statuses,
+                "payment_terms": payment_terms
+            }
+        )
+    
+    except Exception as e:
+        print(f"Error retrieving customer {customer_id} for edit: {str(e)}")
+        return templates.TemplateResponse(
+            "error.html", 
+            {
+                "request": request, 
+                "session": request.session,
+                "status_code": 500,
+                "detail": f"Error retrieving customer: {str(e)}"
+            },
+            status_code=500
+        )
+
+@app.post("/customers/{customer_id}/edit", response_class=HTMLResponse)
+async def update_customer(
+    customer_id: int,
+    request: Request,
+    session: dict = Depends(get_session),
+    name: str = Form(...),
+    contact_name: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(...),
+    address: str = Form(None),
+    city: str = Form(None),
+    state: str = Form(None),
+    zip: str = Form(None),
+    status: str = Form("Active"),
+    customer_since: str = Form(None),
+    payment_terms: str = Form("Net 30"),
+    credit_limit: float = Form(0.00),
+    notes: str = Form(None)
+):
+    """Handle customer update form submission."""
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    try:
+        # Prepare updated customer data
+        updated_customer = {
+            "name": name,
+            "contact_name": contact_name,
+            "email": email,
+            "phone": phone,
+            "address": address or "",
+            "city": city or "",
+            "state": state or "",
+            "zip": zip or "",
+            "status": status,
+            "customer_since": customer_since or datetime.now().strftime("%Y-%m-%d"),
+            "payment_terms": payment_terms,
+            "credit_limit": credit_limit,
+            "notes": notes or "",
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        # Try to update in Supabase if available
+        supabase_client = get_supabase_client()
+        if supabase_client:
+            result = supabase_client.table("customers").update(updated_customer).eq("id", customer_id).execute()
+            if result.data:
+                updated_customer = result.data[0]
+        else:
+            # Update in mock data
+            for i, customer in enumerate(MOCK_CUSTOMERS):
+                if customer["id"] == customer_id:
+                    # Preserve id and created_at
+                    updated_customer["id"] = customer_id
+                    updated_customer["created_at"] = customer["created_at"]
+                    MOCK_CUSTOMERS[i] = updated_customer
+                    break
+        
+        # Redirect to customer detail page
+        return RedirectResponse(url=f"/customers/{customer_id}", status_code=303)
+    
+    except Exception as e:
+        print(f"Error updating customer {customer_id}: {str(e)}")
+        
+        # Return the form with error
+        statuses = ["Active", "Inactive", "Pending", "VIP"]
+        payment_terms = ["Net 15", "Net 30", "Net 45", "Net 60", "Due on Receipt"]
+        
+        return templates.TemplateResponse(
+            "customer_form.html", 
+            {
+                "request": request, 
+                "session": request.session, 
+                "customer": {
+                    "id": customer_id,
+                    "name": name,
+                    "contact_name": contact_name,
+                    "email": email,
+                    "phone": phone,
+                    "address": address,
+                    "city": city,
+                    "state": state,
+                    "zip": zip,
+                    "status": status,
+                    "customer_since": customer_since,
+                    "payment_terms": payment_terms,
+                    "credit_limit": credit_limit,
+                    "notes": notes
+                },
+                "statuses": statuses,
+                "payment_terms": payment_terms,
+                "error": str(e)
+            },
+            status_code=400
+        )
+
+@app.post("/customers/{customer_id}/delete", response_class=HTMLResponse)
+async def delete_customer(customer_id: int, request: Request, session: dict = Depends(get_session)):
+    """Delete a customer."""
+    if not check_auth(session):
+        return RedirectResponse(url="/login")
+    
+    try:
+        # Try to delete from Supabase if available
+        supabase_client = get_supabase_client()
+        if supabase_client:
+            supabase_client.table("customers").delete().eq("id", customer_id).execute()
+        
+        # Also remove from mock data
+        global MOCK_CUSTOMERS
+        MOCK_CUSTOMERS = [c for c in MOCK_CUSTOMERS if c["id"] != customer_id]
+        
+        # Redirect to customer list
+        return RedirectResponse(url="/customers", status_code=303)
+    
+    except Exception as e:
+        print(f"Error deleting customer {customer_id}: {str(e)}")
+        return templates.TemplateResponse(
+            "error.html", 
+            {
+                "request": request, 
+                "session": request.session,
+                "status_code": 500,
+                "detail": f"Error deleting customer: {str(e)}"
+            },
+            status_code=500
+        )
