@@ -186,11 +186,39 @@ CMD ["python", "app.py"]
    - If you encounter issues with a specific package, check its compatibility with Python 3.9
    - Always use binary packages when available (e.g., psycopg2-binary instead of psycopg2)
 
+4. **Internal Server Error (500):**
+   - If you encounter a 500 Internal Server Error when accessing the application, check the following:
+     - Ensure the app.py file includes all necessary route handlers for pages referenced in templates
+     - Make sure the Jinja2 template functions like `url_for` and `get_flashed_messages` are properly defined
+     - Add the SessionMiddleware to handle session data
+     - Include `starlette` and `itsdangerous` in the requirements-minimal.txt file
+     - Check that all template files are properly formatted and extend the correct base template
+   - The fixed app.py should include:
+     ```python
+     # Add session middleware
+     app.add_middleware(SessionMiddleware, secret_key="your-secret-key")
+     
+     # Add custom template functions
+     def url_for(name, filename=None):
+         if filename:
+             return f"/{name}/{filename}"
+         return f"/{name}"
+     
+     # Add template globals
+     templates.env.globals["url_for"] = url_for
+     templates.env.globals["get_flashed_messages"] = lambda with_categories=False: []
+     ```
+   - The requirements-minimal.txt should include:
+     ```
+     starlette==0.27.0
+     itsdangerous==2.1.2
+     ```
+
 ## Last Successful Deployment
 
 - **Date:** March 14, 2025
 - **URL:** https://akc-crm-988587667075.us-east4.run.app
-- **Deployment Command:** `gcloud run deploy akc-crm --source . --platform managed --region us-east4 --allow-unauthenticated`
+- **Deployment Command:** `gcloud run deploy akc-crm --source . --platform managed --region us-east4 --allow-unauthenticated --set-secrets=SUPABASE_URL=SUPABASE_URL:latest,SUPABASE_KEY=SUPABASE_ANON_KEY:latest,SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest,SUPABASE_DB_PASSWORD=SUPABASE_DB_PASSWORD:latest,FLASK_SECRET_KEY=FLASK_SECRET_KEY:latest --set-env-vars="FASTAPI_ENV=production"`
 
 ## ⚠️ FINAL WARNING ⚠️
 
