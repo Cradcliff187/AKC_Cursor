@@ -1,33 +1,36 @@
 """
-Vendor routes for the AKC CRM application.
+Vendor management routes for the AKC CRM application.
 """
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Request, Depends, Form, File, UploadFile, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from datetime import datetime
-from typing import Optional
-import traceback
-
 from dependencies import get_session, check_auth, templates, get_supabase_client
-from mock_data import MOCK_VENDORS, MOCK_EXPENSES, VENDOR_CATEGORIES, VENDOR_STATUSES
+from routes.auth import require_auth
+from typing import List, Optional
+import os
+import traceback
+from datetime import datetime
+from pathlib import Path
 
 router = APIRouter()
+
+# Mock data for vendors
+from mock_data import MOCK_VENDORS, VENDOR_CATEGORIES, VENDOR_STATUSES
+
+# Ensure uploads directory exists for vendor documents
+VENDOR_DOCS_DIR = Path("static/uploads/vendor_documents")
+VENDOR_DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
 @router.get("/vendors", response_class=HTMLResponse)
 async def list_vendors(
     request: Request,
-    session: dict = Depends(get_session),
+    session: dict = Depends(require_auth),
     search: str = "",
-    material_category: str = "",
+    category: str = "",
     status: str = "",
-    preferred_only: bool = False,
-    sort: str = "name",
     page: int = 1
 ):
-    """List vendors with filtering, sorting, and pagination."""
-    if not check_auth(session):
-        return RedirectResponse(url="/login")
-        
+    """Display a list of vendors with filtering and pagination."""
     try:
         # Get Supabase client
         supabase_client = get_supabase_client()
@@ -38,46 +41,40 @@ async def list_vendors(
             
             # Apply filters
             if search:
-                query = query.or_(f"name.ilike.%{search}%,contact_name.ilike.%{search}%,email.ilike.%{search}%")
-            if material_category:
-                query = query.eq("material_category", material_category)
+                query = query.or_(f"name.ilike.%{search}%,description.ilike.%{search}%")
+            if category:
+                query = query.eq("category", category)
             if status:
                 query = query.eq("status", status)
-            if preferred_only:
-                query = query.eq("preferred", True)
                 
-            # Apply sorting
-            sort_column = sort[1:] if sort.startswith("-") else sort
-            sort_order = "desc" if sort.startswith("-") else "asc"
-            query = query.order(sort_column, desc=(sort_order == "desc"))
-            
             # Execute query
-            result = query.execute()
-            vendors = result.data
+            response = query.execute()
+            
+            if hasattr(response, 'data'):
+                vendors = response.data
+            else:
+                vendors = []
         else:
-            # Use mock data
+            # Use mock data when Supabase client is not available
             vendors = MOCK_VENDORS
             
             # Apply filters to mock data
-            if search:
-                search = search.lower()
-                vendors = [v for v in vendors if 
-                    search in v["name"].lower() or 
-                    search in v["contact_name"].lower() or 
-                    search in v["email"].lower()]
-            if material_category:
-                vendors = [v for v in vendors if v["material_category"] == material_category]
-            if status:
-                vendors = [v for v in vendors if v["status"] == status]
-            if preferred_only:
-                vendors = [v for v in vendors if v["preferred"]]
-                
-            # Apply sorting to mock data
-            reverse = sort.startswith("-")
-            sort_key = sort[1:] if reverse else sort
-            vendors = sorted(vendors, key=lambda x: x[sort_key], reverse=reverse)
+            filtered_vendors = []
+            for vendor in vendors:
+                if search and not (
+                    search.lower() in vendor["name"].lower() or
+                    (vendor.get("description") and search.lower() in vendor["description"].lower())
+                ):
+                    continue
+                if category and vendor["category"] != category:
+                    continue
+                if status and vendor["status"] != status:
+                    continue
+                filtered_vendors.append(vendor)
+            
+            vendors = filtered_vendors
         
-        # Calculate pagination
+        # Pagination
         items_per_page = 10
         total_items = len(vendors)
         total_pages = (total_items + items_per_page - 1) // items_per_page
@@ -88,50 +85,40 @@ async def list_vendors(
         elif page > total_pages and total_pages > 0:
             page = total_pages
             
-        # Get vendors for current page
+        # Calculate pagination indices
         start_idx = (page - 1) * items_per_page
         end_idx = min(start_idx + items_per_page, total_items)
+        
+        # Get vendors for current page
         paginated_vendors = vendors[start_idx:end_idx]
         
-        # Calculate statistics
-        total_vendors = len(vendors)
-        active_vendors = len([v for v in vendors if v["status"] == "active"])
-        preferred_vendors = len([v for v in vendors if v["preferred"]])
-        high_rated_vendors = len([v for v in vendors if v["rating"] >= 4])
-        
         return templates.TemplateResponse(
-            "vendors/list.html",
+            "vendors.html",
             {
                 "request": request,
                 "session": session,
                 "vendors": paginated_vendors,
+                "categories": VENDOR_CATEGORIES,
+                "statuses": VENDOR_STATUSES,
+                "search": search,
+                "category": category,
+                "status": status,
                 "page": page,
                 "total_pages": total_pages,
                 "total_items": total_items,
-                "search": search,
-                "material_category": material_category,
-                "status": status,
-                "preferred_only": preferred_only,
-                "sort": sort,
-                "categories": VENDOR_CATEGORIES,
-                "statuses": VENDOR_STATUSES,
-                "total_vendors": total_vendors,
-                "active_vendors": active_vendors,
-                "preferred_vendors": preferred_vendors,
-                "high_rated_vendors": high_rated_vendors
+                "page_title": "Vendors"
             }
         )
-        
     except Exception as e:
-        print(f"Error loading vendors: {str(e)}")
+        print(f"Error listing vendors: {str(e)}")
         traceback.print_exc()
         return templates.TemplateResponse(
             "error.html",
             {
                 "request": request,
                 "session": session,
-                "status_code": 500,
-                "detail": "Error loading vendors"
+                "error_code": 500,
+                "error_message": "Error loading vendors"
             }
         )
 
@@ -139,50 +126,82 @@ async def list_vendors(
 async def vendor_detail(
     request: Request,
     vendor_id: int,
-    session: dict = Depends(get_session)
+    session: dict = Depends(require_auth)
 ):
-    """View vendor details."""
-    if not check_auth(session):
-        return RedirectResponse(url="/login")
-        
+    """Display vendor details."""
     try:
-        # Get Supabase client
+        # Get vendor data
         supabase_client = get_supabase_client()
         
         if supabase_client:
-            # Get vendor
-            result = supabase_client.table("vendors").select("*").eq("id", vendor_id).execute()
-            vendor = result.data[0] if result.data else None
+            # Get vendor from Supabase
+            response = supabase_client.table("vendors").select("*").eq("id", vendor_id).execute()
             
-            # Get recent expenses for this vendor
-            expenses_result = supabase_client.table("expenses").select("*").eq("vendor_id", vendor_id).order("date", desc=True).limit(5).execute()
-            recent_expenses = expenses_result.data
+            if hasattr(response, 'data') and len(response.data) > 0:
+                vendor = response.data[0]
+            else:
+                raise HTTPException(status_code=404, detail=f"Vendor with ID {vendor_id} not found")
         else:
             # Use mock data
             vendor = next((v for v in MOCK_VENDORS if v["id"] == vendor_id), None)
-            recent_expenses = [e for e in MOCK_EXPENSES if e["vendor_id"] == vendor_id][:5]
             
-        if not vendor:
-            return templates.TemplateResponse(
-                "error.html",
+            if not vendor:
+                return templates.TemplateResponse(
+                    "error.html",
+                    {
+                        "request": request,
+                        "session": session,
+                        "error_code": 404,
+                        "error_message": f"Vendor with ID {vendor_id} not found"
+                    }
+                )
+                
+        # Get vendor documents (would fetch from Supabase in real implementation)
+        documents = []
+        # Mock documents
+        if vendor["name"] == "ABC Supply":
+            documents = [
                 {
-                    "request": request,
-                    "session": session,
-                    "status_code": 404,
-                    "detail": f"Vendor {vendor_id} not found"
+                    "id": 1,
+                    "name": "Contract 2025",
+                    "description": "Annual contract for materials supply",
+                    "file_path": "/static/uploads/vendor_documents/contract_abc_2025.pdf",
+                    "upload_date": "2025-01-15T10:30:00Z",
+                    "file_type": "application/pdf",
+                    "file_size": 1254000
+                },
+                {
+                    "id": 2,
+                    "name": "Insurance Certificate",
+                    "description": "Liability insurance certificate",
+                    "file_path": "/static/uploads/vendor_documents/insurance_abc.pdf",
+                    "upload_date": "2025-01-10T09:15:00Z",
+                    "file_type": "application/pdf",
+                    "file_size": 852000
                 }
-            )
+            ]
             
         return templates.TemplateResponse(
-            "vendors/detail.html",
+            "vendor_detail.html",
             {
                 "request": request,
                 "session": session,
                 "vendor": vendor,
-                "recent_expenses": recent_expenses
+                "documents": documents,
+                "categories": VENDOR_CATEGORIES,
+                "statuses": VENDOR_STATUSES
             }
         )
-        
+    except HTTPException as e:
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "session": session,
+                "error_code": e.status_code,
+                "error_message": e.detail
+            }
+        )
     except Exception as e:
         print(f"Error loading vendor {vendor_id}: {str(e)}")
         traceback.print_exc()
@@ -191,23 +210,20 @@ async def vendor_detail(
             {
                 "request": request,
                 "session": session,
-                "status_code": 500,
-                "detail": f"Error loading vendor {vendor_id}"
+                "error_code": 500,
+                "error_message": f"Error loading vendor {vendor_id}"
             }
         )
 
 @router.get("/vendors/new", response_class=HTMLResponse)
 async def new_vendor_form(
     request: Request,
-    session: dict = Depends(get_session)
+    session: dict = Depends(require_auth)
 ):
-    """Display form for creating a new vendor."""
-    if not check_auth(session):
-        return RedirectResponse(url="/login")
-        
+    """Display form to create a new vendor."""
     try:
         return templates.TemplateResponse(
-            "vendors/form.html",
+            "vendor_form.html",
             {
                 "request": request,
                 "session": session,
@@ -217,7 +233,6 @@ async def new_vendor_form(
                 "is_new": True
             }
         )
-        
     except Exception as e:
         print(f"Error loading vendor form: {str(e)}")
         traceback.print_exc()
@@ -226,60 +241,91 @@ async def new_vendor_form(
             {
                 "request": request,
                 "session": session,
-                "status_code": 500,
-                "detail": "Error loading vendor form"
+                "error_code": 500,
+                "error_message": "Error loading vendor form"
             }
         )
 
 @router.post("/vendors/new", response_class=RedirectResponse)
 async def create_vendor(
     request: Request,
-    session: dict = Depends(get_session),
+    session: dict = Depends(require_auth),
     name: str = Form(...),
-    contact_name: str = Form(...),
-    email: str = Form(...),
-    phone: str = Form(...),
-    address: str = Form(...),
-    material_category: str = Form(...),
-    preferred: bool = Form(False),
-    rating: int = Form(0),
-    status: str = Form("active")
+    category: str = Form(...),
+    status: str = Form(...),
+    contact_name: str = Form(None),
+    contact_email: str = Form(None),
+    contact_phone: str = Form(None),
+    website: str = Form(None),
+    address: str = Form(None),
+    city: str = Form(None),
+    state: str = Form(None),
+    zip_code: str = Form(None),
+    description: str = Form(None),
+    notes: str = Form(None),
+    document: UploadFile = File(None)
 ):
     """Create a new vendor."""
-    if not check_auth(session):
-        return RedirectResponse(url="/login")
-        
     try:
+        # Handle document upload if provided
+        document_path = None
+        if document and document.filename:
+            # Generate a unique filename to prevent collisions
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            filename = f"{timestamp}_{document.filename}"
+            file_path = VENDOR_DOCS_DIR / filename
+            
+            # Save the file
+            with open(file_path, "wb") as buffer:
+                file_content = await document.read()
+                buffer.write(file_content)
+            
+            document_path = f"/static/uploads/vendor_documents/{filename}"
+        
         # Get Supabase client
         supabase_client = get_supabase_client()
         
-        # Prepare vendor data
-        vendor_data = {
-            "name": name,
-            "contact_name": contact_name,
-            "email": email,
-            "phone": phone,
-            "address": address,
-            "material_category": material_category,
-            "preferred": preferred,
-            "rating": rating,
-            "status": status,
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat()
-        }
-        
         if supabase_client:
-            # Create vendor in Supabase
-            result = supabase_client.table("vendors").insert(vendor_data).execute()
-            vendor_id = result.data[0]["id"]
-        else:
-            # Use mock data
-            vendor_id = max(v["id"] for v in MOCK_VENDORS) + 1
-            vendor_data["id"] = vendor_id
-            MOCK_VENDORS.append(vendor_data)
+            # Insert vendor into Supabase
+            data = {
+                "name": name,
+                "category": category,
+                "status": status,
+                "contact_name": contact_name,
+                "contact_email": contact_email,
+                "contact_phone": contact_phone,
+                "website": website,
+                "address": address,
+                "city": city,
+                "state": state,
+                "zip_code": zip_code,
+                "description": description,
+                "notes": notes
+            }
             
-        return RedirectResponse(url=f"/vendors/{vendor_id}", status_code=303)
-        
+            response = supabase_client.table("vendors").insert(data).execute()
+            
+            if hasattr(response, 'data') and len(response.data) > 0:
+                vendor_id = response.data[0]["id"]
+                
+                # If we have a document, save it as well
+                if document_path:
+                    doc_data = {
+                        "vendor_id": vendor_id,
+                        "name": document.filename,
+                        "file_path": document_path,
+                        "file_type": document.content_type,
+                        "upload_date": datetime.now().isoformat()
+                    }
+                    supabase_client.table("vendor_documents").insert(doc_data).execute()
+                
+                return RedirectResponse(url=f"/vendors/{vendor_id}", status_code=303)
+            else:
+                # Fall back to redirecting to vendors list
+                return RedirectResponse(url="/vendors", status_code=303)
+        else:
+            # In mock implementation, just redirect to vendors list
+            return RedirectResponse(url="/vendors", status_code=303)
     except Exception as e:
         print(f"Error creating vendor: {str(e)}")
         traceback.print_exc()
@@ -288,8 +334,8 @@ async def create_vendor(
             {
                 "request": request,
                 "session": session,
-                "status_code": 500,
-                "detail": "Error creating vendor"
+                "error_code": 500,
+                "error_message": "Error creating vendor"
             }
         )
 
@@ -297,36 +343,46 @@ async def create_vendor(
 async def edit_vendor_form(
     request: Request,
     vendor_id: int,
-    session: dict = Depends(get_session)
+    session: dict = Depends(require_auth)
 ):
-    """Display form for editing a vendor."""
-    if not check_auth(session):
-        return RedirectResponse(url="/login")
-        
+    """Display form to edit a vendor."""
     try:
-        # Get Supabase client
+        # Get vendor data
         supabase_client = get_supabase_client()
         
-        # Get vendor
         if supabase_client:
-            result = supabase_client.table("vendors").select("*").eq("id", vendor_id).execute()
-            vendor = result.data[0] if result.data else None
+            # Get vendor from Supabase
+            response = supabase_client.table("vendors").select("*").eq("id", vendor_id).execute()
+            
+            if hasattr(response, 'data') and len(response.data) > 0:
+                vendor = response.data[0]
+            else:
+                return templates.TemplateResponse(
+                    "error.html",
+                    {
+                        "request": request,
+                        "session": session,
+                        "error_code": 404,
+                        "error_message": f"Vendor with ID {vendor_id} not found"
+                    }
+                )
         else:
+            # Use mock data
             vendor = next((v for v in MOCK_VENDORS if v["id"] == vendor_id), None)
             
-        if not vendor:
-            return templates.TemplateResponse(
-                "error.html",
-                {
-                    "request": request,
-                    "session": session,
-                    "status_code": 404,
-                    "detail": f"Vendor {vendor_id} not found"
-                }
-            )
-            
+            if not vendor:
+                return templates.TemplateResponse(
+                    "error.html",
+                    {
+                        "request": request,
+                        "session": session,
+                        "error_code": 404,
+                        "error_message": f"Vendor with ID {vendor_id} not found"
+                    }
+                )
+                
         return templates.TemplateResponse(
-            "vendors/form.html",
+            "vendor_form.html",
             {
                 "request": request,
                 "session": session,
@@ -336,17 +392,16 @@ async def edit_vendor_form(
                 "is_new": False
             }
         )
-        
     except Exception as e:
-        print(f"Error loading vendor form: {str(e)}")
+        print(f"Error loading vendor {vendor_id} for editing: {str(e)}")
         traceback.print_exc()
         return templates.TemplateResponse(
             "error.html",
             {
                 "request": request,
                 "session": session,
-                "status_code": 500,
-                "detail": "Error loading vendor form"
+                "error_code": 500,
+                "error_message": f"Error loading vendor {vendor_id} for editing"
             }
         )
 
@@ -354,60 +409,88 @@ async def edit_vendor_form(
 async def update_vendor(
     request: Request,
     vendor_id: int,
-    session: dict = Depends(get_session),
+    session: dict = Depends(require_auth),
     name: str = Form(...),
-    contact_name: str = Form(...),
-    email: str = Form(...),
-    phone: str = Form(...),
-    address: str = Form(...),
-    material_category: str = Form(...),
-    preferred: bool = Form(False),
-    rating: int = Form(0),
-    status: str = Form("active")
+    category: str = Form(...),
+    status: str = Form(...),
+    contact_name: str = Form(None),
+    contact_email: str = Form(None),
+    contact_phone: str = Form(None),
+    website: str = Form(None),
+    address: str = Form(None),
+    city: str = Form(None),
+    state: str = Form(None),
+    zip_code: str = Form(None),
+    description: str = Form(None),
+    notes: str = Form(None),
+    document: UploadFile = File(None)
 ):
     """Update an existing vendor."""
-    if not check_auth(session):
-        return RedirectResponse(url="/login")
-        
     try:
+        # Handle document upload if provided
+        document_path = None
+        if document and document.filename:
+            # Generate a unique filename to prevent collisions
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            filename = f"{timestamp}_{document.filename}"
+            file_path = VENDOR_DOCS_DIR / filename
+            
+            # Save the file
+            with open(file_path, "wb") as buffer:
+                file_content = await document.read()
+                buffer.write(file_content)
+            
+            document_path = f"/static/uploads/vendor_documents/{filename}"
+        
         # Get Supabase client
         supabase_client = get_supabase_client()
         
-        # Prepare update data
-        update_data = {
-            "name": name,
-            "contact_name": contact_name,
-            "email": email,
-            "phone": phone,
-            "address": address,
-            "material_category": material_category,
-            "preferred": preferred,
-            "rating": rating,
-            "status": status,
-            "updated_at": datetime.now().isoformat()
-        }
-        
         if supabase_client:
             # Update vendor in Supabase
-            result = supabase_client.table("vendors").update(update_data).eq("id", vendor_id).execute()
-        else:
-            # Update mock data
-            vendor_idx = next((i for i, v in enumerate(MOCK_VENDORS) if v["id"] == vendor_id), None)
-            if vendor_idx is not None:
-                MOCK_VENDORS[vendor_idx].update(update_data)
+            data = {
+                "name": name,
+                "category": category,
+                "status": status,
+                "contact_name": contact_name,
+                "contact_email": contact_email,
+                "contact_phone": contact_phone,
+                "website": website,
+                "address": address,
+                "city": city,
+                "state": state,
+                "zip_code": zip_code,
+                "description": description,
+                "notes": notes,
+                "updated_at": datetime.now().isoformat()
+            }
             
-        return RedirectResponse(url=f"/vendors/{vendor_id}", status_code=303)
-        
+            response = supabase_client.table("vendors").update(data).eq("id", vendor_id).execute()
+            
+            # If we have a document, save it as well
+            if document_path:
+                doc_data = {
+                    "vendor_id": vendor_id,
+                    "name": document.filename,
+                    "file_path": document_path,
+                    "file_type": document.content_type,
+                    "upload_date": datetime.now().isoformat()
+                }
+                supabase_client.table("vendor_documents").insert(doc_data).execute()
+            
+            return RedirectResponse(url=f"/vendors/{vendor_id}", status_code=303)
+        else:
+            # In mock implementation, just redirect to vendor detail
+            return RedirectResponse(url=f"/vendors/{vendor_id}", status_code=303)
     except Exception as e:
-        print(f"Error updating vendor: {str(e)}")
+        print(f"Error updating vendor {vendor_id}: {str(e)}")
         traceback.print_exc()
         return templates.TemplateResponse(
             "error.html",
             {
                 "request": request,
                 "session": session,
-                "status_code": 500,
-                "detail": "Error updating vendor"
+                "error_code": 500,
+                "error_message": f"Error updating vendor {vendor_id}"
             }
         )
 
@@ -415,35 +498,31 @@ async def update_vendor(
 async def delete_vendor(
     request: Request,
     vendor_id: int,
-    session: dict = Depends(get_session)
+    session: dict = Depends(require_auth)
 ):
     """Delete a vendor."""
-    if not check_auth(session):
-        return RedirectResponse(url="/login")
-        
     try:
         # Get Supabase client
         supabase_client = get_supabase_client()
         
         if supabase_client:
-            # Delete vendor from Supabase
-            result = supabase_client.table("vendors").delete().eq("id", vendor_id).execute()
-        else:
-            # Delete from mock data
-            global MOCK_VENDORS
-            MOCK_VENDORS = [v for v in MOCK_VENDORS if v["id"] != vendor_id]
+            # Delete vendor in Supabase
+            response = supabase_client.table("vendors").delete().eq("id", vendor_id).execute()
             
+            # Also delete related vendor documents
+            supabase_client.table("vendor_documents").delete().eq("vendor_id", vendor_id).execute()
+            
+        # Redirect to vendors list
         return RedirectResponse(url="/vendors", status_code=303)
-        
     except Exception as e:
-        print(f"Error deleting vendor: {str(e)}")
+        print(f"Error deleting vendor {vendor_id}: {str(e)}")
         traceback.print_exc()
         return templates.TemplateResponse(
             "error.html",
             {
                 "request": request,
                 "session": session,
-                "status_code": 500,
-                "detail": "Error deleting vendor"
+                "error_code": 500,
+                "error_message": f"Error deleting vendor {vendor_id}"
             }
         ) 

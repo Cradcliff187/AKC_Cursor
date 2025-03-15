@@ -21,4 +21,4 @@ ENV PORT=8080
 ENV HOST=0.0.0.0
 
 # Command to run the application
-CMD exec uvicorn app:app --host 0.0.0.0 --port ${PORT} 
+CMD exec gunicorn --bind :$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --threads 8 app:app 

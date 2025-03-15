@@ -247,4 +247,90 @@ EXPENSE_STATUSES = [
     "Rejected",
     "Paid",
     "Void"
+]
+
+# Mock time logs data
+MOCK_TIME_LOGS = [
+    {
+        "id": 1,
+        "date": "2025-03-14",
+        "user_id": 1,
+        "user_name": "John Doe",
+        "project_id": 1,
+        "project_name": "Office Renovation",
+        "task": "Electrical Work",
+        "hours": 8,
+        "description": "Installed new electrical wiring and fixtures",
+        "billable": True,
+        "approved": True,
+        "created_at": "2025-03-14T17:00:00Z",
+        "updated_at": "2025-03-14T17:30:00Z"
+    },
+    {
+        "id": 2,
+        "date": "2025-03-14",
+        "user_id": 2,
+        "user_name": "Jane Smith",
+        "project_id": 1,
+        "project_name": "Office Renovation",
+        "task": "Plumbing",
+        "hours": 6,
+        "description": "Installed new bathroom fixtures",
+        "billable": True,
+        "approved": True,
+        "created_at": "2025-03-14T16:00:00Z",
+        "updated_at": "2025-03-14T16:30:00Z"
+    },
+    {
+        "id": 3,
+        "date": "2025-03-13",
+        "user_id": 1,
+        "user_name": "John Doe",
+        "project_id": 2,
+        "project_name": "Warehouse Construction",
+        "task": "Site Planning",
+        "hours": 4,
+        "description": "Initial site survey and planning",
+        "billable": True,
+        "approved": False,
+        "created_at": "2025-03-13T12:00:00Z",
+        "updated_at": "2025-03-13T12:30:00Z"
+    }
+]
+
+# Mock users data
+MOCK_USERS = [
+    {
+        "id": 1,
+        "name": "John Doe",
+        "email": "john.doe@example.com",
+        "role": "admin",
+        "phone": "555-123-4567",
+        "position": "Project Manager",
+        "hourly_rate": 75.00,
+        "created_at": "2023-01-01T00:00:00Z",
+        "active": True
+    },
+    {
+        "id": 2,
+        "name": "Jane Smith",
+        "email": "jane.smith@example.com",
+        "role": "user",
+        "phone": "555-987-6543",
+        "position": "Site Supervisor",
+        "hourly_rate": 65.00,
+        "created_at": "2023-01-15T00:00:00Z",
+        "active": True
+    },
+    {
+        "id": 3,
+        "name": "Bob Johnson",
+        "email": "bob.johnson@example.com",
+        "role": "user",
+        "phone": "555-456-7890",
+        "position": "Electrician",
+        "hourly_rate": 55.00,
+        "created_at": "2023-02-01T00:00:00Z",
+        "active": True
+    }
 ] 

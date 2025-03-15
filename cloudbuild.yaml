@@ -37,7 +37,7 @@ steps:
       - '--set-secrets'
       - 'SUPABASE_DB_PASSWORD=SUPABASE_DB_PASSWORD:latest'
       - '--set-secrets'
-      - 'FLASK_SECRET_KEY=FLASK_SECRET_KEY:latest'
+      - 'SESSION_SECRET_KEY=FLASK_SECRET_KEY:latest'
       - '--memory'
       - '1Gi'
       - '--cpu'

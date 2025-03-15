@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Expenses - {{ project.name }} - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">Project Expenses</h1>
+            <p class="text-muted">{{ project.name }}</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('view_project', project_id=project.id) }}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i> Back to Project
+            </a>
+            <a href="{{ url_for('new_expense') }}?project_id={{ project.id }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Add Expense
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Filters</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{{ url_for('project_expenses', project_id=project.id) }}">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select name="category" id="category" class="form-select">
+                            <option value="">All Categories</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                    </div>
+                </div>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-1"></i> Apply Filters
+                    </button>
+                    <a href="{{ url_for('project_expenses', project_id=project.id) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i> Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Total Expenses</h6>
+                    <h3 class="mb-0">${{ (expenses|sum(attribute='amount')|round(2)) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Number of Expenses</h6>
+                    <h3 class="mb-0">{{ expenses|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Average Expense</h6>
+                    <h3 class="mb-0">
+                    {% if expenses|length > 0 %}
+                        ${{ ((expenses|sum(attribute='amount') / expenses|length)|round(2)) }}
+                    {% else %}
+                        $0.00
+                    {% endif %}
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense List -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Expenses</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if expenses %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Vendor</th>
+                            <th>Description</th>
+                            <th class="text-end">Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td>{{ expense.date }}</td>
+                            <td>{{ expense.category }}</td>
+                            <td>
+                                <a href="{{ url_for('view_vendor', vendor_id=expense.vendor_id) }}">
+                                    {{ expense.vendor_name }}
+                                </a>
+                            </td>
+                            <td>{{ expense.description }}</td>
+                            <td class="text-end">${{ expense.amount|round(2) }}</td>
+                            <td>
+                                {% if expense.status == "approved" %}
+                                <span class="badge bg-success">Approved</span>
+                                {% elif expense.status == "pending" %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% elif expense.status == "rejected" %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ expense.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('expense_detail', expense_id=expense.id) }}" class="btn btn-outline-primary" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('edit_expense', expense_id=expense.id) }}" class="btn btn-outline-secondary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                <h5>No Expenses Found</h5>
+                <p class="text-muted">This project doesn't have any expenses yet.</p>
+                <a href="{{ url_for('new_expense') }}?project_id={{ project.id }}" class="btn btn-primary mt-2">
+                    <i class="fas fa-plus me-1"></i> Add First Expense
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Expense pagination">
+            <ul class="pagination">
+                <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('project_expenses', project_id=project.id, page=page-1, category=category, start_date=start_date, end_date=end_date) }}">Previous</a>
+                </li>
+                
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('project_expenses', project_id=project.id, page=p, category=category, start_date=start_date, end_date=end_date) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+                
+                <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('project_expenses', project_id=project.id, page=page+1, category=category, start_date=start_date, end_date=end_date) }}">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

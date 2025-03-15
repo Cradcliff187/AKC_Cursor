@@ -10,9 +10,12 @@
                 <div class="card-body p-4">
                     <h2 class="text-center mb-4">Login</h2>
                     
-                    {% if error %}
+                    {% if error or session.login_error %}
                     <div class="alert alert-danger" role="alert">
-                        {{ error }}
+                        {{ error or session.login_error }}
+                        {% if session.login_error %}
+                            {% set _ = session.pop('login_error') %}
+                        {% endif %}
                     </div>
                     {% endif %}
                     
