@@ -14,16 +14,17 @@
 
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-white">
-        {{ filter_bar(
-            search=true,
-            filters="""
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="input-group w-50">
+                <input type="text" class="form-control" placeholder="Search vendors..." aria-label="Search">
+                <button class="btn btn-outline-secondary" type="button"><i class="fas fa-search"></i></button>
+            </div>
             <div class="btn-group">
                 <a href="/vendors" class="btn btn-outline-secondary {% if not vendor_type %}active{% endif %}">All</a>
                 <a href="/vendors?type=Material" class="btn btn-outline-secondary {% if vendor_type == 'Material' %}active{% endif %}">Material Suppliers</a>
                 <a href="/vendors?type=Specialty" class="btn btn-outline-secondary {% if vendor_type == 'Specialty' %}active{% endif %}">Specialty Contractors</a>
             </div>
-            """
-        ) }}
+        </div>
     </div>
     <div class="card-body p-0">
         {% if vendors %}
