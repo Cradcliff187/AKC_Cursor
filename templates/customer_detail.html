@@ -1,72 +1,53 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% from 'components/address.html' import address_display, address_scripts %}
 
-{% block title %}{{ customer.name }} - AKC CRM{% endblock %}
+{% block title %}{{ customer.name }} - Customer Details{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <a href="{{ url_for('customers') }}" class="btn btn-outline-secondary mb-2">
-                <i class="fas fa-arrow-left"></i> Back to Customers
-            </a>
-            <h1 class="mb-0">{{ customer.name }}</h1>
-            <p class="text-muted">Customer since {{ customer.customer_since }}</p>
-        </div>
-        <div>
-            <a href="{{ url_for('edit_customer', customer_id=customer.id) }}" class="btn btn-outline-primary">
-                <i class="fas fa-edit"></i> Edit
-            </a>
-        </div>
-    </div>
-
+<div class="container py-4">
     <div class="row">
-        <div class="col-md-4">
+        <!-- Customer Information -->
+        <div class="col-lg-4">
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Customer Information</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Customer Details</h4>
+                        <a href="{{ url_for('customers.edit', customer_id=customer.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit me-1"></i> Edit
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <h6 class="text-muted mb-1">Status</h6>
-                        {% if customer.status == 'Active' %}
-                        <span class="badge bg-success">Active</span>
-                        {% elif customer.status == 'Inactive' %}
-                        <span class="badge bg-secondary">Inactive</span>
-                        {% elif customer.status == 'On Hold' %}
-                        <span class="badge bg-warning text-dark">On Hold</span>
-                        {% elif customer.status == 'Past Due' %}
-                        <span class="badge bg-danger">Past Due</span>
-                        {% else %}
-                        <span class="badge bg-info">{{ customer.status }}</span>
-                        {% endif %}
+                        <h6 class="text-muted mb-1">Name</h6>
+                        <p class="mb-0">{{ customer.name }}</p>
                     </div>
                     
                     <div class="mb-3">
-                        <h6 class="text-muted mb-1">Primary Contact</h6>
-                        <p class="mb-0">{{ customer.contact_name }}</p>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-1">Email</h6>
-                        <p class="mb-0">
+                        <h6 class="text-muted mb-1">Contact Information</h6>
+                        <p class="mb-1">
+                            <i class="fas fa-envelope me-2"></i>
                             <a href="mailto:{{ customer.email }}">{{ customer.email }}</a>
                         </p>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-1">Phone</h6>
                         <p class="mb-0">
+                            <i class="fas fa-phone me-2"></i>
                             <a href="tel:{{ customer.phone }}">{{ customer.phone }}</a>
                         </p>
                     </div>
                     
                     <div class="mb-3">
                         <h6 class="text-muted mb-1">Address</h6>
-                        <p class="mb-0">
-                            {{ customer.address }}<br>
-                            {{ customer.city }}, {{ customer.state }} {{ customer.zip }}
-                        </p>
-                        <div id="map" style="width: 100%; height: 200px; margin-top: 10px; border-radius: 4px;"></div>
+                        {{ address_display(
+                            address={
+                                'street': customer.address,
+                                'city': customer.city,
+                                'state': customer.state,
+                                'zip': customer.zip,
+                                'latitude': customer.latitude,
+                                'longitude': customer.longitude,
+                                'id': customer.id
+                            }
+                        ) }}
                     </div>
                     
                     <div class="mb-3">
@@ -80,7 +61,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white">
                     <h5 class="mb-0">Notes</h5>
@@ -90,84 +71,63 @@
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-8">
+
+        <!-- Projects and Activity -->
+        <div class="col-lg-8">
+            <!-- Projects -->
             <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Projects</h5>
-                    <a href="{{ url_for('new_project') }}?customer_id={{ customer.id }}" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-plus"></i> New Project
-                    </a>
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Projects</h4>
+                        <a href="{{ url_for('projects.new', customer_id=customer.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-plus me-1"></i> New Project
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body">
+                    {% if projects %}
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th>Project Name</th>
                                     <th>Status</th>
                                     <th>Start Date</th>
                                     <th>End Date</th>
                                     <th>Budget</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% if projects %}
-                                    {% for project in projects %}
-                                    <tr>
-                                        <td>
-                                            <a href="{{ url_for('project_detail', project_id=project.id) }}">
-                                                {{ project.name }}
-                                            </a>
-                                        </td>
-                                        <td>
-                                            {% if project.status == 'In Progress' %}
-                                            <span class="badge bg-primary">In Progress</span>
-                                            {% elif project.status == 'Completed' %}
-                                            <span class="badge bg-success">Completed</span>
-                                            {% elif project.status == 'On Hold' %}
-                                            <span class="badge bg-warning text-dark">On Hold</span>
-                                            {% elif project.status == 'Cancelled' %}
-                                            <span class="badge bg-danger">Cancelled</span>
-                                            {% else %}
-                                            <span class="badge bg-secondary">{{ project.status }}</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ project.start_date }}</td>
-                                        <td>{{ project.end_date or 'TBD' }}</td>
-                                        <td>${{ project.budget|round(2) }}</td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <a href="{{ url_for('edit_project', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                {% else %}
-                                    <tr>
-                                        <td colspan="6" class="text-center py-4">
-                                            <p class="text-muted mb-0">No projects found for this customer</p>
-                                            <a href="{{ url_for('new_project') }}?customer_id={{ customer.id }}" class="btn btn-sm btn-primary mt-2">
-                                                <i class="fas fa-plus"></i> Create First Project
-                                            </a>
-                                        </td>
-                                    </tr>
-                                {% endif %}
+                                {% for project in projects %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('projects.detail', project_id=project.id) }}">
+                                            {{ project.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ project.status_color }}">
+                                            {{ project.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ project.start_date.strftime('%Y-%m-%d') if project.start_date }}</td>
+                                    <td>{{ project.end_date.strftime('%Y-%m-%d') if project.end_date }}</td>
+                                    <td>${{ project.budget|round(2) }}</td>
+                                </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No projects found.</p>
+                    {% endif %}
                 </div>
             </div>
-            
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Financial Summary</h5>
+
+            <!-- Statistics -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h4 class="mb-0">Statistics</h4>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -190,8 +150,8 @@
                         <div class="col-md-3 mb-3">
                             <div class="card bg-light">
                                 <div class="card-body text-center">
-                                    <h6 class="text-muted mb-1">Total Budget</h6>
-                                    <h3 class="mb-0">${{ projects|sum(attribute='budget')|round(2) }}</h3>
+                                    <h6 class="text-muted mb-1">Pending Projects</h6>
+                                    <h3 class="mb-0">{{ projects|selectattr('status', 'equalto', 'Planning')|list|length }}</h3>
                                 </div>
                             </div>
                         </div>
@@ -212,56 +172,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    // Store customer location data
-    const customerAddress = "{{ customer.address }}, {{ customer.city }}, {{ customer.state }} {{ customer.zip }}";
-    const customerLatitude = {{ customer.latitude|default(0) }};
-    const customerLongitude = {{ customer.longitude|default(0) }};
-    const hasCoordinates = {% if customer.latitude and customer.longitude %}true{% else %}false{% endif %};
-</script>
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap" async defer></script>
-<script>
-    function initMap() {
-        // Default to US center if no coordinates
-        const position = hasCoordinates 
-            ? { lat: customerLatitude, lng: customerLongitude }
-            : { lat: 39.8283, lng: -98.5795 };
-        
-        const zoom = hasCoordinates ? 15 : 4;
-        
-        // Create map
-        const map = new google.maps.Map(document.getElementById("map"), {
-            center: position,
-            zoom: zoom,
-            mapTypeId: "roadmap",
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: true
-        });
-        
-        // If we don't have coordinates but we do have an address, geocode it
-        if (!hasCoordinates && customerAddress) {
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ 'address': customerAddress }, function(results, status) {
-                if (status === 'OK' && results[0]) {
-                    map.setCenter(results[0].geometry.location);
-                    map.setZoom(15);
-                    
-                    new google.maps.Marker({
-                        map: map,
-                        position: results[0].geometry.location,
-                        title: "{{ customer.name }}"
-                    });
-                }
-            });
-        } else if (hasCoordinates) {
-            // Add marker at the customer location
-            new google.maps.Marker({
-                map: map,
-                position: position,
-                title: "{{ customer.name }}"
-            });
-        }
-    }
-</script>
+{{ address_scripts(api_key=google_maps_api_key) }}
 {% endblock %} 

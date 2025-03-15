@@ -1,0 +1,47 @@
+{% macro data_table(headers, classes="") %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 {{ classes }}">
+        <thead class="table-light">
+            <tr>
+                {% for header in headers %}
+                <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {{ caller() }}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{% macro empty_state(message, action_button=None) %}
+<div class="text-center py-4">
+    <p class="mb-0">{{ message }}</p>
+    {% if action_button %}
+    <div class="mt-2">
+        {{ action_button }}
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro pagination(page_info) %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if page_info.current_page == 1 }}">
+            <a class="page-link" href="?page={{ page_info.current_page - 1 }}" tabindex="-1">Previous</a>
+        </li>
+        
+        {% for page_num in range(1, page_info.total_pages + 1) %}
+        <li class="page-item {{ 'active' if page_num == page_info.current_page }}">
+            <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+        </li>
+        {% endfor %}
+        
+        <li class="page-item {{ 'disabled' if page_info.current_page == page_info.total_pages }}">
+            <a class="page-link" href="?page={{ page_info.current_page + 1 }}">Next</a>
+        </li>
+    </ul>
+</nav>
+{% endmacro %} 

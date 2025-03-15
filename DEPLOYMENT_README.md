@@ -573,7 +573,7 @@ This command:
 After deployment, verify that the service is running correctly:
 
 ```bash
-# Get the service URL
+# Get the URL of the deployed service
 gcloud run services describe akc-crm --platform managed --region us-east4 --format='value(status.url)'
 
 # Check the health endpoint
@@ -963,9 +963,115 @@ These changes ensure that all detail pages work correctly and don't throw 500 er
 - **Deployment Command:** `gcloud run deploy akc-crm --source . --platform managed --region us-east4 --allow-unauthenticated`
 - **Dockerfile Used:** The Dockerfile with system dependencies for psycopg2-binary as shown above
 - **Latest Fixes:** 
+  - Added explicit root route handler that returns the index.html template
+  - Improved URL routing with a custom `url_for` function that handles both static files and dynamic routes
+  - Fixed login functionality by updating form handling in auth routes
+  - Properly configured template context passing and session management
+  - Ensured proper static file mounting and reference in templates
   - Fixed internal server errors with dashboard links by updating the url_for function and adding error handlers
   - Fixed pagination issues by adding missing template variables to route handlers
   - Fixed detail page issues by adding mock data to detail route handlers
+
+## Code Structure and Deployment
+
+### Key Application Components
+
+1. **Route Organization:**
+   - **Root and Authentication Routes**: Defined directly in `app.py` immediately after mounting static files
+   - **Feature-Specific Routes**: Organized in separate router files inside the `routes/` directory
+   - **Static File Management**: Mounted at `/static` with proper URL function handling
+
+2. **Application Structure:**
+   ```
+   /app
+   ├── app.py               # Main application file with FastAPI setup and core routes
+   ├── dependencies.py      # Shared dependencies like get_session and authentication
+   ├── mock_data.py         # Mock data for when Supabase is unavailable
+   ├── routes/              # Feature-specific route modules
+   │   ├── auth.py          # Authentication routes
+   │   ├── vendors.py       # Vendor management routes
+   │   ├── projects.py      # Project management routes
+   │   └── reports.py       # Reporting routes
+   ├── static/              # Static assets (CSS, JS, images)
+   │   ├── css/
+   │   ├── js/
+   │   └── img/
+   ├── templates/           # Jinja2 HTML templates
+   │   ├── base.html        # Base template with common elements
+   │   ├── index.html       # Homepage template
+   │   ├── login.html       # Login form template
+   │   └── [feature]/       # Feature-specific templates
+   ├── requirements.txt     # Python dependencies
+   └── Dockerfile           # Container configuration
+   ```
+
+3. **Critical Route Configuration:**
+   - Root route (`/`) must be defined in `app.py` to serve the index.html template
+   - Login routes must be mounted before other routers to ensure proper authentication flow
+   - Static files must be mounted before defining any routes
+
+4. **Custom URL Handling:**
+   The application uses a custom `url_for` function that maps function names to URL paths. This function:
+   - Handles static file references with `/static/{filename}`
+   - Maps route names to their respective URL paths
+   - Supports both direct paths and function name mappings
+   - Must be updated when adding new routes to ensure proper template navigation
+
+5. **Session Management:**
+   - Sessions are handled via Starlette's SessionMiddleware
+   - Every route handler must pass the session to the template context
+   - Mock session data must be set for unauthenticated routes
+
+### Deployment Best Practices
+
+1. **Route Configuration Order:**
+   Always maintain the following order in `app.py`:
+   ```python
+   # 1. Mount static files
+   app.mount("/static", StaticFiles(directory="static"), name="static")
+   
+   # 2. Define the root route
+   @app.get("/", response_class=HTMLResponse)
+   async def root(request: Request):
+       # Set mock session and return index.html
+   
+   # 3. Include authentication router
+   app.include_router(auth_router)
+   
+   # 4. Include feature-specific routers
+   app.include_router(vendors_router)
+   app.include_router(projects_router)
+   # ... other routers
+   ```
+
+2. **Template References:**
+   Always use the `url_for` function in templates:
+   ```html
+   <a href="{{ url_for('dashboard') }}">Dashboard</a>
+   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+   ```
+
+3. **Form Handling:**
+   Ensure forms use the proper URL paths:
+   ```html
+   <form method="POST" action="{{ url_for('login') }}">
+       <!-- form fields -->
+   </form>
+   ```
+
+4. **Error Handling:**
+   Always include comprehensive error handling in route handlers:
+   ```python
+   try:
+       # Route logic
+   except Exception as e:
+       print(f"Error: {str(e)}")
+       return templates.TemplateResponse(
+           "error.html",
+           {"request": request, "session": session, "error": str(e)},
+           status_code=500
+       )
+   ```
 
 ## Troubleshooting
 

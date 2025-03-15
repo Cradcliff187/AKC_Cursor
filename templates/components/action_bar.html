@@ -1,0 +1,183 @@
+{% from "components/buttons.html" import action_button, button_group, dropdown_button %}
+
+{% macro action_bar(title, subtitle=None, primary_actions=[], secondary_actions=[], mobile_actions=[]) %}
+<div class="action-bar mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+        <!-- Title Section -->
+        <div class="me-4 mb-3 mb-sm-0">
+            <h1 class="h3 mb-1">{{ title }}</h1>
+            {% if subtitle %}
+            <p class="text-muted mb-0">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Desktop Actions -->
+        <div class="d-none d-sm-flex gap-2 flex-wrap">
+            {% for action in secondary_actions %}
+                {{ action }}
+            {% endfor %}
+            {% for action in primary_actions %}
+                {{ action }}
+            {% endfor %}
+        </div>
+
+        <!-- Mobile Actions -->
+        <div class="d-sm-none w-100">
+            {% if mobile_actions %}
+                <div class="d-flex gap-2">
+                    {% for action in mobile_actions %}
+                        {{ action }}
+                    {% endfor %}
+                </div>
+            {% else %}
+                {% if primary_actions|length + secondary_actions|length > 2 %}
+                    {{ dropdown_button(
+                        text="Actions",
+                        icon="ellipsis-v",
+                        items=[
+                            {"text": action.text, "href": action.href, "icon": action.icon}
+                            for action in (secondary_actions + primary_actions)
+                        ],
+                        type="outline-primary",
+                        classes="w-100"
+                    ) }}
+                {% else %}
+                    <div class="d-flex gap-2">
+                        {% for action in secondary_actions %}
+                            {{ action }}
+                        {% endfor %}
+                        {% for action in primary_actions %}
+                            {{ action }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro list_action_bar(
+    title,
+    subtitle=None,
+    primary_actions=[],
+    secondary_actions=[],
+    mobile_actions=[],
+    filter_form=None,
+    search_placeholder="Search..."
+) %}
+<div class="action-bar mb-4">
+    <div class="row g-3">
+        <!-- Title and Actions -->
+        <div class="col-12">
+            {{ action_bar(title, subtitle, primary_actions, secondary_actions, mobile_actions) }}
+        </div>
+
+        <!-- Search and Filters -->
+        {% if filter_form %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form class="row g-3" method="get">
+                        <!-- Search Input -->
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="search" 
+                                       name="q" 
+                                       class="form-control" 
+                                       placeholder="{{ search_placeholder }}"
+                                       value="{{ request.args.get('q', '') }}">
+                            </div>
+                        </div>
+
+                        <!-- Filter Form Content -->
+                        {{ filter_form }}
+
+                        <!-- Filter Actions -->
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-2"></i>Apply Filters
+                            </button>
+                            <a href="{{ request.path }}" class="btn btn-outline-secondary ms-2">
+                                <i class="fas fa-times me-2"></i>Clear Filters
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro detail_action_bar(
+    title,
+    subtitle=None,
+    status=None,
+    status_class="",
+    primary_actions=[],
+    secondary_actions=[],
+    mobile_actions=[]
+) %}
+<div class="action-bar mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start">
+        <!-- Title Section -->
+        <div class="me-4 mb-3 mb-sm-0">
+            <div class="d-flex align-items-center gap-3 mb-1">
+                <h1 class="h3 mb-0">{{ title }}</h1>
+                {% if status %}
+                <span class="badge {{ status_class or 'bg-secondary' }}">{{ status }}</span>
+                {% endif %}
+            </div>
+            {% if subtitle %}
+            <p class="text-muted mb-0">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Desktop Actions -->
+        <div class="d-none d-sm-flex gap-2 flex-wrap">
+            {% for action in secondary_actions %}
+                {{ action }}
+            {% endfor %}
+            {% for action in primary_actions %}
+                {{ action }}
+            {% endfor %}
+        </div>
+
+        <!-- Mobile Actions -->
+        <div class="d-sm-none w-100">
+            {% if mobile_actions %}
+                <div class="d-flex gap-2">
+                    {% for action in mobile_actions %}
+                        {{ action }}
+                    {% endfor %}
+                </div>
+            {% else %}
+                {% if primary_actions|length + secondary_actions|length > 2 %}
+                    {{ dropdown_button(
+                        text="Actions",
+                        icon="ellipsis-v",
+                        items=[
+                            {"text": action.text, "href": action.href, "icon": action.icon}
+                            for action in (secondary_actions + primary_actions)
+                        ],
+                        type="outline-primary",
+                        classes="w-100"
+                    ) }}
+                {% else %}
+                    <div class="d-flex gap-2">
+                        {% for action in secondary_actions %}
+                            {{ action }}
+                        {% endfor %}
+                        {% for action in primary_actions %}
+                            {{ action }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %} 

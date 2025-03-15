@@ -1,163 +1,94 @@
 {% extends "base.html" %}
+{% from "components/navigation.html" import list_header, filter_bar %}
+{% from "components/tables.html" import data_table, empty_state, pagination %}
+{% from "components/buttons.html" import action_button %}
 
 {% block title %}Material Suppliers & Subcontractors - AKC CRM{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="mb-0">Material Suppliers & Subcontractors</h1>
-            <p class="text-muted">Manage your construction material suppliers and specialty contractors</p>
-        </div>
-        <div>
-            <a href="/vendors/new" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Supplier
-            </a>
-        </div>
-    </div>
+{{ list_header(
+    title="Material Suppliers & Subcontractors",
+    subtitle="Manage your construction material suppliers and specialty contractors",
+    action_button=action_button("Add Supplier", "plus", "/vendors/new", "primary")
+) }}
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <form method="get" action="/vendors" class="d-flex">
-                        <div class="input-group">
-                            <input type="text" class="form-control" name="search" placeholder="Search suppliers..." value="{{ search_query }}">
-                            <button class="btn btn-outline-secondary" type="submit">
-                                <i class="fas fa-search"></i>
-                            </button>
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        {{ filter_bar(
+            search=true,
+            filters="""
+            <div class="btn-group">
+                <a href="/vendors" class="btn btn-outline-secondary {% if not vendor_type %}active{% endif %}">All</a>
+                <a href="/vendors?type=Material" class="btn btn-outline-secondary {% if vendor_type == 'Material' %}active{% endif %}">Material Suppliers</a>
+                <a href="/vendors?type=Specialty" class="btn btn-outline-secondary {% if vendor_type == 'Specialty' %}active{% endif %}">Specialty Contractors</a>
+            </div>
+            """
+        ) }}
+    </div>
+    <div class="card-body p-0">
+        {% if vendors %}
+            {% call data_table(["Supplier", "Type", "Contact", "Materials & Services", "Performance"]) %}
+                {% for vendor in vendors %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-initials bg-primary text-white me-3">
+                                {{ vendor.name[:2].upper() }}
+                            </div>
+                            <div>
+                                <a href="/vendors/{{ vendor.id }}" class="text-decoration-none">
+                                    <h6 class="mb-0">{{ vendor.name }}</h6>
+                                </a>
+                                <small class="text-muted">{{ vendor.location }}</small>
+                            </div>
                         </div>
-                    </form>
-                </div>
-                <div class="col-md-6 d-flex justify-content-md-end mt-3 mt-md-0">
-                    <div class="btn-group">
-                        <a href="/vendors" class="btn btn-outline-secondary {% if not vendor_type %}active{% endif %}">All</a>
-                        <a href="/vendors?type=Material" class="btn btn-outline-secondary {% if vendor_type == 'Material' %}active{% endif %}">Material Suppliers</a>
-                        <a href="/vendors?type=Specialty" class="btn btn-outline-secondary {% if vendor_type == 'Specialty' %}active{% endif %}">Specialty Contractors</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Supplier</th>
-                            <th>Type</th>
-                            <th>Contact</th>
-                            <th>Materials & Services</th>
-                            <th>Performance</th>
-                            <th>Insurance</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for vendor in vendors %}
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-initials bg-primary text-white me-3">
-                                        {{ vendor.name[:2].upper() }}
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0">
-                                            {{ vendor.name }}
-                                            {% if vendor.is_preferred %}
-                                            <i class="fas fa-star text-warning" title="Preferred Supplier"></i>
-                                            {% endif %}
-                                        </h6>
-                                        <small class="text-muted">{{ vendor.address.city }}, {{ vendor.address.state }}</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge {% if vendor.vendor_type == 'Material' %}bg-info{% else %}bg-primary{% endif %}">
-                                    {{ vendor.vendor_type }}
-                                </span>
-                            </td>
-                            <td>
-                                <div>{{ vendor.contact_name }}</div>
-                                <small><a href="mailto:{{ vendor.email }}">{{ vendor.email }}</a></small>
-                            </td>
-                            <td>
-                                <div class="d-flex flex-wrap gap-1">
-                                    {% for category in vendor.material_categories[:2] %}
-                                    <span class="badge bg-light text-dark">{{ category }}</span>
-                                    {% endfor %}
-                                    {% if vendor.material_categories|length > 2 %}
-                                    <span class="badge bg-light text-dark">+{{ vendor.material_categories|length - 2 }}</span>
-                                    {% endif %}
-                                </div>
-                                {% if vendor.lead_time_days %}
-                                <small class="text-muted d-block">Lead time: {{ vendor.lead_time_days }} days</small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="text-warning">
-                                    {% for i in range(5) %}
-                                        {% if i < vendor.quality_rating|int %}
-                                            <i class="fas fa-star"></i>
-                                        {% elif i < vendor.quality_rating and i >= vendor.quality_rating|int %}
-                                            <i class="fas fa-star-half-alt"></i>
-                                        {% else %}
-                                            <i class="far fa-star"></i>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                                {% if vendor.on_time_rate is defined %}
-                                <small class="text-muted d-block">On-time: {{ "%.0f"|format(vendor.on_time_rate) }}%</small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if vendor.insurance_expiry %}
-                                    {% if vendor.insurance_expiry < now %}
-                                    <span class="badge bg-danger">Expired</span>
-                                    {% elif (vendor.insurance_expiry - now).days <= 30 %}
-                                    <span class="badge bg-warning">Expiring Soon</span>
-                                    {% else %}
-                                    <span class="badge bg-success">Valid</span>
-                                    {% endif %}
-                                {% else %}
-                                <span class="badge bg-secondary">Not Available</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end">
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        Actions
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="/vendors/{{ vendor.id }}"><i class="fas fa-eye me-2"></i> View Details</a></li>
-                                        <li><a class="dropdown-item" href="/vendors/{{ vendor.id }}/edit"><i class="fas fa-edit me-2"></i> Edit</a></li>
-                                        <li><a class="dropdown-item" href="/vendors/{{ vendor.id }}/contracts"><i class="fas fa-file-contract me-2"></i> Contracts</a></li>
-                                        <li><a class="dropdown-item" href="/vendors/{{ vendor.id }}/materials"><i class="fas fa-boxes me-2"></i> Materials</a></li>
-                                    </ul>
-                                </div>
-                            </td>
-                        </tr>
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ 'info' if vendor.type == 'Material' else 'success' }}">
+                            {{ vendor.type }}
+                        </span>
+                    </td>
+                    <td>
+                        <p class="mb-0">{{ vendor.contact_name }}</p>
+                        <small><a href="mailto:{{ vendor.email }}">{{ vendor.email }}</a></small>
+                    </td>
+                    <td>
+                        {% for category in vendor.categories[:3] %}
+                        <span class="badge bg-secondary me-1">{{ category }}</span>
                         {% endfor %}
-                        
-                        {% if not vendors %}
-                        <tr>
-                            <td colspan="7" class="text-center py-5">
-                                <div class="empty-state">
-                                    <i class="fas fa-truck-loading fa-3x text-muted mb-3"></i>
-                                    <h5>No suppliers found</h5>
-                                    <p class="text-muted">Add your first material supplier or adjust your search criteria</p>
-                                    <a href="/vendors/new" class="btn btn-primary">
-                                        <i class="fas fa-plus"></i> Add Supplier
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
+                        {% if vendor.categories|length > 3 %}
+                        <small class="text-muted">+{{ vendor.categories|length - 3 }} more</small>
                         {% endif %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="me-2">
+                                {% for i in range(5) %}
+                                    {% if i < vendor.rating|int %}
+                                        <i class="fas fa-star text-warning"></i>
+                                    {% else %}
+                                        <i class="far fa-star text-muted"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <span class="text-muted">({{ vendor.rating }})</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% endcall %}
+        {% else %}
+            {{ empty_state(
+                message="No vendors found matching your criteria",
+                action_button=action_button("Add First Supplier", "plus", "/vendors/new", "primary")
+            ) }}
+        {% endif %}
     </div>
 </div>
+
+{% if vendors and pagination_info %}
+    {{ pagination(pagination_info) }}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

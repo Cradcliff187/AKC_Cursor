@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Reports Dashboard - AKC CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Reports Dashboard</h1>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-download me-1"></i> Export
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{{ url_for('reports.export_report', report_type='time', format='csv') }}">Time Reports (CSV)</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('reports.export_report', report_type='expenses', format='csv') }}">Expense Reports (CSV)</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('reports.export_report', report_type='projects', format='csv') }}">Project Reports (CSV)</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('reports.export_report', report_type='time', format='json') }}">Time Reports (JSON)</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('reports.export_report', report_type='expenses', format='json') }}">Expense Reports (JSON)</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('reports.export_report', report_type='projects', format='json') }}">Project Reports (JSON)</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+        <!-- Projects Card -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Projects</h6>
+                            <h3 class="mb-0">{{ report_data.summary.total_projects }}</h3>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-project-diagram text-primary fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                            <span>Active Projects</span>
+                            <span class="badge bg-success">{{ report_data.summary.active_projects }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Card -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Expenses</h6>
+                            <h3 class="mb-0">${{ "{:,.2f}".format(report_data.summary.total_expenses) }}</h3>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-dollar-sign text-warning fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                            <span>This Month</span>
+                            <span class="badge bg-warning text-dark">${{ "{:,.2f}".format(report_data.trends.expenses[-1]) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hours Card -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Hours</h6>
+                            <h3 class="mb-0">{{ "{:,.1f}".format(report_data.summary.total_hours) }}</h3>
+                        </div>
+                        <div class="bg-info bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-clock text-info fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                            <span>This Month</span>
+                            <span class="badge bg-info">{{ "{:,.1f}".format(report_data.trends.hours[-1]) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vendors Card -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Vendors</h6>
+                            <h3 class="mb-0">{{ report_data.summary.total_vendors }}</h3>
+                        </div>
+                        <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-truck text-success fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                            <span>Active Vendors</span>
+                            <span class="badge bg-success">{{ report_data.summary.active_vendors }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- Expenses Trend Chart -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Expense Trends</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="expensesChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hours Trend Chart -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Hours Logged</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="hoursChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>User</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for activity in report_data.recent_activity %}
+                                <tr>
+                                    <td>{{ activity.date }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ activity.type_color }}">{{ activity.type }}</span>
+                                    </td>
+                                    <td>{{ activity.description }}</td>
+                                    <td>{{ activity.user }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+// Expenses Chart
+const expensesCtx = document.getElementById('expensesChart').getContext('2d');
+new Chart(expensesCtx, {
+    type: 'line',
+    data: {
+        labels: {{ report_data.trends.months | tojson }},
+        datasets: [{
+            label: 'Expenses ($)',
+            data: {{ report_data.trends.expenses | tojson }},
+            borderColor: '#ffc107',
+            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+            fill: true,
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Hours Chart
+const hoursCtx = document.getElementById('hoursChart').getContext('2d');
+new Chart(hoursCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ report_data.trends.months | tojson }},
+        datasets: [{
+            label: 'Hours',
+            data: {{ report_data.trends.hours | tojson }},
+            backgroundColor: 'rgba(23, 162, 184, 0.5)',
+            borderColor: 'rgb(23, 162, 184)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return value.toLocaleString() + ' hrs';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %} 

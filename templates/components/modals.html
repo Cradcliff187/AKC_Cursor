@@ -1,0 +1,97 @@
+{% macro base_modal(id, title, content, footer_buttons=[], size="", header_class="") %}
+<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}Label" aria-hidden="true">
+    <div class="modal-dialog {% if size %}modal-{{ size }}{% endif %}">
+        <div class="modal-content">
+            <div class="modal-header {% if header_class %}{{ header_class }}{% endif %}">
+                <h5 class="modal-title" id="{{ id }}Label">{{ title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {{ content }}
+            </div>
+            <div class="modal-footer">
+                {% for button in footer_buttons %}
+                    {{ button }}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro confirm_delete_modal(id, item_name, form_action, button_text="Delete") %}
+{% set content %}
+<p>Are you sure you want to delete <strong>{{ item_name }}</strong>?</p>
+<p class="text-danger">This action cannot be undone.</p>
+{% endset %}
+
+{% set footer_buttons %}
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+<form action="{{ form_action }}" method="post" class="d-inline">
+    <input type="hidden" name="_method" value="DELETE">
+    <button type="submit" class="btn btn-danger">{{ button_text }}</button>
+</form>
+{% endset %}
+
+{{ base_modal(
+    id=id,
+    title="Confirm Delete",
+    content=content,
+    footer_buttons=footer_buttons,
+    header_class="bg-danger text-white"
+) }}
+{% endmacro %}
+
+{% macro status_change_modal(id, title, message, form_action, new_status, button_style="primary", button_text=None) %}
+{% set content %}
+<p>{{ message }}</p>
+{% endset %}
+
+{% set footer_buttons %}
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+<form action="{{ form_action }}" method="post" class="d-inline">
+    <input type="hidden" name="status" value="{{ new_status }}">
+    <button type="submit" class="btn btn-{{ button_style }}">{{ button_text or new_status }}</button>
+</form>
+{% endset %}
+
+{{ base_modal(
+    id=id,
+    title=title,
+    content=content,
+    footer_buttons=footer_buttons
+) }}
+{% endmacro %}
+
+{% macro form_modal(id, title, content, submit_text="Save", size="", form_action="", method="post") %}
+{% set modal_content %}
+<form action="{{ form_action }}" method="{{ method }}">
+    {{ content }}
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">{{ submit_text }}</button>
+    </div>
+</form>
+{% endset %}
+
+{{ base_modal(
+    id=id,
+    title=title,
+    content=modal_content,
+    size=size
+) }}
+{% endmacro %}
+
+{% macro view_modal(id, title, content, size="") %}
+{% set footer_buttons %}
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+{% endset %}
+
+{{ base_modal(
+    id=id,
+    title=title,
+    content=content,
+    footer_buttons=footer_buttons,
+    size=size
+) }}
+{% endmacro %} 

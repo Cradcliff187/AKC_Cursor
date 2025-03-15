@@ -1,462 +1,132 @@
 {% extends "base.html" %}
+{% from 'components/forms.html' import form_group, select_group, textarea_group, address_form_group %}
+{% from 'components/address.html' import address_scripts %}
 
-{% block title %}{% if project %}Edit Project{% else %}New Project{% endif %} - AKC CRM{% endblock %}
+{% block title %}{% if project %}Edit{% else %}New{% endif %} Project{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <a href="{% if project %}/projects/{{ project.id }}{% else %}/projects{% endif %}" class="btn btn-outline-secondary mb-2">
-                <i class="fas fa-arrow-left"></i> Back
-            </a>
-            <h1 class="mb-0">{% if project %}Edit Project: {{ project.name }}{% else %}Create New Project{% endif %}</h1>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Project Information</h5>
-        </div>
-        <div class="card-body">
-            <form method="post" action="{% if project %}/projects/{{ project.id }}/edit{% else %}/projects/new{% endif %}">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="project_name" class="form-label">Project Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="project_name" name="project_name" value="{% if project %}{{ project.name }}{% endif %}" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="client_id" class="form-label">Client <span class="text-danger">*</span></label>
-                        <select class="form-select" id="client_id" name="client_id" required>
-                            <option value="">Select a client</option>
-                            {% for contact in contacts %}
-                            <option value="{{ contact.id }}" {% if project and project.client_id == contact.id %}selected{% endif %}>{{ contact.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h4 class="mb-0">{% if project %}Edit{% else %}New{% endif %} Project</h4>
                 </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
-                        <select class="form-select" id="status" name="status" required>
-                            <option value="Planning" {% if project and project.status == 'Planning' %}selected{% endif %}>Planning</option>
-                            <option value="In Progress" {% if project and project.status == 'In Progress' %}selected{% endif %}>In Progress</option>
-                            <option value="On Hold" {% if project and project.status == 'On Hold' %}selected{% endif %}>On Hold</option>
-                            <option value="Completed" {% if project and project.status == 'Completed' %}selected{% endif %}>Completed</option>
-                            <option value="Cancelled" {% if project and project.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="budget" class="form-label">Budget ($) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="budget" name="budget" min="0" step="1000" value="{% if project %}{{ project.budget }}{% endif %}" required>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="start_date" class="form-label">Start Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="start_date" name="start_date" value="{% if project %}{{ project.start_date }}{% endif %}" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="end_date" class="form-label">Estimated End Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="end_date" name="end_date" value="{% if project %}{{ project.end_date }}{% endif %}" required>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="description" class="form-label">Project Description <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="description" name="description" rows="4" required>{% if project %}{{ project.description }}{% endif %}</textarea>
-                </div>
-
-                <!-- Replace simple address textarea with standardized address fields -->
-                <div class="card mb-4">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">Project Address</h5>
-                        <small class="text-muted">This is the physical location of the project, which may differ from the client's address</small>
-                    </div>
-                    <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <label for="address_search" class="form-label">Search Address</label>
-                                <div class="input-group mb-3">
-                                    <input type="text" class="form-control" id="address_search" placeholder="Type to search for an address...">
-                                    <button class="btn btn-outline-secondary" type="button" id="search_address_btn">Search</button>
+                <div class="card-body">
+                    <form method="POST">
+                        <!-- Basic Information -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Basic Information</h5>
+                            </div>
+                            <div class="card-body">
+                                {{ form_group("Project Name", "name", value=project.name if project else "", required=true) }}
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {{ select_group("Client", "client_id", 
+                                            options=clients|map('to_select_option')|list,
+                                            selected=project.client_id if project else "",
+                                            required=true
+                                        ) }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ select_group("Project Type", "type",
+                                            options=[
+                                                {"value": "residential", "label": "Residential"},
+                                                {"value": "commercial", "label": "Commercial"},
+                                                {"value": "industrial", "label": "Industrial"}
+                                            ],
+                                            selected=project.type if project else "residential",
+                                            required=true
+                                        ) }}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <label for="street" class="form-label">Street Address <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="street" name="street" value="{% if project and project.address.street %}{{ project.address.street }}{% endif %}" required>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="city" class="form-label">City <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="city" name="city" value="{% if project and project.address.city %}{{ project.address.city }}{% endif %}" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="state" class="form-label">State <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="state" name="state" value="{% if project and project.address.state %}{{ project.address.state }}{% endif %}" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="zip" class="form-label">Zip Code <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="zip" name="zip" value="{% if project and project.address.zip %}{{ project.address.zip }}{% endif %}" required>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="country" class="form-label">Country <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="country" name="country" value="{% if project and project.address.country %}{{ project.address.country }}{% else %}USA{% endif %}" required>
-                            </div>
-                        </div>
-                        
-                        <!-- Hidden fields for coordinates and formatted address -->
-                        <input type="hidden" id="latitude" name="latitude" value="{% if project and project.address.latitude %}{{ project.address.latitude }}{% endif %}">
-                        <input type="hidden" id="longitude" name="longitude" value="{% if project and project.address.longitude %}{{ project.address.longitude }}{% endif %}">
-                        <input type="hidden" id="formatted_address" name="formatted_address" value="{% if project and project.address.formatted_address %}{{ project.address.formatted_address }}{% endif %}">
-                        
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <div id="map" style="height: 300px; width: 100%;" class="border rounded"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <hr class="my-4">
-                <h5>Project Team</h5>
-                <div class="mb-3">
-                    <label class="form-label">Team Members</label>
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="team_members_table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Team Member</th>
-                                    <th>Role</th>
-                                    <th width="100">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if project and project.team_members %}
-                                {% for member_id in project.team_members %}
-                                <tr>
-                                    <td>
-                                        <select class="form-select member-select" name="team_member_ids[]" required>
-                                            <option value="">Select a team member</option>
-                                            {% for user in users %}
-                                            <option value="{{ user.id }}" {% if member_id == user.id %}selected{% endif %}>{{ user.first_name }} {{ user.last_name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <select class="form-select" name="team_member_roles[]" required>
-                                            <option value="project_manager" {% if project.team_member_roles[loop.index0] == 'project_manager' %}selected{% endif %}>Project Manager</option>
-                                            <option value="site_supervisor" {% if project.team_member_roles[loop.index0] == 'site_supervisor' %}selected{% endif %}>Site Supervisor</option>
-                                            <option value="estimator" {% if project.team_member_roles[loop.index0] == 'estimator' %}selected{% endif %}>Estimator</option>
-                                            <option value="architect" {% if project.team_member_roles[loop.index0] == 'architect' %}selected{% endif %}>Architect</option>
-                                            <option value="engineer" {% if project.team_member_roles[loop.index0] == 'engineer' %}selected{% endif %}>Engineer</option>
-                                            <option value="contractor" {% if project.team_member_roles[loop.index0] == 'contractor' %}selected{% endif %}>Contractor</option>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-sm btn-outline-danger remove-team-member">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                                {% else %}
-                                <tr>
-                                    <td>
-                                        <select class="form-select member-select" name="team_member_ids[]" required>
-                                            <option value="">Select a team member</option>
-                                            {% for user in users %}
-                                            <option value="{{ user.id }}">{{ user.first_name }} {{ user.last_name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <select class="form-select" name="team_member_roles[]" required>
-                                            <option value="project_manager">Project Manager</option>
-                                            <option value="site_supervisor">Site Supervisor</option>
-                                            <option value="estimator">Estimator</option>
-                                            <option value="architect">Architect</option>
-                                            <option value="engineer">Engineer</option>
-                                            <option value="contractor">Contractor</option>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-sm btn-outline-danger remove-team-member">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <button type="button" class="btn btn-outline-primary" id="add_team_member">
-                        <i class="fas fa-plus"></i> Add Team Member
-                    </button>
-                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {{ form_group("Start Date", "start_date", type="date", 
+                                            value=project.start_date.strftime('%Y-%m-%d') if project and project.start_date else "",
+                                            required=true
+                                        ) }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form_group("End Date", "end_date", type="date",
+                                            value=project.end_date.strftime('%Y-%m-%d') if project and project.end_date else "",
+                                            required=true
+                                        ) }}
+                                    </div>
+                                </div>
 
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                    <a href="{% if project %}/projects/{{ project.id }}{% else %}/projects{% endif %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Save Project</button>
+                                {{ form_group("Budget", "budget", type="number", 
+                                    value=project.budget if project else "0.00",
+                                    required=true
+                                ) }}
+                            </div>
+                        </div>
+
+                        <!-- Project Location -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Project Location</h5>
+                                <small class="text-muted">This is the physical location of the project</small>
+                            </div>
+                            <div class="card-body">
+                                {{ address_form_group(
+                                    value={
+                                        'street': project.address.street if project and project.address else '',
+                                        'city': project.address.city if project and project.address else '',
+                                        'state': project.address.state if project and project.address else '',
+                                        'zip': project.address.zip if project and project.address else '',
+                                        'latitude': project.address.latitude if project and project.address else '',
+                                        'longitude': project.address.longitude if project and project.address else ''
+                                    } if project else {},
+                                    required=true
+                                ) }}
+                            </div>
+                        </div>
+
+                        <!-- Project Details -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Project Details</h5>
+                            </div>
+                            <div class="card-body">
+                                {{ textarea_group("Description", "description", 
+                                    value=project.description if project else "",
+                                    rows=5,
+                                    required=true
+                                ) }}
+
+                                {{ textarea_group("Scope of Work", "scope", 
+                                    value=project.scope if project else "",
+                                    rows=5,
+                                    required=true
+                                ) }}
+
+                                {{ textarea_group("Notes", "notes",
+                                    value=project.notes if project else "",
+                                    rows=3
+                                ) }}
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Save Project
+                            </button>
+                            <a href="{{ url_for('projects.list') }}" class="btn btn-outline-secondary ms-2">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Add team member
-        document.getElementById('add_team_member').addEventListener('click', function() {
-            const table = document.getElementById('team_members_table').getElementsByTagName('tbody')[0];
-            const newRow = table.insertRow();
-            
-            newRow.innerHTML = `
-                <td>
-                    <select class="form-select member-select" name="team_member_ids[]" required>
-                        <option value="">Select a team member</option>
-                        {% for user in users %}
-                        <option value="{{ user.id }}">{{ user.first_name }} {{ user.last_name }}</option>
-                        {% endfor %}
-                    </select>
-                </td>
-                <td>
-                    <select class="form-select" name="team_member_roles[]" required>
-                        <option value="project_manager">Project Manager</option>
-                        <option value="site_supervisor">Site Supervisor</option>
-                        <option value="estimator">Estimator</option>
-                        <option value="architect">Architect</option>
-                        <option value="engineer">Engineer</option>
-                        <option value="contractor">Contractor</option>
-                    </select>
-                </td>
-                <td>
-                    <button type="button" class="btn btn-sm btn-outline-danger remove-team-member">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </td>
-            `;
-            
-            // Add event listener to the new remove button
-            addRemoveButtonListener(newRow.querySelector('.remove-team-member'));
-        });
-        
-        // Remove team member
-        function addRemoveButtonListener(button) {
-            button.addEventListener('click', function() {
-                const row = this.closest('tr');
-                const tbody = row.parentNode;
-                
-                // Don't remove if it's the last row
-                if (tbody.rows.length > 1) {
-                    tbody.removeChild(row);
-                } else {
-                    // Clear the inputs instead of removing the row
-                    row.querySelector('.member-select').value = '';
-                }
-            });
-        }
-        
-        // Add listeners to existing remove buttons
-        document.querySelectorAll('.remove-team-member').forEach(button => {
-            addRemoveButtonListener(button);
-        });
-        
-        // Form validation
-        const form = document.querySelector('form');
-        form.addEventListener('submit', function(event) {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            
-            form.classList.add('was-validated');
-        });
-        
-        // Date validation
-        const startDateInput = document.getElementById('start_date');
-        const endDateInput = document.getElementById('end_date');
-        
-        endDateInput.addEventListener('change', function() {
-            if (startDateInput.value && endDateInput.value) {
-                if (new Date(endDateInput.value) < new Date(startDateInput.value)) {
-                    endDateInput.setCustomValidity('End date must be after start date');
-                } else {
-                    endDateInput.setCustomValidity('');
-                }
-            }
-        });
-        
-        startDateInput.addEventListener('change', function() {
-            if (startDateInput.value && endDateInput.value) {
-                if (new Date(endDateInput.value) < new Date(startDateInput.value)) {
-                    endDateInput.setCustomValidity('End date must be after start date');
-                } else {
-                    endDateInput.setCustomValidity('');
-                }
-            }
-        });
-    });
-</script>
-
-<!-- Google Maps JavaScript -->
-<script>
-    let map;
-    let marker;
-    let geocoder;
-    
-    function initMap() {
-        geocoder = new google.maps.Geocoder();
-        
-        // Default location (center of US if no coordinates)
-        const defaultLat = {% if project and project.address.latitude %}{{ project.address.latitude }}{% else %}39.8283{% endif %};
-        const defaultLng = {% if project and project.address.longitude %}{{ project.address.longitude }}{% else %}-98.5795{% endif %};
-        
-        map = new google.maps.Map(document.getElementById("map"), {
-            center: { lat: defaultLat, lng: defaultLng },
-            zoom: {% if project and project.address.latitude %}15{% else %}4{% endif %},
-            mapTypeId: "roadmap",
-        });
-        
-        // Add marker if we have coordinates
-        {% if project and project.address.latitude %}
-        marker = new google.maps.Marker({
-            position: { lat: {{ project.address.latitude }}, lng: {{ project.address.longitude }} },
-            map: map,
-            draggable: true,
-            title: "Project Location"
-        });
-        
-        // Update coordinates when marker is dragged
-        google.maps.event.addListener(marker, 'dragend', function() {
-            const position = marker.getPosition();
-            document.getElementById('latitude').value = position.lat();
-            document.getElementById('longitude').value = position.lng();
-            
-            // Reverse geocode to get address details
-            geocoder.geocode({ 'location': position }, function(results, status) {
-                if (status === 'OK' && results[0]) {
-                    updateAddressFields(results[0]);
-                }
-            });
-        });
-        {% endif %}
-        
-        // Set up address search
-        document.getElementById('search_address_btn').addEventListener('click', function() {
-            searchAddress();
-        });
-        
-        // Allow enter key to search
-        document.getElementById('address_search').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                searchAddress();
-            }
-        });
-    }
-    
-    function searchAddress() {
-        const address = document.getElementById('address_search').value;
-        
-        if (!address) return;
-        
-        geocoder.geocode({ 'address': address }, function(results, status) {
-            if (status === 'OK' && results[0]) {
-                const location = results[0].geometry.location;
-                
-                // Center map on result
-                map.setCenter(location);
-                map.setZoom(15);
-                
-                // Add or move marker
-                if (marker) {
-                    marker.setPosition(location);
-                } else {
-                    marker = new google.maps.Marker({
-                        position: location,
-                        map: map,
-                        draggable: true,
-                        title: "Project Location"
-                    });
-                    
-                    // Update coordinates when marker is dragged
-                    google.maps.event.addListener(marker, 'dragend', function() {
-                        const position = marker.getPosition();
-                        document.getElementById('latitude').value = position.lat();
-                        document.getElementById('longitude').value = position.lng();
-                        
-                        // Reverse geocode to get address details
-                        geocoder.geocode({ 'location': position }, function(results, status) {
-                            if (status === 'OK' && results[0]) {
-                                updateAddressFields(results[0]);
-                            }
-                        });
-                    });
-                }
-                
-                // Update form fields
-                updateAddressFields(results[0]);
-            } else {
-                alert("Address search was not successful for the following reason: " + status);
-            }
-        });
-    }
-    
-    function updateAddressFields(result) {
-        // Update coordinates
-        document.getElementById('latitude').value = result.geometry.location.lat();
-        document.getElementById('longitude').value = result.geometry.location.lng();
-        document.getElementById('formatted_address').value = result.formatted_address;
-        
-        // Parse address components
-        let street_number = '';
-        let route = '';
-        let city = '';
-        let state = '';
-        let zip = '';
-        let country = '';
-        
-        for (const component of result.address_components) {
-            const types = component.types;
-            
-            if (types.includes('street_number')) {
-                street_number = component.long_name;
-            } else if (types.includes('route')) {
-                route = component.long_name;
-            } else if (types.includes('locality')) {
-                city = component.long_name;
-            } else if (types.includes('administrative_area_level_1')) {
-                state = component.short_name;
-            } else if (types.includes('postal_code')) {
-                zip = component.long_name;
-            } else if (types.includes('country')) {
-                country = component.long_name;
-            }
-        }
-        
-        // Update form fields
-        document.getElementById('street').value = street_number + ' ' + route;
-        document.getElementById('city').value = city;
-        document.getElementById('state').value = state;
-        document.getElementById('zip').value = zip;
-        document.getElementById('country').value = country;
-    }
-</script>
-
-<!-- Load Google Maps API with your API key -->
-<script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap">
-</script>
+{% block scripts %}
+{{ address_scripts(api_key=google_maps_api_key) }}
 {% endblock %} 

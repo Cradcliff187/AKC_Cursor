@@ -1,0 +1,33 @@
+{% macro mobile_header(title, back_url=None) %}
+<div class="mobile-header fixed-top bg-white border-bottom">
+    <div class="d-flex align-items-center p-3">
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-link text-dark p-0 me-3">
+            <i class="fas fa-arrow-left fa-lg"></i>
+        </a>
+        {% endif %}
+        <h1 class="h6 mb-0 flex-grow-1">{{ title }}</h1>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro mobile_action_bar() %}
+<div class="mobile-action-bar fixed-bottom bg-white border-top p-2">
+    <div class="d-flex justify-content-around">
+        {{ caller() }}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro mobile_content() %}
+<div class="mobile-content pt-5 pb-5">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+{% macro mobile_menu_item(text, icon=None, href="#", active=False) %}
+<a href="{{ href }}" class="mobile-menu-item d-flex flex-column align-items-center text-decoration-none {{ 'active' if active }}">
+    {% if icon %}<i class="fas fa-{{ icon }} mb-1"></i>{% endif %}
+    <small>{{ text }}</small>
+</a>
+{% endmacro %} 

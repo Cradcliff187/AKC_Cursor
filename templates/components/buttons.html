@@ -1,0 +1,123 @@
+{% macro base_button(text, type="primary", icon=None, classes="", data_attrs={}, href=None, is_submit=false, is_disabled=false) %}
+{% if href %}
+<a href="{{ href }}" 
+   class="btn btn-{{ type }} {{ classes }}"
+   {% for key, value in data_attrs.items() %}data-{{ key }}="{{ value }}"{% endfor %}
+   {% if is_disabled %}disabled aria-disabled="true"{% endif %}>
+    {% if icon %}<i class="fas fa-{{ icon }} me-2"></i>{% endif %}
+    {{ text }}
+</a>
+{% else %}
+<button type="{{ 'submit' if is_submit else 'button' }}" 
+        class="btn btn-{{ type }} {{ classes }}"
+        {% for key, value in data_attrs.items() %}data-{{ key }}="{{ value }}"{% endfor %}
+        {% if is_disabled %}disabled{% endif %}>
+    {% if icon %}<i class="fas fa-{{ icon }} me-2"></i>{% endif %}
+    {{ text }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro action_button(text, href="#", type="primary", icon=None, classes="", data_attrs={}) %}
+{{ base_button(text=text, type=type, icon=icon, classes=classes, data_attrs=data_attrs, href=href) }}
+{% endmacro %}
+
+{% macro submit_button(text="Save", type="primary", icon="save", classes="", data_attrs={}) %}
+{{ base_button(text=text, type=type, icon=icon, classes=classes, data_attrs=data_attrs, is_submit=true) }}
+{% endmacro %}
+
+{% macro cancel_button(href="#", text="Cancel", classes="", data_attrs={}) %}
+{{ base_button(text=text, type="outline-secondary", icon="times", classes=classes, data_attrs=data_attrs, href=href) }}
+{% endmacro %}
+
+{% macro delete_button(text="Delete", modal_target=None, classes="", data_attrs={}) %}
+{{ base_button(
+    text=text,
+    type="outline-danger",
+    icon="trash",
+    classes=classes,
+    data_attrs={"bs-toggle": "modal", "bs-target": "#" + modal_target} if modal_target else data_attrs
+) }}
+{% endmacro %}
+
+{% macro status_button(text, status, type="outline-primary", icon=None, classes="", data_attrs={}) %}
+{{ base_button(
+    text=text,
+    type=type,
+    icon=icon,
+    classes="status-action " + classes,
+    data_attrs={"status": status, **data_attrs}
+) }}
+{% endmacro %}
+
+{% macro mobile_action_button(text, href="#", type="primary", icon=None, classes="") %}
+{{ base_button(
+    text=text,
+    type=type,
+    icon=icon,
+    classes="btn-mobile-action d-flex align-items-center justify-content-center " + classes,
+    href=href
+) }}
+{% endmacro %}
+
+{% macro button_group(buttons=[], vertical=false) %}
+<div class="btn-group{% if vertical %}-vertical{% endif %}" role="group">
+    {% for button in buttons %}
+        {{ button }}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro action_group(buttons=[], justify="start", classes="") %}
+<div class="d-flex gap-2 justify-content-{{ justify }} align-items-center {{ classes }}">
+    {% for button in buttons %}
+        {{ button }}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro dropdown_button(text, items=[], type="primary", icon=None, classes="", align="end") %}
+<div class="dropdown">
+    {{ base_button(
+        text=text,
+        type=type,
+        icon=icon,
+        classes="dropdown-toggle " + classes,
+        data_attrs={"bs-toggle": "dropdown"}
+    ) }}
+    <ul class="dropdown-menu dropdown-menu-{{ align }}">
+        {% for item in items %}
+            {% if item.divider %}
+                <li><hr class="dropdown-divider"></li>
+            {% elif item.header %}
+                <li><h6 class="dropdown-header">{{ item.header }}</h6></li>
+            {% else %}
+                <li>
+                    {% if item.form_action %}
+                        <form action="{{ item.form_action }}" method="post" class="d-inline">
+                            {% for key, value in (item.form_data or {}).items() %}
+                                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                            {% endfor %}
+                            <button type="submit" class="dropdown-item {% if item.class %}{{ item.class }}{% endif %}">
+                                {% if item.icon %}<i class="fas fa-{{ item.icon }} me-2"></i>{% endif %}
+                                {{ item.text }}
+                            </button>
+                        </form>
+                    {% else %}
+                        <a class="dropdown-item {% if item.class %}{{ item.class }}{% endif %}" 
+                           href="{{ item.href or '#' }}"
+                           {% if item.data_attrs %}
+                               {% for key, value in item.data_attrs.items() %}
+                                   data-{{ key }}="{{ value }}"
+                               {% endfor %}
+                           {% endif %}>
+                            {% if item.icon %}<i class="fas fa-{{ item.icon }} me-2"></i>{% endif %}
+                            {{ item.text }}
+                        </a>
+                    {% endif %}
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</div>
+{% endmacro %} 

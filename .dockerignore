@@ -1,9 +1,52 @@
+# Version control
+.git
+.gitignore
+
 # Python
-__pycache__/
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+
+# Virtual environment
+venv
+.env
+.venv
+ENV
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.md
+LICENSE
+tests/
+docs/
+archive/
+
+# Python
 *.py[cod]
 *$py.class
 *.so
-.Python
 build/
 develop-eggs/
 dist/
@@ -20,37 +63,13 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
-venv/
-ENV/
-env/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# Environment variables
-.env
-.env.*
-
-# Git
-.git/
-.gitignore
-
 # Local development
-archive/
 *.log
-.DS_Store
 
 # Test cache
 .pytest_cache/
-.coverage
 htmlcov/
 
 # Documentation
-docs/
-*.md
 !README.md
 !DEPLOYMENT_README.md 

@@ -1,0 +1,190 @@
+{% macro address_fields(prefix="", required=false, value={}, show_map=true) %}
+<div class="address-component mb-4">
+    <div class="form-group mb-3">
+        <label for="{{ prefix }}street" class="form-label">
+            Street Address
+            {% if required %}<span class="text-danger">*</span>{% endif %}
+        </label>
+        <input type="text" 
+               class="form-control address-autocomplete" 
+               id="{{ prefix }}street" 
+               name="{{ prefix }}street" 
+               value="{{ value.street }}"
+               {% if required %}required{% endif %}
+               placeholder="Enter street address"
+               data-address-field="street"
+        >
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group mb-3">
+                <label for="{{ prefix }}city" class="form-label">
+                    City
+                    {% if required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       id="{{ prefix }}city" 
+                       name="{{ prefix }}city" 
+                       value="{{ value.city }}"
+                       {% if required %}required{% endif %}
+                       data-address-field="city"
+                >
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group mb-3">
+                <label for="{{ prefix }}state" class="form-label">
+                    State
+                    {% if required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       id="{{ prefix }}state" 
+                       name="{{ prefix }}state" 
+                       value="{{ value.state }}"
+                       {% if required %}required{% endif %}
+                       data-address-field="state"
+                >
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group mb-3">
+                <label for="{{ prefix }}zip" class="form-label">
+                    ZIP Code
+                    {% if required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       id="{{ prefix }}zip" 
+                       name="{{ prefix }}zip" 
+                       value="{{ value.zip }}"
+                       {% if required %}required{% endif %}
+                       data-address-field="zip"
+                >
+            </div>
+        </div>
+    </div>
+
+    {% if show_map %}
+    <div class="map-container mt-3">
+        <div id="{{ prefix }}map" style="height: 300px; width: 100%; border-radius: 8px;"></div>
+    </div>
+    
+    <!-- Hidden fields for coordinates -->
+    <input type="hidden" id="{{ prefix }}latitude" name="{{ prefix }}latitude" value="{{ value.latitude }}">
+    <input type="hidden" id="{{ prefix }}longitude" name="{{ prefix }}longitude" value="{{ value.longitude }}">
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro address_display(address, show_map=true) %}
+<div class="address-display">
+    <p class="mb-1">{{ address.street }}</p>
+    <p class="mb-3">{{ address.city }}, {{ address.state }} {{ address.zip }}</p>
+    
+    {% if show_map and address.latitude and address.longitude %}
+    <div class="map-container mb-3">
+        <div id="display_map_{{ address.id }}" style="height: 300px; width: 100%; border-radius: 8px;"></div>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro address_scripts(api_key) %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize autocomplete for all address fields
+    document.querySelectorAll('.address-autocomplete').forEach(function(input) {
+        const prefix = input.id.replace('street', '');
+        const componentForm = {
+            street_number: 'short_name',
+            route: 'long_name',
+            locality: 'long_name',
+            administrative_area_level_1: 'short_name',
+            postal_code: 'short_name'
+        };
+
+        const autocomplete = new google.maps.places.Autocomplete(input, {
+            types: ['address'],
+            componentRestrictions: { country: 'US' }
+        });
+
+        // When a place is selected
+        autocomplete.addListener('place_changed', function() {
+            const place = autocomplete.getPlace();
+            
+            // Clear existing values
+            document.getElementById(prefix + 'street').value = '';
+            document.getElementById(prefix + 'city').value = '';
+            document.getElementById(prefix + 'state').value = '';
+            document.getElementById(prefix + 'zip').value = '';
+            
+            // Get address components
+            let streetNumber = '';
+            let streetName = '';
+            
+            for (const component of place.address_components) {
+                const type = component.types[0];
+                
+                if (type === 'street_number') {
+                    streetNumber = component.short_name;
+                } else if (type === 'route') {
+                    streetName = component.long_name;
+                } else if (type === 'locality') {
+                    document.getElementById(prefix + 'city').value = component.long_name;
+                } else if (type === 'administrative_area_level_1') {
+                    document.getElementById(prefix + 'state').value = component.short_name;
+                } else if (type === 'postal_code') {
+                    document.getElementById(prefix + 'zip').value = component.short_name;
+                }
+            }
+            
+            // Combine street number and name
+            document.getElementById(prefix + 'street').value = `${streetNumber} ${streetName}`.trim();
+            
+            // Update coordinates
+            if (place.geometry && place.geometry.location) {
+                document.getElementById(prefix + 'latitude').value = place.geometry.location.lat();
+                document.getElementById(prefix + 'longitude').value = place.geometry.location.lng();
+                
+                // Update map if it exists
+                const mapElement = document.getElementById(prefix + 'map');
+                if (mapElement) {
+                    const map = new google.maps.Map(mapElement, {
+                        center: place.geometry.location,
+                        zoom: 15
+                    });
+                    
+                    new google.maps.Marker({
+                        map: map,
+                        position: place.geometry.location
+                    });
+                }
+            }
+        });
+    });
+
+    // Initialize display maps
+    document.querySelectorAll('[id^="display_map_"]').forEach(function(mapElement) {
+        const lat = parseFloat(mapElement.dataset.latitude);
+        const lng = parseFloat(mapElement.dataset.longitude);
+        
+        if (lat && lng) {
+            const location = { lat: lat, lng: lng };
+            const map = new google.maps.Map(mapElement, {
+                center: location,
+                zoom: 15
+            });
+            
+            new google.maps.Marker({
+                map: map,
+                position: location
+            });
+        }
+    });
+});
+</script>
+{% endmacro %} 

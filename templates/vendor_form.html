@@ -1,431 +1,114 @@
 {% extends "base.html" %}
+{% from 'components/forms.html' import form_group, select_group, textarea_group, address_form_group %}
+{% from 'components/address.html' import address_scripts %}
 
-{% block title %}{% if vendor %}Edit {{ vendor.name }}{% else %}Add New Material Supplier{% endif %} - AKC Construction CRM{% endblock %}
+{% block title %}{% if vendor %}Edit{% else %}New{% endif %} Vendor{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <a href="{% if vendor %}/vendors/{{ vendor.id }}{% else %}/vendors{% endif %}" class="btn btn-outline-secondary mb-2">
-                <i class="fas fa-arrow-left"></i> Back
-            </a>
-            <h1 class="mb-0">{% if vendor %}Edit {{ vendor.name }}{% else %}Add New Material Supplier{% endif %}</h1>
-        </div>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white">
-            <h5 class="mb-0">Supplier Information</h5>
-        </div>
-        <div class="card-body">
-            <form method="post" action="{% if vendor %}/vendors/{{ vendor.id }}/edit{% else %}/vendors/new{% endif %}" enctype="multipart/form-data">
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <h6 class="text-muted mb-3">Basic Information</h6>
-                        
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Company Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" value="{{ vendor.name if vendor else '' }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="vendor_type" class="form-label">Supplier Type <span class="text-danger">*</span></label>
-                            <select class="form-select" id="vendor_type" name="vendor_type" required>
-                                <option value="">Select Type</option>
-                                <option value="Manufacturer" {% if vendor and vendor.vendor_type == 'Manufacturer' %}selected{% endif %}>Manufacturer</option>
-                                <option value="Distributor" {% if vendor and vendor.vendor_type == 'Distributor' %}selected{% endif %}>Distributor</option>
-                                <option value="Wholesaler" {% if vendor and vendor.vendor_type == 'Wholesaler' %}selected{% endif %}>Wholesaler</option>
-                                <option value="Specialty Supplier" {% if vendor and vendor.vendor_type == 'Specialty Supplier' %}selected{% endif %}>Specialty Supplier</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="contact_name" class="form-label">Contact Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="contact_name" name="contact_name" value="{{ vendor.contact_name if vendor else '' }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-                            <input type="email" class="form-control" id="email" name="email" value="{{ vendor.email if vendor else '' }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="phone" class="form-label">Phone <span class="text-danger">*</span></label>
-                            <input type="tel" class="form-control" id="phone" name="phone" value="{{ vendor.phone if vendor else '' }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="website" class="form-label">Website</label>
-                            <input type="url" class="form-control" id="website" name="website" value="{{ vendor.website if vendor else '' }}" placeholder="https://">
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <h6 class="text-muted mb-3">Business Terms</h6>
-                        
-                        <div class="mb-3">
-                            <label for="tax_id" class="form-label">Tax ID / EIN <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="tax_id" name="tax_id" value="{{ vendor.tax_id if vendor else '' }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="payment_terms" class="form-label">Payment Terms <span class="text-danger">*</span></label>
-                            <select class="form-select" id="payment_terms" name="payment_terms" required>
-                                <option value="">Select Terms</option>
-                                <option value="Net 15" {% if vendor and vendor.payment_terms == 'Net 15' %}selected{% endif %}>Net 15</option>
-                                <option value="Net 30" {% if vendor and vendor.payment_terms == 'Net 30' %}selected{% endif %}>Net 30</option>
-                                <option value="Net 45" {% if vendor and vendor.payment_terms == 'Net 45' %}selected{% endif %}>Net 45</option>
-                                <option value="Net 60" {% if vendor and vendor.payment_terms == 'Net 60' %}selected{% endif %}>Net 60</option>
-                                <option value="Due on Receipt" {% if vendor and vendor.payment_terms == 'Due on Receipt' %}selected{% endif %}>Due on Receipt</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="credit_limit" class="form-label">Credit Limit</label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control" id="credit_limit" name="credit_limit" value="{{ vendor.credit_limit if vendor else '' }}" min="0" step="1000">
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h4 class="mb-0">{% if vendor %}Edit{% else %}New{% endif %} Vendor</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <!-- Basic Information -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Basic Information</h5>
                             </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="lead_time_days" class="form-label">Standard Lead Time (Days)</label>
-                            <input type="number" class="form-control" id="lead_time_days" name="lead_time_days" value="{{ vendor.lead_time_days if vendor else '' }}" min="0">
-                            <div class="form-text">Average time from order to delivery</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h6 class="text-muted mb-3">Material Categories & Certifications</h6>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Material Categories <span class="text-danger">*</span></label>
-                            <select class="form-select" id="material_categories" name="material_categories" multiple required>
-                                {% for category in material_categories %}
-                                <option value="{{ category }}" {% if vendor and category in vendor.material_categories %}selected{% endif %}>{{ category }}</option>
-                                {% endfor %}
-                            </select>
-                            <div class="form-text">Hold Ctrl/Cmd to select multiple categories</div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="certifications" class="form-label">Quality Certifications</label>
-                            <textarea class="form-control" id="certifications" name="certifications" rows="2">{{ vendor.certifications if vendor else '' }}</textarea>
-                            <div class="form-text">List relevant quality certifications (e.g., ISO 9001, ASTM compliance)</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h6 class="text-muted mb-3">Insurance Information</h6>
-                        
-                        <div class="mb-3">
-                            <label for="insurance_policy" class="form-label">Insurance Policy Number <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="insurance_policy" name="insurance_policy" value="{{ vendor.insurance_policy if vendor else '' }}" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="insurance_expiry" class="form-label">Insurance Expiry Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="insurance_expiry" name="insurance_expiry" value="{{ vendor.insurance_expiry if vendor else '' }}" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="insurance_document" class="form-label">Insurance Certificate</label>
-                            <input type="file" class="form-control" id="insurance_document" name="insurance_document" accept=".pdf,.doc,.docx">
-                            {% if vendor and vendor.insurance_document %}
-                            <div class="form-text">
-                                Current document: <a href="{{ vendor.insurance_document }}" target="_blank">View</a>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h6 class="text-muted mb-3">Address Information</h6>
-                        
-                        <div class="mb-3">
-                            <label for="address_search" class="form-label">Search Address</label>
-                            <input type="text" class="form-control" id="address_search" placeholder="Type to search for an address...">
-                            <div class="form-text">Start typing to search for an address using Google Maps</div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="street" class="form-label">Street Address <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="street" name="street" value="{{ vendor.address.street if vendor else '' }}" required>
-                                </div>
+                            <div class="card-body">
+                                {{ form_group("Company Name", "name", value=vendor.name if vendor else "", required=true) }}
                                 
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="city" class="form-label">City <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" id="city" name="city" value="{{ vendor.address.city if vendor else '' }}" required>
-                                        </div>
+                                        {{ form_group("Contact Name", "contact_name", value=vendor.contact_name if vendor else "") }}
                                     </div>
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label for="state" class="form-label">State <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" id="state" name="state" value="{{ vendor.address.state if vendor else '' }}" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label for="zip" class="form-label">ZIP <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" id="zip" name="zip" value="{{ vendor.address.zip if vendor else '' }}" required>
-                                        </div>
+                                    <div class="col-md-6">
+                                        {{ select_group("Vendor Type", "type",
+                                            options=[
+                                                {"value": "supplier", "label": "Supplier"},
+                                                {"value": "contractor", "label": "Contractor"},
+                                                {"value": "service_provider", "label": "Service Provider"}
+                                            ],
+                                            selected=vendor.type if vendor else "supplier",
+                                            required=true
+                                        ) }}
                                     </div>
                                 </div>
-                                
-                                <div class="mb-3">
-                                    <label for="country" class="form-label">Country <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="country" name="country" value="{{ vendor.address.country if vendor else 'USA' }}" required>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {{ form_group("Email", "email", type="email", value=vendor.email if vendor else "", required=true) }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form_group("Phone", "phone", type="tel", value=vendor.phone if vendor else "", required=true) }}
+                                    </div>
                                 </div>
-                                
-                                <div class="mb-3">
-                                    <label for="formatted_address" class="form-label">Formatted Address</label>
-                                    <input type="text" class="form-control" id="formatted_address" name="formatted_address" value="{{ vendor.address.formatted_address if vendor else '' }}" readonly>
-                                </div>
-                                
-                                <input type="hidden" id="latitude" name="latitude" value="{{ vendor.address.latitude if vendor else '' }}">
-                                <input type="hidden" id="longitude" name="longitude" value="{{ vendor.address.longitude if vendor else '' }}">
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div id="map" style="height: 300px;" class="border rounded"></div>
+
+                                {{ form_group("Website", "website", type="url", value=vendor.website if vendor else "") }}
                             </div>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h6 class="text-muted mb-3">Performance Metrics</h6>
-                        
-                        <div class="mb-3">
-                            <label for="quality_rating" class="form-label">Quality Rating (1-5)</label>
-                            <input type="number" class="form-control" id="quality_rating" name="quality_rating" min="1" max="5" step="0.1" value="{{ vendor.quality_rating if vendor else '0' }}">
-                            <div class="form-text">Rate the overall quality of materials and service</div>
+
+                        <!-- Address Information -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Address Information</h5>
+                            </div>
+                            <div class="card-body">
+                                {{ address_form_group(
+                                    value={
+                                        'street': vendor.address.street if vendor and vendor.address else '',
+                                        'city': vendor.address.city if vendor and vendor.address else '',
+                                        'state': vendor.address.state if vendor and vendor.address else '',
+                                        'zip': vendor.address.zip if vendor and vendor.address else '',
+                                        'latitude': vendor.address.latitude if vendor and vendor.address else '',
+                                        'longitude': vendor.address.longitude if vendor and vendor.address else ''
+                                    } if vendor else {},
+                                    required=true
+                                ) }}
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="on_time_rate" class="form-label">On-Time Delivery Rate (%)</label>
-                            <input type="number" class="form-control" id="on_time_rate" name="on_time_rate" min="0" max="100" step="0.1" value="{{ vendor.on_time_rate if vendor else '0' }}">
-                            <div class="form-text">Percentage of orders delivered within agreed timeframe</div>
+                        <!-- Additional Information -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Additional Information</h5>
+                            </div>
+                            <div class="card-body">
+                                {{ form_group("Tax ID", "tax_id", value=vendor.tax_id if vendor else "") }}
+                                
+                                {{ textarea_group("Products/Services", "services", 
+                                    value=vendor.services if vendor else "",
+                                    rows=3,
+                                    help_text="List the main products or services this vendor provides"
+                                ) }}
+                                
+                                {{ textarea_group("Notes", "notes",
+                                    value=vendor.notes if vendor else "",
+                                    rows=3
+                                ) }}
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="notes" class="form-label">Additional Notes</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ vendor.notes if vendor else '' }}</textarea>
-                            <div class="form-text">Include any special arrangements, volume discounts, or other relevant information</div>
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Save Vendor
+                            </button>
+                            <a href="{{ url_for('vendors.list') }}" class="btn btn-outline-secondary ms-2">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </a>
                         </div>
-                    </div>
+                    </form>
                 </div>
-                
-                <div class="d-flex justify-content-end">
-                    <a href="{% if vendor %}/vendors/{{ vendor.id }}{% else %}/vendors{% endif %}" class="btn btn-secondary me-2">Cancel</a>
-                    <button type="submit" class="btn btn-primary">{% if vendor %}Update{% else %}Create{% endif %} Supplier</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize select2 for material categories
-        if (typeof $.fn.select2 !== 'undefined') {
-            $('#material_categories').select2({
-                placeholder: 'Select categories',
-                allowClear: true,
-                theme: 'bootstrap4'
-            });
-        }
-
-        // Initialize map
-        let map;
-        let marker;
-        const defaultLat = {{ vendor.address.latitude|default(37.7749) }};
-        const defaultLng = {{ vendor.address.longitude|default(-122.4194) }};
-        
-        function initMap() {
-            map = new google.maps.Map(document.getElementById('map'), {
-                center: { lat: defaultLat, lng: defaultLng },
-                zoom: 13,
-                mapTypeId: google.maps.MapTypeId.ROADMAP
-            });
-            
-            // Add marker if coordinates exist
-            if (document.getElementById('latitude').value && document.getElementById('longitude').value) {
-                const lat = parseFloat(document.getElementById('latitude').value);
-                const lng = parseFloat(document.getElementById('longitude').value);
-                
-                marker = new google.maps.Marker({
-                    position: { lat: lat, lng: lng },
-                    map: map,
-                    draggable: true
-                });
-                
-                // Center map on marker
-                map.setCenter({ lat: lat, lng: lng });
-                
-                // Update coordinates when marker is dragged
-                google.maps.event.addListener(marker, 'dragend', function() {
-                    const position = marker.getPosition();
-                    document.getElementById('latitude').value = position.lat();
-                    document.getElementById('longitude').value = position.lng();
-                    
-                    // Reverse geocode to get address
-                    reverseGeocode(position.lat(), position.lng());
-                });
-            }
-            
-            // Allow clicking on map to place marker
-            google.maps.event.addListener(map, 'click', function(event) {
-                placeMarker(event.latLng);
-            });
-        }
-        
-        function placeMarker(location) {
-            if (marker) {
-                marker.setPosition(location);
-            } else {
-                marker = new google.maps.Marker({
-                    position: location,
-                    map: map,
-                    draggable: true
-                });
-                
-                // Update coordinates when marker is dragged
-                google.maps.event.addListener(marker, 'dragend', function() {
-                    const position = marker.getPosition();
-                    document.getElementById('latitude').value = position.lat();
-                    document.getElementById('longitude').value = position.lng();
-                    
-                    // Reverse geocode to get address
-                    reverseGeocode(position.lat(), position.lng());
-                });
-            }
-            
-            // Update form fields
-            document.getElementById('latitude').value = location.lat();
-            document.getElementById('longitude').value = location.lng();
-            
-            // Reverse geocode to get address
-            reverseGeocode(location.lat(), location.lng());
-        }
-        
-        function reverseGeocode(lat, lng) {
-            const geocoder = new google.maps.Geocoder();
-            const latlng = { lat: lat, lng: lng };
-            
-            geocoder.geocode({ location: latlng }, function(results, status) {
-                if (status === 'OK' && results[0]) {
-                    const addressComponents = results[0].address_components;
-                    let street = '';
-                    let city = '';
-                    let state = '';
-                    let zip = '';
-                    let country = '';
-                    
-                    // Extract address components
-                    for (const component of addressComponents) {
-                        const types = component.types;
-                        
-                        if (types.includes('street_number')) {
-                            street = component.long_name;
-                        } else if (types.includes('route')) {
-                            street += (street ? ' ' : '') + component.long_name;
-                        } else if (types.includes('locality')) {
-                            city = component.long_name;
-                        } else if (types.includes('administrative_area_level_1')) {
-                            state = component.short_name;
-                        } else if (types.includes('postal_code')) {
-                            zip = component.long_name;
-                        } else if (types.includes('country')) {
-                            country = component.long_name;
-                        }
-                    }
-                    
-                    // Update form fields
-                    document.getElementById('street').value = street;
-                    document.getElementById('city').value = city;
-                    document.getElementById('state').value = state;
-                    document.getElementById('zip').value = zip;
-                    document.getElementById('country').value = country;
-                    document.getElementById('formatted_address').value = results[0].formatted_address;
-                }
-            });
-        }
-        
-        // Initialize Google Places Autocomplete
-        function initAutocomplete() {
-            const input = document.getElementById('address_search');
-            const autocomplete = new google.maps.places.Autocomplete(input);
-            
-            autocomplete.addListener('place_changed', function() {
-                const place = autocomplete.getPlace();
-                
-                if (!place.geometry) {
-                    return;
-                }
-                
-                // Get place details
-                const lat = place.geometry.location.lat();
-                const lng = place.geometry.location.lng();
-                
-                // Update map and marker
-                map.setCenter({ lat: lat, lng: lng });
-                placeMarker(new google.maps.LatLng(lat, lng));
-                
-                // Extract address components
-                let street = '';
-                let city = '';
-                let state = '';
-                let zip = '';
-                let country = '';
-                
-                for (const component of place.address_components) {
-                    const types = component.types;
-                    
-                    if (types.includes('street_number')) {
-                        street = component.long_name;
-                    } else if (types.includes('route')) {
-                        street += (street ? ' ' : '') + component.long_name;
-                    } else if (types.includes('locality')) {
-                        city = component.long_name;
-                    } else if (types.includes('administrative_area_level_1')) {
-                        state = component.short_name;
-                    } else if (types.includes('postal_code')) {
-                        zip = component.long_name;
-                    } else if (types.includes('country')) {
-                        country = component.long_name;
-                    }
-                }
-                
-                // Update form fields
-                document.getElementById('street').value = street;
-                document.getElementById('city').value = city;
-                document.getElementById('state').value = state;
-                document.getElementById('zip').value = zip;
-                document.getElementById('country').value = country;
-                document.getElementById('formatted_address').value = place.formatted_address;
-                document.getElementById('latitude').value = lat;
-                document.getElementById('longitude').value = lng;
-            });
-        }
-        
-        // Initialize map and autocomplete
-        initMap();
-        initAutocomplete();
-    });
-</script>
+{% block scripts %}
+{{ address_scripts(api_key=google_maps_api_key) }}
 {% endblock %} 

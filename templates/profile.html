@@ -1,110 +1,111 @@
 {% extends "base.html" %}
+{% from "components/forms.html" import form_group, select_group %}
+{% from "components/cards.html" import info_card, form_card %}
+{% from "components/buttons.html" import action_button %}
 
-{% block title %}My Profile - AKC CRM{% endblock %}
+{% block title %}Profile - AKC CRM{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-4">
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Profile Information</h5>
-            </div>
-            <div class="card-body">
-                <div class="text-center mb-4">
-                    <div class="avatar-circle mx-auto mb-3">
-                        <span class="avatar-initials">{{ user.first_name[0] }}{{ user.last_name[0] }}</span>
+<div class="container py-4">
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-lg-4">
+            {{ info_card(
+                title="Profile Information",
+                items=[
+                    {"label": "Name", "value": user.first_name + " " + user.last_name},
+                    {"label": "Email", "value": user.email},
+                    {"label": "Role", "value": user.role|title},
+                    {"label": "Member Since", "value": user.created_at|date},
+                    {"label": "Last Login", "value": user.last_login|date}
+                ]
+            ) }}
+
+            {{ info_card(
+                title="Activity Summary",
+                items=[
+                    {"label": "Projects", "value": user.stats.total_projects},
+                    {"label": "Tasks", "value": user.stats.total_tasks},
+                    {"label": "Time Logged", "value": f"{user.stats.total_hours} hrs"},
+                    {"label": "Documents", "value": user.stats.total_documents}
+                ]
+            ) }}
+        </div>
+
+        <!-- Profile Update Form -->
+        <div class="col-lg-8">
+            {% set form_content %}
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form_group("First Name", "first_name", value=user.first_name, required=true) }}
                     </div>
-                    <h4>{{ user.first_name }} {{ user.last_name }}</h4>
-                    <span class="badge bg-{{ user.role_color }}">{{ user.role|title }}</span>
+                    <div class="col-md-6">
+                        {{ form_group("Last Name", "last_name", value=user.last_name, required=true) }}
+                    </div>
                 </div>
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-envelope me-2"></i> Email</span>
-                        <span>{{ user.email }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-clock me-2"></i> Last Login</span>
-                        <span>{{ user.last_login }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-shield-alt me-2"></i> Account Status</span>
-                        <span class="badge bg-{{ 'success' if user.active else 'danger' }}">
-                            {{ 'Active' if user.active else 'Inactive' }}
-                        </span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Update Profile</h5>
-            </div>
-            <div class="card-body">
-                <form method="post" action="/profile/update" class="needs-validation" novalidate>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="first_name" class="form-label">First Name</label>
-                            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}" required>
-                            <div class="invalid-feedback">
-                                Please enter your first name.
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="last_name" class="form-label">Last Name</label>
-                            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}" required>
-                            <div class="invalid-feedback">
-                                Please enter your last name.
-                            </div>
-                        </div>
+
+                {{ form_group("Email", "email", type="email", value=user.email, required=true) }}
+                
+                {{ form_group("Phone", "phone", type="tel", value=user.phone) }}
+
+                {{ select_group("Time Zone", "timezone",
+                    options=[
+                        {"value": "America/New_York", "label": "Eastern Time (ET)"},
+                        {"value": "America/Chicago", "label": "Central Time (CT)"},
+                        {"value": "America/Denver", "label": "Mountain Time (MT)"},
+                        {"value": "America/Los_Angeles", "label": "Pacific Time (PT)"},
+                        {"value": "America/Anchorage", "label": "Alaska Time (AKT)"},
+                        {"value": "Pacific/Honolulu", "label": "Hawaii Time (HT)"}
+                    ],
+                    selected=user.timezone,
+                    help_text="Your local time zone for accurate scheduling"
+                ) }}
+
+                {{ form_group("Profile Picture", "avatar", type="file", accept="image/*") }}
+            {% endset %}
+
+            {{ form_card(
+                title="Update Profile",
+                form_content=form_content,
+                submit_text="Save Changes"
+            ) }}
+
+            <!-- Change Password Form -->
+            {% set password_form_content %}
+                {{ form_group("Current Password", "current_password", type="password", required=true) }}
+                {{ form_group("New Password", "new_password", type="password", required=true) }}
+                {{ form_group("Confirm New Password", "confirm_password", type="password", required=true) }}
+            {% endset %}
+
+            {{ form_card(
+                title="Change Password",
+                form_content=password_form_content,
+                submit_text="Update Password"
+            ) }}
+
+            <!-- Notification Preferences -->
+            {% set notification_form_content %}
+                <div class="mb-3">
+                    <div class="form-check mb-2">
+                        <input type="checkbox" class="form-check-input" id="email_notifications" name="email_notifications" {% if user.preferences.email_notifications %}checked{% endif %}>
+                        <label class="form-check-label" for="email_notifications">Email Notifications</label>
                     </div>
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
-                        <div class="invalid-feedback">
-                            Please enter a valid email address.
-                        </div>
+                    <div class="form-check mb-2">
+                        <input type="checkbox" class="form-check-input" id="task_reminders" name="task_reminders" {% if user.preferences.task_reminders %}checked{% endif %}>
+                        <label class="form-check-label" for="task_reminders">Task Reminders</label>
                     </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                    <div class="form-check mb-2">
+                        <input type="checkbox" class="form-check-input" id="project_updates" name="project_updates" {% if user.preferences.project_updates %}checked{% endif %}>
+                        <label class="form-check-label" for="project_updates">Project Updates</label>
                     </div>
-                </form>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Change Password</h5>
-            </div>
-            <div class="card-body">
-                <form method="post" action="/profile/change-password" class="needs-validation" novalidate>
-                    <div class="mb-3">
-                        <label for="current_password" class="form-label">Current Password</label>
-                        <input type="password" class="form-control" id="current_password" name="current_password" required>
-                        <div class="invalid-feedback">
-                            Please enter your current password.
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="new_password" class="form-label">New Password</label>
-                        <input type="password" class="form-control" id="new_password" name="new_password" required>
-                        <div class="invalid-feedback">
-                            Please enter a new password.
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="confirm_password" class="form-label">Confirm New Password</label>
-                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                        <div class="invalid-feedback">
-                            Please confirm your new password.
-                        </div>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Change Password</button>
-                    </div>
-                </form>
-            </div>
+                </div>
+            {% endset %}
+
+            {{ form_card(
+                title="Notification Preferences",
+                form_content=notification_form_content,
+                submit_text="Save Preferences"
+            ) }}
         </div>
     </div>
 </div>

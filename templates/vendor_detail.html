@@ -1,282 +1,138 @@
 {% extends "base.html" %}
+{% from "components/buttons.html" import action_button, button_group, dropdown_button %}
+{% from "components/cards.html" import info_card, stats_card, list_card, activity_card %}
+{% from "components/action_bar.html" import detail_action_bar %}
+{% from "components/modals.html" import confirm_delete_modal, status_change_modal %}
 
-{% block title %}{{ vendor.name }} - AKC CRM{% endblock %}
+{% block title %}{{ vendor.name }} - Vendor Details{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <a href="/vendors" class="btn btn-outline-secondary mb-2">
-                <i class="fas fa-arrow-left"></i> Back to Vendors
-            </a>
-            <h1 class="mb-0">{{ vendor.name }}</h1>
-            <p class="text-muted">{{ vendor.vendor_type }}</p>
-        </div>
-        <div>
-            <a href="/vendors/{{ vendor.id }}/edit" class="btn btn-primary">
-                <i class="fas fa-edit"></i> Edit Vendor
-            </a>
-            <a href="/vendors/{{ vendor.id }}/contracts" class="btn btn-outline-primary ms-2">
-                <i class="fas fa-file-contract"></i> Contracts
-            </a>
-            <a href="/vendors/{{ vendor.id }}/documents" class="btn btn-outline-primary ms-2">
-                <i class="fas fa-file-alt"></i> Documents
-            </a>
-        </div>
+{{ detail_action_bar(
+    title=vendor.name,
+    subtitle="Vendor Details",
+    status=vendor.status,
+    status_class=vendor_status_classes[vendor.status],
+    primary_actions=[
+        action_button("Edit", href=url_for('edit_vendor', vendor_id=vendor.id), icon="edit", type="primary"),
+        dropdown_button(
+            text="Change Status",
+            icon="exchange-alt",
+            type="outline-primary",
+            items=[
+                {"text": status.title(), "icon": status_icons[status], "form_action": url_for('update_vendor_status', vendor_id=vendor.id), "form_data": {"status": status}}
+                for status in allowed_status_transitions
+            ]
+        ),
+        action_button("Delete", type="outline-danger", icon="trash", modal_target="deleteVendorModal")
+    ]
+) }}
+
+<div class="row g-4">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <!-- Vendor Information -->
+        {{ info_card(
+            title="Vendor Information",
+            items=[
+                {"label": "Company Name", "value": vendor.company_name},
+                {"label": "Contact Person", "value": vendor.contact_name},
+                {"label": "Email", "value": vendor.email},
+                {"label": "Phone", "value": vendor.phone},
+                {"label": "Address", "value": vendor.address},
+                {"label": "Tax ID", "value": vendor.tax_id},
+                {"label": "Registration Date", "value": vendor.registration_date|date}
+            ]
+        ) }}
+
+        <!-- Services and Materials -->
+        {{ list_card(
+            title="Services & Materials",
+            items=[
+                {"title": service.name, "subtitle": service.description}
+                for service in vendor.services
+            ],
+            actions=[
+                action_button("Add Service", icon="plus", type="outline-primary", modal_target="addServiceModal")
+            ],
+            empty_state='<p class="text-muted">No services or materials listed</p>'
+        ) }}
+
+        <!-- Recent Activity -->
+        {{ activity_card(
+            title="Recent Activity",
+            activities=vendor.activities
+        ) }}
     </div>
 
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Vendor Information</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-2">Contact Information</h6>
-                            <p class="mb-1"><strong>Contact Name:</strong> {{ vendor.contact_name }}</p>
-                            <p class="mb-1"><strong>Email:</strong> <a href="mailto:{{ vendor.email }}">{{ vendor.email }}</a></p>
-                            <p class="mb-1"><strong>Phone:</strong> <a href="tel:{{ vendor.phone }}">{{ vendor.phone }}</a></p>
-                            <p class="mb-1"><strong>Website:</strong> <a href="{{ vendor.website }}" target="_blank">{{ vendor.website }}</a></p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-2">Business Information</h6>
-                            <p class="mb-1"><strong>Tax ID:</strong> {{ vendor.tax_id }}</p>
-                            <p class="mb-1"><strong>Payment Terms:</strong> {{ vendor.payment_terms }}</p>
-                            <p class="mb-1"><strong>Rating:</strong> 
-                                <span class="text-warning">
-                                    {% for i in range(5) %}
-                                        {% if i < vendor.rating|int %}
-                                            <i class="fas fa-star"></i>
-                                        {% elif i < vendor.rating and i >= vendor.rating|int %}
-                                            <i class="fas fa-star-half-alt"></i>
-                                        {% else %}
-                                            <i class="far fa-star"></i>
-                                        {% endif %}
-                                    {% endfor %}
-                                </span>
-                                ({{ vendor.rating }})
-                            </p>
-                            <p class="mb-1"><strong>Status:</strong> 
-                                <span class="badge {% if vendor.active %}bg-success{% else %}bg-danger{% endif %}">
-                                    {{ 'Active' if vendor.active else 'Inactive' }}
-                                </span>
-                            </p>
-                        </div>
-                    </div>
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Performance Stats -->
+        {{ stats_card(
+            title="Performance Metrics",
+            stats=[
+                {"label": "Total Orders", "value": vendor.stats.total_orders, "icon": "shopping-cart"},
+                {"label": "On-Time Rate", "value": vendor.stats.on_time_rate + "%", "icon": "clock"},
+                {"label": "Quality Rating", "value": vendor.stats.quality_rating + "/5", "icon": "star"},
+                {"label": "Response Time", "value": vendor.stats.avg_response_time + " hrs", "icon": "reply"}
+            ]
+        ) }}
 
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-2">Address</h6>
-                            <p class="mb-1">{{ vendor.address.street }}</p>
-                            <p class="mb-1">{{ vendor.address.city }}, {{ vendor.address.state }} {{ vendor.address.zip }}</p>
-                            <p class="mb-1">{{ vendor.address.country }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-2">Categories</h6>
-                            <div>
-                                {% for category in vendor.categories %}
-                                <span class="badge bg-info me-1 mb-1">{{ category }}</span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
+        <!-- Active Contracts -->
+        {{ list_card(
+            title="Active Contracts",
+            items=[
+                {
+                    "title": contract.name,
+                    "subtitle": f"Expires: {contract.end_date|date}",
+                    "actions": [
+                        action_button("View", href=url_for('view_contract', contract_id=contract.id), type="outline-primary", icon="eye")
+                    ]
+                }
+                for contract in vendor.active_contracts
+            ],
+            actions=[
+                action_button("New Contract", icon="file-contract", type="outline-primary", href=url_for('new_contract', vendor_id=vendor.id))
+            ],
+            empty_state='<p class="text-muted">No active contracts</p>'
+        ) }}
 
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-2">Insurance</h6>
-                            <p>{{ vendor.insurance }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-2">Licenses</h6>
-                            <p>{{ vendor.licenses }}</p>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-12">
-                            <h6 class="text-muted mb-2">Notes</h6>
-                            <p>{{ vendor.notes }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Contracts & Purchase Orders</h5>
-                    <a href="/vendors/{{ vendor.id }}/contracts" class="btn btn-sm btn-outline-primary">
-                        View All
-                    </a>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Contract</th>
-                                    <th>Project</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for contract in contracts[:3] %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-initials bg-primary text-white me-3">
-                                                {{ contract.contract_type[:2].upper() }}
-                                            </div>
-                                            <div>
-                                                <h6 class="mb-0">{{ contract.contract_type }}</h6>
-                                                <small class="text-muted">{{ contract.description }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {% set project = projects|selectattr('id', 'eq', contract.project_id)|first %}
-                                        {% if project %}
-                                        <a href="/projects/{{ project.id }}">{{ project.name }}</a>
-                                        {% else %}
-                                        <span class="text-muted">Unknown Project</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>${{ contract.amount }}</td>
-                                    <td>
-                                        <span class="badge {% if contract.status == 'Active' %}bg-success{% elif contract.status == 'Draft' %}bg-warning{% elif contract.status == 'Completed' %}bg-info{% else %}bg-secondary{% endif %}">
-                                            {{ contract.status }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                                
-                                {% if not contracts %}
-                                <tr>
-                                    <td colspan="4" class="text-center py-3">
-                                        <p class="text-muted mb-0">No contracts found</p>
-                                    </td>
-                                </tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Location</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div id="vendor-map" style="height: 300px;"></div>
-                </div>
-            </div>
-
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Projects</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        {% for project in projects %}
-                        <a href="/projects/{{ project.id }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">{{ project.name }}</h6>
-                                <span class="badge {% if project.status == 'In Progress' %}bg-primary{% elif project.status == 'Planning' %}bg-warning{% elif project.status == 'Completed' %}bg-success{% elif project.status == 'On Hold' %}bg-secondary{% else %}bg-info{% endif %}">
-                                    {{ project.status }}
-                                </span>
-                            </div>
-                            <p class="mb-1 small text-muted">{{ project.description[:100] }}{% if project.description|length > 100 %}...{% endif %}</p>
-                        </a>
-                        {% endfor %}
-                        
-                        {% if not projects %}
-                        <div class="list-group-item text-center py-3">
-                            <p class="text-muted mb-0">No projects found</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Recent Documents -->
+        {{ list_card(
+            title="Recent Documents",
+            items=[
+                {
+                    "title": doc.name,
+                    "subtitle": doc.uploaded_at|date,
+                    "actions": [
+                        action_button("View", href=url_for('view_document', document_id=doc.id), type="outline-primary", icon="eye")
+                    ]
+                }
+                for doc in vendor.recent_documents
+            ],
+            actions=[
+                action_button("Upload", icon="upload", type="outline-primary", modal_target="uploadDocumentModal")
+            ],
+            empty_state='<p class="text-muted">No documents uploaded</p>'
+        ) }}
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize Google Map
-        const vendorMap = document.getElementById('vendor-map');
-        if (vendorMap) {
-            const lat = {{ vendor.address.latitude|default(0) }};
-            const lng = {{ vendor.address.longitude|default(0) }};
-            
-            if (lat && lng) {
-                const map = new google.maps.Map(vendorMap, {
-                    center: { lat: lat, lng: lng },
-                    zoom: 14,
-                    mapTypeId: google.maps.MapTypeId.ROADMAP
-                });
-                
-                const marker = new google.maps.Marker({
-                    position: { lat: lat, lng: lng },
-                    map: map,
-                    title: '{{ vendor.name }}'
-                });
-                
-                const infoWindow = new google.maps.InfoWindow({
-                    content: '<div style="max-width: 200px;">' +
-                        '<h6 style="margin-bottom: 5px;">{{ vendor.name }}</h6>' +
-                        '<p style="margin-bottom: 5px; font-size: 0.9em;">{{ vendor.address.formatted_address }}</p>' +
-                        '<p style="margin-bottom: 0; font-size: 0.9em;">' +
-                        '<a href="https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '" target="_blank">Get Directions</a>' +
-                        '</p>' +
-                        '</div>'
-                });
-                
-                marker.addListener('click', function() {
-                    infoWindow.open(map, marker);
-                });
-                
-                // Open info window by default
-                infoWindow.open(map, marker);
-            } else {
-                vendorMap.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100"><p class="text-muted">No location data available</p></div>';
-            }
-        }
-        
-        // Style for avatar initials
-        document.querySelectorAll('.avatar-initials').forEach(avatar => {
-            const text = avatar.textContent.trim();
-            const colors = [
-                'bg-primary', 'bg-success', 'bg-info', 'bg-warning', 'bg-danger', 
-                'bg-secondary', 'bg-dark'
-            ];
-            
-            // Generate a consistent color based on the text
-            const colorIndex = text.charCodeAt(0) % colors.length;
-            
-            // Remove existing bg class and add the new one
-            avatar.classList.remove('bg-primary');
-            avatar.classList.add(colors[colorIndex]);
-            
-            // Add styling if not already present
-            if (!avatar.style.width) {
-                avatar.style.width = '40px';
-                avatar.style.height = '40px';
-                avatar.style.borderRadius = '50%';
-                avatar.style.display = 'flex';
-                avatar.style.alignItems = 'center';
-                avatar.style.justifyContent = 'center';
-                avatar.style.fontWeight = 'bold';
-            }
-        });
-    });
-</script>
+<!-- Modals -->
+{{ confirm_delete_modal(
+    id="deleteVendorModal",
+    item_name=vendor.name,
+    form_action=url_for('delete_vendor', vendor_id=vendor.id)
+) }}
+
+{% for status, message in status_messages.items() %}
+{{ status_change_modal(
+    id="status" + status + "Modal",
+    title="Change Status to " + status.title(),
+    message=message,
+    form_action=url_for('update_vendor_status', vendor_id=vendor.id),
+    new_status=status,
+    button_style=status_styles[status],
+    button_text="Change to " + status.title()
+) }}
+{% endfor %}
 {% endblock %} 

@@ -1,200 +1,168 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% from "components/navigation.html" import list_header %}
+{% from "components/forms.html" import search_form, select_group %}
+{% from "components/cards.html" import list_card %}
+{% from "components/buttons.html" import action_button %}
 
 {% block title %}Time Logs - AKC CRM{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Time Logs</h5>
-            <a href="{{ url_for('new_time_log') }}" class="btn btn-light btn-sm">
-                <i class="fas fa-plus"></i> Add Time Log
-            </a>
-        </div>
-        <div class="card-body">
-            <!-- Filters -->
-            <div class="row mb-4">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0">Filters</h6>
-                        </div>
-                        <div class="card-body">
-                            <form method="get" id="filterForm">
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label for="search" class="form-label">Search</label>
-                                            <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label for="project_id" class="form-label">Project</label>
-                                            <select class="form-select" id="project_id" name="project_id">
-                                                <option value="">All Projects</option>
-                                                {% for id, name in projects %}
-                                                <option value="{{ id }}" {% if project_filter and project_filter|int == id %}selected{% endif %}>{{ name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label for="user_id" class="form-label">User</label>
-                                            <select class="form-select" id="user_id" name="user_id">
-                                                <option value="">All Users</option>
-                                                {% for id, name in users %}
-                                                <option value="{{ id }}" {% if user_filter and user_filter|int == id %}selected{% endif %}>{{ name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label for="status" class="form-label">Status</label>
-                                            <select class="form-select" id="status" name="status">
-                                                <option value="">All Statuses</option>
-                                                {% for status_name in statuses %}
-                                                <option value="{{ status_name }}" {% if status_filter == status_name %}selected{% endif %}>{{ status_name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label for="date_from" class="form-label">Date From</label>
-                                            <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label for="date_to" class="form-label">Date To</label>
-                                            <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 d-flex align-items-end">
-                                        <div class="mb-3 d-grid gap-2 d-md-flex justify-content-md-end w-100">
-                                            <button type="submit" class="btn btn-primary">
-                                                <i class="fas fa-filter"></i> Apply Filters
-                                            </button>
-                                            <a href="{{ url_for('time_logs') }}" class="btn btn-secondary">
-                                                <i class="fas fa-times"></i> Clear Filters
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+{{ list_header(
+    title="Time Logs",
+    subtitle="Track time spent on projects and tasks",
+    action_button=action_button("Log Time", "plus", url_for('new_time_log'), "primary")
+) }}
+
+<!-- Filters -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        {{ search_form(
+            placeholder="Search time logs...",
+            value=search_query,
+            filters="""
+            <div class="row g-2">
+                <div class="col-md-4">
+                    """ + select_group(
+                        "Project",
+                        "project_id",
+                        options=[{"value": "", "label": "All Projects"}] + [
+                            {"value": id, "label": name}
+                            for id, name in projects
+                        ],
+                        selected=project_filter|string if project_filter else "",
+                        help_text="Filter by project"
+                    ) + """
+                </div>
+                <div class="col-md-4">
+                    """ + select_group(
+                        "User",
+                        "user_id",
+                        options=[{"value": "", "label": "All Users"}] + [
+                            {"value": id, "label": name}
+                            for id, name in users
+                        ],
+                        selected=user_filter|string if user_filter else "",
+                        help_text="Filter by user"
+                    ) + """
+                </div>
+                <div class="col-md-4">
+                    """ + select_group(
+                        "Date Range",
+                        "date_range",
+                        options=[
+                            {"value": "", "label": "All Time"},
+                            {"value": "today", "label": "Today"},
+                            {"value": "week", "label": "This Week"},
+                            {"value": "month", "label": "This Month"},
+                            {"value": "custom", "label": "Custom Range"}
+                        ],
+                        selected=date_range if date_range else "",
+                        help_text="Filter by date range"
+                    ) + """
                 </div>
             </div>
+            """
+        ) }}
+    </div>
+</div>
 
-            <!-- Time Logs Table -->
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Date</th>
-                            <th>Project</th>
-                            <th>Task</th>
-                            <th>User</th>
-                            <th>Hours</th>
-                            <th>Description</th>
-                            <th>Billable</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if time_logs %}
-                            {% for log in time_logs %}
-                            <tr>
-                                <td>{{ log.date }}</td>
-                                <td>
-                                    <a href="{{ url_for('project_detail', project_id=log.project_id) }}">
-                                        {{ log.project_name }}
-                                    </a>
-                                </td>
-                                <td>{{ log.task_name }}</td>
-                                <td>{{ log.user_name }}</td>
-                                <td>{{ log.hours }}</td>
-                                <td>{{ log.description }}</td>
-                                <td>
-                                    {% if log.billable %}
-                                    <span class="badge bg-success">Yes</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">No</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if log.status == 'Approved' %}
-                                    <span class="badge bg-success">Approved</span>
-                                    {% elif log.status == 'Pending' %}
-                                    <span class="badge bg-warning text-dark">Pending</span>
-                                    {% elif log.status == 'Rejected' %}
-                                    <span class="badge bg-danger">Rejected</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">{{ log.status }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{{ url_for('edit_time_log', log_id=log.id) }}" class="btn btn-outline-primary">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <button type="button" class="btn btn-outline-danger" onclick="confirmDelete({{ log.id }})">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="9" class="text-center">No time logs found.</td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
+<!-- Time Logs List -->
+{{ list_card(
+    title="Time Entries",
+    items=[
+        {
+            "title": log.project_name,
+            "subtitle": f"{log.hours} hours - {log.description}",
+            "meta": [
+                {"label": "User", "value": log.user_name},
+                {"label": "Date", "value": log.date|date},
+                {"label": "Task", "value": log.task_name}
+            ],
+            "actions": [
+                action_button("Edit", href=url_for('edit_time_log', log_id=log.id), type="outline-primary", icon="edit"),
+                action_button("Delete", type="outline-danger", icon="trash", modal_target=f"deleteTimeLog{log.id}Modal")
+            ]
+        }
+        for log in time_logs
+    ],
+    empty_state='<p class="text-muted">No time logs found</p>'
+) }}
+
+<!-- Delete Modals -->
+{% for log in time_logs %}
+{{ confirm_delete_modal(
+    id=f"deleteTimeLog{log.id}Modal",
+    item_name=f"time log for {log.project_name}",
+    form_action=url_for('delete_time_log', log_id=log.id)
+) }}
+{% endfor %}
+
+<!-- Custom Date Range Modal -->
+<div class="modal fade" id="customDateRangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Date Range</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-
-            <!-- Pagination -->
-            {% if total_pages > 1 %}
-            <nav aria-label="Time logs pagination">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('time_logs', page=page-1, search=search_query, project_id=project_filter, status=status_filter, user_id=user_filter, date_from=date_from, date_to=date_to) }}" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                    {% for p in range(1, total_pages + 1) %}
-                    <li class="page-item {% if p == page %}active{% endif %}">
-                        <a class="page-link" href="{{ url_for('time_logs', page=p, search=search_query, project_id=project_filter, status=status_filter, user_id=user_filter, date_from=date_from, date_to=date_to) }}">{{ p }}</a>
-                    </li>
-                    {% endfor %}
-                    <li class="page-item {% if page == total_pages %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('time_logs', page=page+1, search=search_query, project_id=project_filter, status=status_filter, user_id=user_filter, date_from=date_from, date_to=date_to) }}" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-            {% endif %}
+            <div class="modal-body">
+                <form id="dateRangeForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form_group("Start Date", "start_date", type="date", required=true) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_group("End Date", "end_date", type="date", required=true) }}
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="applyDateRange">Apply</button>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
 <script>
-    function confirmDelete(logId) {
-        if (confirm('Are you sure you want to delete this time log?')) {
-            // In a real app, this would make an AJAX call to delete the time log
-            alert('Time log deletion would be implemented in a real application.');
-        }
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle date range selection
+        const dateRangeSelect = document.getElementById('date_range');
+        const customDateRangeModal = new bootstrap.Modal(document.getElementById('customDateRangeModal'));
+        
+        dateRangeSelect.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                customDateRangeModal.show();
+            } else {
+                document.getElementById('filterForm').submit();
+            }
+        });
+        
+        // Handle custom date range form submission
+        document.getElementById('applyDateRange').addEventListener('click', function() {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            
+            if (startDate && endDate) {
+                const form = document.getElementById('filterForm');
+                const startInput = document.createElement('input');
+                startInput.type = 'hidden';
+                startInput.name = 'start_date';
+                startInput.value = startDate;
+                
+                const endInput = document.createElement('input');
+                endInput.type = 'hidden';
+                endInput.name = 'end_date';
+                endInput.value = endDate;
+                
+                form.appendChild(startInput);
+                form.appendChild(endInput);
+                form.submit();
+            }
+        });
+    });
 </script>
 {% endblock %} 
